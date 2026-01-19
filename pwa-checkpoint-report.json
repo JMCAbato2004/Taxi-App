@@ -1,0 +1,353 @@
+{
+  "timestamp": "2026-01-19T11:15:59.028Z",
+  "allTestsPassed": true,
+  "results": [
+    {
+      "category": "Archivos",
+      "test": "HTML principal",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Archivos",
+      "test": "Aplicación React",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Archivos",
+      "test": "Manifest PWA",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Archivos",
+      "test": "Service Worker",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Archivos",
+      "test": "Favicon",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Iconos",
+      "test": "icon-192.png",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Iconos",
+      "test": "icon-512.png",
+      "passed": true,
+      "details": "Presente"
+    },
+    {
+      "category": "Manifest",
+      "test": "name",
+      "passed": true,
+      "details": "\"Control de Taxi - Gestión de Servicios y Gastos\""
+    },
+    {
+      "category": "Manifest",
+      "test": "short_name",
+      "passed": true,
+      "details": "\"Control Taxi\""
+    },
+    {
+      "category": "Manifest",
+      "test": "start_url",
+      "passed": true,
+      "details": "\"./index.html\""
+    },
+    {
+      "category": "Manifest",
+      "test": "display",
+      "passed": true,
+      "details": "\"standalone\""
+    },
+    {
+      "category": "Manifest",
+      "test": "theme_color",
+      "passed": true,
+      "details": "\"#059669\""
+    },
+    {
+      "category": "Manifest",
+      "test": "background_color",
+      "passed": true,
+      "details": "\"#f9fafb\""
+    },
+    {
+      "category": "Manifest",
+      "test": "icons",
+      "passed": true,
+      "details": "\"[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object],[object Object]\""
+    },
+    {
+      "category": "Manifest",
+      "test": "Icono 192x192",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Manifest",
+      "test": "Icono 512x512",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Manifest",
+      "test": "Display mode válido",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Meta",
+      "test": "viewport",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Meta",
+      "test": "theme-color",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Meta",
+      "test": "apple-mobile-web-app-capable",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Meta",
+      "test": "manifest link",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Deps",
+      "test": "React",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Deps",
+      "test": "ReactDOM",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Deps",
+      "test": "Tailwind CSS",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Deps",
+      "test": "Lucide Icons",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML Deps",
+      "test": "Babel",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML SW",
+      "test": "Service Worker registration",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "HTML SW",
+      "test": "SW error handling",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Events",
+      "test": "install",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Events",
+      "test": "activate",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Events",
+      "test": "fetch",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Events",
+      "test": "message",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Cache",
+      "test": "Cache First",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Cache",
+      "test": "Network First",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW Cache",
+      "test": "Stale While Revalidate",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW PWA",
+      "test": "Background Sync",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW PWA",
+      "test": "Push Notifications",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "SW PWA",
+      "test": "Cache Management",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "React App",
+      "test": "TaxiControlApp",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "React App",
+      "test": "HomeView",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "React App",
+      "test": "StatCard",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "React App",
+      "test": "NavButton",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "App Features",
+      "test": "localStorage persistence",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "App Features",
+      "test": "Dark mode",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "App Features",
+      "test": "Service management",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "App Features",
+      "test": "Expense management",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "App Features",
+      "test": "CSV export",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Tests",
+      "test": "Tests de sintaxis",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Tests",
+      "test": "Tests de componentes",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Tests",
+      "test": "Tests de HTML",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Tests",
+      "test": "Tests de manifest",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "Tests",
+      "test": "Tests de Service Worker",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "PWA Criteria",
+      "test": "Manifest válido",
+      "passed": "standalone",
+      "details": ""
+    },
+    {
+      "category": "PWA Criteria",
+      "test": "Service Worker presente",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "PWA Criteria",
+      "test": "Iconos requeridos (192x192, 512x512)",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "PWA Criteria",
+      "test": "HTTPS ready (estructura)",
+      "passed": true,
+      "details": ""
+    },
+    {
+      "category": "PWA Criteria",
+      "test": "Responsive design (viewport meta)",
+      "passed": true,
+      "details": ""
+    }
+  ],
+  "summary": {
+    "total": 57,
+    "passed": 57,
+    "failed": 0
+  }
+}

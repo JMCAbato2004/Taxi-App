@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Categoría Otro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 p-8">
+    <div class="max-w-2xl mx-auto bg-white rounded-xl p-6 shadow-lg">
+        <h1 class="text-2xl font-bold mb-4">🧪 Test Categoría "Otro"</h1>
+        
+        <div id="results" class="space-y-4 mb-6"></div>
+        
+        <div class="grid grid-cols-2 gap-4">
+            <button id="testBtn" class="bg-blue-600 hover:bg-blue-700 text-white p-4 rounded-lg font-bold">
+                Ejecutar Test
+            </button>
+            
+            <button id="clearBtn" class="bg-red-600 hover:bg-red-700 text-white p-4 rounded-lg font-bold">
+                Limpiar localStorage
+            </button>
+        </div>
+        
+        <div class="mt-4">
+            <button id="addExpenseBtn" class="w-full bg-green-600 hover:bg-green-700 text-white p-4 rounded-lg font-bold">
+                Simular Gasto "Otro"
+            </button>
+        </div>
+        
+        <a href="/" class="block w-full bg-gray-600 hover:bg-gray-700 text-white p-4 rounded-lg font-bold mt-4 text-center">
+            Volver a la App
+        </a>
+    </div>
+
+    <script>
+        const DEFAULT_EXPENSE_CATEGORIES = ['Gasolina', 'Comida', 'Lavado', 'Peajes', 'Mantenimiento', 'Otro'];
+        
+        function addResult(title, content, isSuccess = true) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `p-4 rounded-lg ${isSuccess ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`;
+            div.innerHTML = `
+                <div class="font-bold">${isSuccess ? '✅' : '❌'} ${title}</div>
+                <div class="text-sm mt-1">${content}</div>
+            `;
+            results.appendChild(div);
+        }
+        
+        function runTests() {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            
+            // Test 1: Verificar categorías por defecto
+            addResult('Categorías por defecto', `Incluye "Otro": ${DEFAULT_EXPENSE_CATEGORIES.includes('Otro')}`);
+            
+            // Test 2: Simular categorías existentes sin "Otro"
+            const oldCategories = ['Gasolina', 'Comida', 'Lavado', 'Peajes', 'Mantenimiento'];
+            localStorage.setItem('expenseCategories', JSON.stringify(oldCategories));
+            
+            // Test 3: Simular la lógica de merge de la app
+            const saved = localStorage.getItem('expenseCategories');
+            if (saved) {
+                const savedCategories = JSON.parse(saved);
+                const mergedCategories = [...new Set([...savedCategories, ...DEFAULT_EXPENSE_CATEGORIES])];
+                
+                addResult('Merge de categorías', 
+                    `Antes: ${savedCategories.length} categorías<br>` +
+                    `Después: ${mergedCategories.length} categorías<br>` +
+                    `Incluye "Otro": ${mergedCategories.includes('Otro')}`
+                );
+                
+                // Actualizar localStorage
+                if (mergedCategories.length !== savedCategories.length) {
+                    localStorage.setItem('expenseCategories', JSON.stringify(mergedCategories));
+                    addResult('localStorage actualizado', 
+                        `Categorías guardadas: ${mergedCategories.join(', ')}`
+                    );
+                }
+            }
+            
+            // Test 4: Verificar que "Otro" está disponible
+            const finalCategories = JSON.parse(localStorage.getItem('expenseCategories'));
+            const hasOtro = finalCategories.includes('Otro');
+            
+            addResult('Verificación final', 
+                `"Otro" disponible: ${hasOtro}<br>` +
+                `Total categorías: ${finalCategories.length}`, 
+                hasOtro
+            );
+            
+            // Test 5: Verificar gastos existentes
+            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            const otroExpenses = expenses.filter(e => e.category === 'Otro');
+            
+            addResult('Gastos "Otro" existentes', 
+                `Encontrados: ${otroExpenses.length} gastos con categoría "Otro"`
+            );
+        }
+        
+        function clearStorage() {
+            localStorage.removeItem('expenseCategories');
+            localStorage.removeItem('expenses');
+            addResult('localStorage limpiado', 'Todas las categorías y gastos han sido eliminados');
+        }
+        
+        function addTestExpense() {
+            const expenses = JSON.parse(localStorage.getItem('expenses') || '[]');
+            const newExpense = {
+                id: Date.now(),
+                category: 'Otro',
+                amount: '15.50',
+                notes: 'Gasto de prueba para categoría Otro',
+                timestamp: new Date().toISOString()
+            };
+            
+            expenses.push(newExpense);
+            localStorage.setItem('expenses', JSON.stringify(expenses));
+            
+            addResult('Gasto "Otro" añadido', 
+                `Importe: €${newExpense.amount}<br>` +
+                `Notas: ${newExpense.notes}`
+            );
+        }
+        
+        document.getElementById('testBtn').addEventListener('click', runTests);
+        document.getElementById('clearBtn').addEventListener('click', clearStorage);
+        document.getElementById('addExpenseBtn').addEventListener('click', addTestExpense);
+        
+        // Ejecutar test automáticamente
+        runTests();
+    </script>
+</body>
+</html>
