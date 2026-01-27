@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkpoint de Lógica de Negocio</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1a1a1a; color: #00ff00; }
+        .success { color: #00ff00; }
+        .error { color: #ff4444; }
+        .warning { color: #ffaa00; }
+        .info { color: #4488ff; }
+        pre { white-space: pre-wrap; }
+    </style>
+</head>
+<body>
+    <h1>🏁 Checkpoint de Lógica de Negocio Completa</h1>
+    <div id="output"></div>
+
+    <!-- Cargar dependencias -->
+    <script src="types.js"></script>
+    <script src="calculation-engine.js"></script>
+    <script src="reconciliation-generator.js"></script>
+    <script src="cash-calculator.js"></script>
+    <script src="storage-manager.js"></script>
+    <script src="validation-system.js"></script>
+    <script src="test-business-logic-checkpoint.js"></script>
+
+    <script>
+        // Redirigir console.log al div de output
+        const outputDiv = document.getElementById('output');
+        const originalLog = console.log;
+        
+        console.log = function(...args) {
+            const message = args.join(' ');
+            const div = document.createElement('div');
+            
+            // Aplicar colores según el contenido
+            if (message.includes('✅') || message.includes('PASÓ')) {
+                div.className = 'success';
+            } else if (message.includes('❌') || message.includes('FALLÓ')) {
+                div.className = 'error';
+            } else if (message.includes('⚠️') || message.includes('PENDIENTE')) {
+                div.className = 'warning';
+            } else if (message.includes('📋') || message.includes('🔗') || message.includes('🧮')) {
+                div.className = 'info';
+            }
+            
+            div.innerHTML = '<pre>' + message + '</pre>';
+            outputDiv.appendChild(div);
+            
+            // También mostrar en consola real
+            originalLog.apply(console, args);
+        };
+
+        // Ejecutar las pruebas cuando la página cargue
+        window.addEventListener('load', function() {
+            try {
+                console.log('Iniciando checkpoint de lógica de negocio...\n');
+                const result = runBusinessLogicCheckpoint();
+                
+                if (result.success) {
+                    console.log('\n🎉 ¡CHECKPOINT COMPLETADO EXITOSAMENTE!');
+                    document.title = '✅ Checkpoint Completado';
+                } else {
+                    console.log('\n⚠️ Checkpoint con fallos - Revisar errores');
+                    document.title = '❌ Checkpoint con Fallos';
+                }
+            } catch (error) {
+                console.log('❌ Error ejecutando checkpoint:', error.message);
+                console.log('Stack trace:', error.stack);
+                document.title = '💥 Error en Checkpoint';
+            }
+        });
+    </script>
+</body>
+</html>

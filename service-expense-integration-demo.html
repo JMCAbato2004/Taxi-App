@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Integración de Servicios y Gastos con Autenticación</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .demo-section {
+            @apply mb-8 p-6 bg-white rounded-lg shadow-md border;
+        }
+        .demo-title {
+            @apply text-xl font-bold mb-4 text-gray-800;
+        }
+        .demo-output {
+            @apply bg-gray-50 p-4 rounded-lg font-mono text-sm overflow-auto max-h-96;
+        }
+        .demo-button {
+            @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-semibold mr-2 mb-2;
+        }
+        .demo-success {
+            @apply text-green-600 font-semibold;
+        }
+        .demo-error {
+            @apply text-red-600 font-semibold;
+        }
+        .demo-info {
+            @apply text-blue-600 font-semibold;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">
+                🚕 Demo: Integración de Servicios y Gastos con Autenticación
+            </h1>
+            <p class="text-gray-600">
+                Demostración de la integración entre la gestión de servicios/gastos y el sistema de autenticación con roles
+            </p>
+            <p class="text-sm text-gray-500 mt-2">
+                <strong>Requisitos:</strong> 5.3 (Asociación automática con usuario), 5.5 (Filtrado por taxistas individuales)
+            </p>
+        </div>
+
+        <!-- Authentication Status -->
+        <div class="demo-section">
+            <div class="demo-title">🔐 Estado de Autenticación</div>
+            <div id="auth-status" class="demo-output">
+                Cargando estado de autenticación...
+            </div>
+            <div class="mt-4">
+                <button id="login-patron" class="demo-button">Login como Patrón</button>
+                <button id="login-taxista1" class="demo-button">Login como Taxista 1</button>
+                <button id="login-taxista2" class="demo-button">Login como Taxista 2</button>
+                <button id="logout" class="demo-button bg-red-600 hover:bg-red-700">Logout</button>
+            </div>
+        </div>
+
+        <!-- Service Management Demo -->
+        <div class="demo-section">
+            <div class="demo-title">🚕 Gestión de Servicios con Autenticación</div>
+            <div id="service-output" class="demo-output">
+                Esperando operaciones de servicios...
+            </div>
+            <div class="mt-4">
+                <button id="create-service" class="demo-button">Crear Servicio</button>
+                <button id="list-services" class="demo-button">Listar Servicios</button>
+                <button id="update-service" class="demo-button">Actualizar Servicio</button>
+                <button id="delete-service" class="demo-button bg-red-600 hover:bg-red-700">Eliminar Servicio</button>
+            </div>
+        </div>
+
+        <!-- Expense Management Demo -->
+        <div class="demo-section">
+            <div class="demo-title">💰 Gestión de Gastos con Autenticación</div>
+            <div id="expense-output" class="demo-output">
+                Esperando operaciones de gastos...
+            </div>
+            <div class="mt-4">
+                <button id="create-expense" class="demo-button">Crear Gasto</button>
+                <button id="list-expenses" class="demo-button">Listar Gastos</button>
+                <button id="update-expense" class="demo-button">Actualizar Gasto</button>
+                <button id="delete-expense" class="demo-button bg-red-600 hover:bg-red-700">Eliminar Gasto</button>
+            </div>
+        </div>
+
+        <!-- Permission Testing -->
+        <div class="demo-section">
+            <div class="demo-title">🔒 Pruebas de Permisos</div>
+            <div id="permission-output" class="demo-output">
+                Esperando pruebas de permisos...
+            </div>
+            <div class="mt-4">
+                <button id="test-permissions" class="demo-button">Probar Permisos</button>
+                <button id="test-cross-user" class="demo-button">Probar Acceso Cruzado</button>
+                <button id="test-aggregated" class="demo-button">Probar Datos Agregados</button>
+            </div>
+        </div>
+
+        <!-- Storage Integration -->
+        <div class="demo-section">
+            <div class="demo-title">💾 Integración con Storage</div>
+            <div id="storage-output" class="demo-output">
+                Esperando operaciones de storage...
+            </div>
+            <div class="mt-4">
+                <button id="test-storage" class="demo-button">Probar Storage Wrapper</button>
+                <button id="test-filtering" class="demo-button">Probar Filtrado</button>
+                <button id="clear-storage" class="demo-button bg-red-600 hover:bg-red-700">Limpiar Storage</button>
+            </div>
+        </div>
+
+        <!-- Integration Results -->
+        <div class="demo-section">
+            <div class="demo-title">📊 Resultados de Integración</div>
+            <div id="integration-results" class="demo-output">
+                Los resultados de las pruebas aparecerán aquí...
+            </div>
+            <div class="mt-4">
+                <button id="run-full-demo" class="demo-button bg-green-600 hover:bg-green-700">Ejecutar Demo Completo</button>
+                <button id="clear-results" class="demo-button bg-gray-600 hover:bg-gray-700">Limpiar Resultados</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Load TypeScript compiled files -->
+    <script src="dist/types/index.js"></script>
+    <script src="dist/utils/jwt-utils.js"></script>
+    <script src="dist/utils/crypto-utils.js"></script>
+    <script src="dist/services/auth-service.js"></script>
+    <script src="dist/services/role-service.js"></script>
+    <script src="dist/services/reconciliation-integration.js"></script>
+    <script src="dist/services/service-expense-integration.js"></script>
+    <script src="dist/integration/service-expense-bridge.js"></script>
+
+    <script>
+        // Demo Application
+        class ServiceExpenseIntegrationDemoApp {
+            constructor() {
+                this.authService = null;
+                this.roleService = null;
+                this.reconciliationService = null;
+                this.integrationService = null;
+                this.bridge = null;
+                this.mockStorage = this.createMockStorage();
+                this.currentServices = [];
+                this.currentExpenses = [];
+                
+                this.initialize();
+                this.setupEventListeners();
+            }
+
+            initialize() {
+                try {
+                    // Initialize services
+                    const jwtUtils = new JWTUtils();
+                    const cryptoUtils = new CryptoUtils();
+                    
+                    this.authService = new AuthService(jwtUtils, cryptoUtils);
+                    this.roleService = new RoleService(this.authService);
+                    this.reconciliationService = new ReconciliationIntegrationService(
+                        this.roleService,
+                        () => this.authService.getCurrentUser()
+                    );
+                    this.integrationService = new ServiceExpenseIntegrationService(
+                        this.roleService,
+                        this.reconciliationService,
+                        () => this.authService.getCurrentUser()
+                    );
+                    this.bridge = new ServiceExpenseBridge(
+                        this.authService,
+                        this.roleService,
+                        this.reconciliationService,
+                        this.integrationService
+                    );
+
+                    this.updateAuthStatus();
+                    this.log('integration-results', '✅ Servicios inicializados correctamente', 'demo-success');
+                } catch (error) {
+                    this.log('integration-results', `❌ Error inicializando servicios: ${error.message}`, 'demo-error');
+                }
+            }
+
+            createMockStorage() {
+                return {
+                    services: [],
+                    expenses: [],
+                    
+                    getServices() { return this.services; },
+                    getExpenses() { return this.expenses; },
+                    getReconciliations() { return []; },
+                    
+                    saveService(service) { 
+                        this.services.push(service); 
+                        return service; 
+                    },
+                    saveExpense(expense) { 
+                        this.expenses.push(expense); 
+                        return expense; 
+                    },
+                    
+                    updateService(id, updates) {
+                        const index = this.services.findIndex(s => s.id === id);
+                        if (index >= 0) {
+                            this.services[index] = { ...this.services[index], ...updates };
+                        }
+                        return this.services[index];
+                    },
+                    
+                    updateExpense(id, updates) {
+                        const index = this.expenses.findIndex(e => e.id === id);
+                        if (index >= 0) {
+                            this.expenses[index] = { ...this.expenses[index], ...updates };
+                        }
+                        return this.expenses[index];
+                    },
+                    
+                    deleteService(id) {
+                        this.services = this.services.filter(s => s.id !== id);
+                    },
+                    
+                    deleteExpense(id) {
+                        this.expenses = this.expenses.filter(e => e.id !== id);
+                    }
+                };
+            }
+
+            setupEventListeners() {
+                // Authentication buttons
+                document.getElementById('login-patron').addEventListener('click', () => this.loginAsPatron());
+                document.getElementById('login-taxista1').addEventListener('click', () => this.loginAsTaxista1());
+                document.getElementById('login-taxista2').addEventListener('click', () => this.loginAsTaxista2());
+                document.getElementById('logout').addEventListener('click', () => this.logout());
+
+                // Service management buttons
+                document.getElementById('create-service').addEventListener('click', () => this.createService());
+                document.getElementById('list-services').addEventListener('click', () => this.listServices());
+                document.getElementById('update-service').addEventListener('click', () => this.updateService());
+                document.getElementById('delete-service').addEventListener('click', () => this.deleteService());
+
+                // Expense management buttons
+                document.getElementById('create-expense').addEventListener('click', () => this.createExpense());
+                document.getElementById('list-expenses').addEventListener('click', () => this.listExpenses());
+                document.getElementById('update-expense').addEventListener('click', () => this.updateExpense());
+                document.getElementById('delete-expense').addEventListener('click', () => this.deleteExpense());
+
+                // Permission testing buttons
+                document.getElementById('test-permissions').addEventListener('click', () => this.testPermissions());
+                document.getElementById('test-cross-user').addEventListener('click', () => this.testCrossUserAccess());
+                document.getElementById('test-aggregated').addEventListener('click', () => this.testAggregatedData());
+
+                // Storage integration buttons
+                document.getElementById('test-storage').addEventListener('click', () => this.testStorageWrapper());
+                document.getElementById('test-filtering').addEventListener('click', () => this.testFiltering());
+                document.getElementById('clear-storage').addEventListener('click', () => this.clearStorage());
+
+                // Demo control buttons
+                document.getElementById('run-full-demo').addEventListener('click', () => this.runFullDemo());
+                document.getElementById('clear-results').addEventListener('click', () => this.clearResults());
+            }
+
+            async loginAsPatron() {
+                try {
+                    // Register patron if not exists
+                    try {
+                        await this.authService.register({
+                            email: 'patron@demo.com',
+                            password: 'patron123',
+                            nombre: 'Demo Patrón',
+                            rol: 'patron'
+                        });
+                    } catch (e) {
+                        // User might already exist
+                    }
+
+                    // Register taxistas for association
+                    try {
+                        await this.authService.register({
+                            email: 'taxista1@demo.com',
+                            password: 'taxista123',
+                            nombre: 'Demo Taxista 1',
+                            rol: 'taxista'
+                        });
+                        await this.authService.register({
+                            email: 'taxista2@demo.com',
+                            password: 'taxista456',
+                            nombre: 'Demo Taxista 2',
+                            rol: 'taxista'
+                        });
+                    } catch (e) {
+                        // Users might already exist
+                    }
+
+                    await this.authService.login({
+                        email: 'patron@demo.com',
+                        password: 'patron123'
+                    });
+
+                    this.updateAuthStatus();
+                    this.log('integration-results', '✅ Login como patrón exitoso', 'demo-success');
+                } catch (error) {
+                    this.log('integration-results', `❌ Error en login patrón: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async loginAsTaxista1() {
+                try {
+                    await this.authService.login({
+                        email: 'taxista1@demo.com',
+                        password: 'taxista123'
+                    });
+
+                    this.updateAuthStatus();
+                    this.log('integration-results', '✅ Login como taxista 1 exitoso', 'demo-success');
+                } catch (error) {
+                    this.log('integration-results', `❌ Error en login taxista 1: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async loginAsTaxista2() {
+                try {
+                    await this.authService.login({
+                        email: 'taxista2@demo.com',
+                        password: 'taxista456'
+                    });
+
+                    this.updateAuthStatus();
+                    this.log('integration-results', '✅ Login como taxista 2 exitoso', 'demo-success');
+                } catch (error) {
+                    this.log('integration-results', `❌ Error en login taxista 2: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async logout() {
+                try {
+                    await this.authService.logout();
+                    this.updateAuthStatus();
+                    this.log('integration-results', '✅ Logout exitoso', 'demo-success');
+                } catch (error) {
+                    this.log('integration-results', `❌ Error en logout: ${error.message}`, 'demo-error');
+                }
+            }
+
+            updateAuthStatus() {
+                const user = this.authService.getCurrentUser();
+                const statusElement = document.getElementById('auth-status');
+                
+                if (user) {
+                    statusElement.innerHTML = `
+                        <div class="demo-success">✅ Usuario autenticado</div>
+                        <div><strong>Nombre:</strong> ${user.nombre}</div>
+                        <div><strong>Email:</strong> ${user.email}</div>
+                        <div><strong>Rol:</strong> ${user.rol}</div>
+                        ${user.numeroTaxista ? `<div><strong>Número Taxista:</strong> ${user.numeroTaxista}</div>` : ''}
+                    `;
+                } else {
+                    statusElement.innerHTML = '<div class="demo-error">❌ No hay usuario autenticado</div>';
+                }
+            }
+
+            async createService() {
+                try {
+                    const user = this.authService.getCurrentUser();
+                    if (!user) {
+                        throw new Error('Usuario no autenticado');
+                    }
+
+                    const serviceData = {
+                        date: new Date(),
+                        startTime: '10:00',
+                        totalAmount: Math.round((Math.random() * 50 + 10) * 100) / 100,
+                        paymentType: ['cash', 'card', 'app'][Math.floor(Math.random() * 3)],
+                        platform: 'street'
+                    };
+
+                    const service = await this.integrationService.createService(serviceData);
+                    this.currentServices.push(service);
+
+                    this.log('service-output', `✅ Servicio creado: ${JSON.stringify({
+                        id: service.id,
+                        amount: service.totalAmount,
+                        userId: service.userId,
+                        taxistaId: service.taxistaId,
+                        numeroTaxista: service.numeroTaxista
+                    }, null, 2)}`, 'demo-success');
+                } catch (error) {
+                    this.log('service-output', `❌ Error creando servicio: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async listServices() {
+                try {
+                    const services = this.integrationService.getServicesWithAuth(this.currentServices);
+                    
+                    this.log('service-output', `📋 Servicios visibles (${services.length}):
+${services.map(s => `- ID: ${s.id}, Importe: ${s.totalAmount}€, Taxista: ${s.numeroTaxista || 'N/A'}`).join('\n')}`, 'demo-info');
+                } catch (error) {
+                    this.log('service-output', `❌ Error listando servicios: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async createExpense() {
+                try {
+                    const user = this.authService.getCurrentUser();
+                    if (!user) {
+                        throw new Error('Usuario no autenticado');
+                    }
+
+                    const expenseData = {
+                        date: new Date(),
+                        concept: ['Gasolina', 'Cambio de aceite', 'Seguro', 'Reparación'][Math.floor(Math.random() * 4)],
+                        amount: Math.round((Math.random() * 100 + 20) * 100) / 100,
+                        category: ['fuel', 'maintenance', 'insurance', 'other'][Math.floor(Math.random() * 4)]
+                    };
+
+                    const expense = await this.integrationService.createExpense(expenseData);
+                    this.currentExpenses.push(expense);
+
+                    this.log('expense-output', `✅ Gasto creado: ${JSON.stringify({
+                        id: expense.id,
+                        concept: expense.concept,
+                        amount: expense.amount,
+                        userId: expense.userId,
+                        numeroTaxista: expense.numeroTaxista
+                    }, null, 2)}`, 'demo-success');
+                } catch (error) {
+                    this.log('expense-output', `❌ Error creando gasto: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async listExpenses() {
+                try {
+                    const expenses = this.integrationService.getExpensesWithAuth(this.currentExpenses);
+                    
+                    this.log('expense-output', `📋 Gastos visibles (${expenses.length}):
+${expenses.map(e => `- ID: ${e.id}, Concepto: ${e.concept}, Importe: ${e.amount}€`).join('\n')}`, 'demo-info');
+                } catch (error) {
+                    this.log('expense-output', `❌ Error listando gastos: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async testPermissions() {
+                try {
+                    const context = this.integrationService.getOperationContext();
+                    
+                    this.log('permission-output', `🔒 Contexto de permisos:
+- Usuario: ${context.user?.nombre || 'No autenticado'}
+- Rol: ${context.userRole || 'N/A'}
+- Puede crear servicios: ${context.canCreateServices}
+- Puede crear gastos: ${context.canCreateExpenses}
+- Puede ver datos agregados: ${context.canViewAggregatedData}
+- Usuarios asociados: ${context.associatedUsers.length}`, 'demo-info');
+                } catch (error) {
+                    this.log('permission-output', `❌ Error probando permisos: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async testAggregatedData() {
+                try {
+                    const stats = this.integrationService.getAggregatedStats(this.currentServices, this.currentExpenses);
+                    
+                    if (stats) {
+                        this.log('permission-output', `📊 Datos agregados disponibles:
+- Servicios: ${JSON.stringify(stats.services, null, 2)}
+- Gastos: ${JSON.stringify(stats.expenses, null, 2)}`, 'demo-success');
+                    } else {
+                        this.log('permission-output', '❌ Datos agregados no disponibles para este rol', 'demo-error');
+                    }
+                } catch (error) {
+                    this.log('permission-output', `❌ Error obteniendo datos agregados: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async testStorageWrapper() {
+                try {
+                    const wrappedStorage = this.integrationService.wrapStorageOperations(this.mockStorage);
+                    
+                    // Test save operations
+                    const service = await wrappedStorage.saveServiceWithAuth({
+                        date: new Date(),
+                        startTime: '12:00',
+                        totalAmount: 25.00,
+                        paymentType: 'cash'
+                    });
+
+                    const expense = await wrappedStorage.saveExpenseWithAuth({
+                        date: new Date(),
+                        concept: 'Test expense',
+                        amount: 30.00,
+                        category: 'other'
+                    });
+
+                    this.log('storage-output', `✅ Storage wrapper funcionando:
+- Servicio guardado: ${service.id}
+- Gasto guardado: ${expense.id}
+- Total servicios en storage: ${this.mockStorage.services.length}
+- Total gastos en storage: ${this.mockStorage.expenses.length}`, 'demo-success');
+                } catch (error) {
+                    this.log('storage-output', `❌ Error probando storage wrapper: ${error.message}`, 'demo-error');
+                }
+            }
+
+            async testFiltering() {
+                try {
+                    const wrappedStorage = this.integrationService.wrapStorageOperations(this.mockStorage);
+                    
+                    const filteredServices = wrappedStorage.getServicesWithAuth();
+                    const filteredExpenses = wrappedStorage.getExpensesWithAuth();
+                    
+                    this.log('storage-output', `🔍 Resultados de filtrado:
+- Total servicios en storage: ${this.mockStorage.services.length}
+- Servicios visibles: ${filteredServices.length}
+- Total gastos en storage: ${this.mockStorage.expenses.length}
+- Gastos visibles: ${filteredExpenses.length}`, 'demo-info');
+                } catch (error) {
+                    this.log('storage-output', `❌ Error probando filtrado: ${error.message}`, 'demo-error');
+                }
+            }
+
+            clearStorage() {
+                this.mockStorage.services = [];
+                this.mockStorage.expenses = [];
+                this.currentServices = [];
+                this.currentExpenses = [];
+                this.log('storage-output', '🗑️ Storage limpiado', 'demo-info');
+            }
+
+            async runFullDemo() {
+                this.log('integration-results', '🚀 Iniciando demo completo...', 'demo-info');
+                
+                // Login as patron
+                await this.loginAsPatron();
+                await this.delay(500);
+                
+                // Create some services and expenses
+                await this.createService();
+                await this.delay(300);
+                await this.createExpense();
+                await this.delay(300);
+                
+                // Test aggregated data
+                await this.testAggregatedData();
+                await this.delay(500);
+                
+                // Switch to taxista
+                await this.loginAsTaxista1();
+                await this.delay(500);
+                
+                // Create taxista data
+                await this.createService();
+                await this.delay(300);
+                await this.createExpense();
+                await this.delay(300);
+                
+                // Test permissions
+                await this.testPermissions();
+                await this.delay(300);
+                
+                // Test filtering
+                await this.listServices();
+                await this.delay(300);
+                await this.listExpenses();
+                
+                this.log('integration-results', '✅ Demo completo finalizado', 'demo-success');
+            }
+
+            clearResults() {
+                const outputs = ['auth-status', 'service-output', 'expense-output', 'permission-output', 'storage-output', 'integration-results'];
+                outputs.forEach(id => {
+                    const element = document.getElementById(id);
+                    if (element) {
+                        element.innerHTML = id === 'auth-status' ? 'Estado de autenticación limpiado...' : 'Resultados limpiados...';
+                    }
+                });
+            }
+
+            log(elementId, message, className = '') {
+                const element = document.getElementById(elementId);
+                if (element) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    const logEntry = `[${timestamp}] ${message}`;
+                    element.innerHTML += `<div class="${className}">${logEntry}</div>`;
+                    element.scrollTop = element.scrollHeight;
+                }
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // Initialize demo when page loads
+        document.addEventListener('DOMContentLoaded', () => {
+            window.demoApp = new ServiceExpenseIntegrationDemoApp();
+        });
+    </script>
+</body>
+</html>

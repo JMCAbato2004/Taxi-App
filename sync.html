@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sincronización de Datos - Control de Taxi</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#059669">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-900">🔄 Sincronización de Datos</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div id="connection-status" class="flex items-center space-x-2">
+                        <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                        <span class="text-sm text-green-600 font-medium">En línea</span>
+                    </div>
+                    <button onclick="goBackToMain()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        ← Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-8">
+        <!-- Estado de Sincronización -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-bold text-gray-900">Estado de Sincronización</h2>
+                <button id="sync-now-btn" onclick="syncNow()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    🔄 Sincronizar Ahora
+                </button>
+            </div>
+            
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-green-800">Datos Sincronizados</h3>
+                    <p class="text-2xl font-bold text-green-600" id="synced-count">156</p>
+                    <p class="text-sm text-green-600">Última sync: hace 2 min</p>
+                </div>
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-yellow-800">Pendientes</h3>
+                    <p class="text-2xl font-bold text-yellow-600" id="pending-count">3</p>
+                    <p class="text-sm text-yellow-600">Esperando conexión</p>
+                </div>
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-red-800">Errores</h3>
+                    <p class="text-2xl font-bold text-red-600" id="error-count">0</p>
+                    <p class="text-sm text-red-600">Sin errores</p>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso -->
+            <div class="mb-4">
+                <div class="flex justify-between text-sm text-gray-600 mb-1">
+                    <span>Progreso de sincronización</span>
+                    <span id="sync-percentage">98%</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-2">
+                    <div id="sync-progress" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 98%"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Datos Pendientes de Sincronización -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Datos Pendientes de Sincronización</h3>
+            
+            <div class="space-y-3" id="pending-items">
+                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-yellow-600">🚕</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Servicio: Centro → Aeropuerto</h4>
+                            <p class="text-sm text-gray-600">Creado offline • $25.50</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pendiente</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-yellow-600">⛽</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Gasto: Combustible</h4>
+                            <p class="text-sm text-gray-600">Creado offline • $30.00</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pendiente</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 bg-yellow-50 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-yellow-600">👤</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Actualización de perfil</h4>
+                            <p class="text-sm text-gray-600">Modificado offline</p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-1 text-xs rounded-full bg-yellow-100 text-yellow-800">Pendiente</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuración de Sincronización -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Configuración de Sincronización</h3>
+            
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900">Sincronización Automática</h4>
+                        <p class="text-sm text-gray-600">Sincronizar datos cuando hay conexión disponible</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900">Solo WiFi</h4>
+                        <p class="text-sm text-gray-600">Sincronizar solo cuando esté conectado a WiFi</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer">
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="font-medium text-gray-900">Notificaciones de Sync</h4>
+                        <p class="text-sm text-gray-600">Mostrar notificaciones cuando se complete la sincronización</p>
+                    </div>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" class="sr-only peer" checked>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Sincronización -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Historial de Sincronización</h3>
+            
+            <div class="space-y-3">
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-green-600">✅</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Sincronización completa</h4>
+                            <p class="text-sm text-gray-600">Hace 2 minutos • 12 elementos sincronizados</p>
+                        </div>
+                    </div>
+                    <span class="text-sm text-green-600 font-medium">Exitosa</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-green-600">✅</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Sincronización automática</h4>
+                            <p class="text-sm text-gray-600">Hace 15 minutos • 3 elementos sincronizados</p>
+                        </div>
+                    </div>
+                    <span class="text-sm text-green-600 font-medium">Exitosa</span>
+                </div>
+
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-lg">
+                    <div class="flex items-center">
+                        <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                            <span class="text-green-600">✅</span>
+                        </div>
+                        <div>
+                            <h4 class="font-medium text-gray-900">Sincronización completa</h4>
+                            <p class="text-sm text-gray-600">Hace 1 hora • 8 elementos sincronizados</p>
+                        </div>
+                    </div>
+                    <span class="text-sm text-green-600 font-medium">Exitosa</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function syncNow() {
+            const button = document.getElementById('sync-now-btn');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '⏳ Sincronizando...';
+            button.disabled = true;
+            
+            // Simular proceso de sincronización
+            let progress = 0;
+            const progressBar = document.getElementById('sync-progress');
+            const progressText = document.getElementById('sync-percentage');
+            
+            const interval = setInterval(() => {
+                progress += Math.random() * 20;
+                if (progress > 100) progress = 100;
+                
+                progressBar.style.width = progress + '%';
+                progressText.textContent = Math.round(progress) + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    
+                    // Actualizar contadores
+                    document.getElementById('synced-count').textContent = '159';
+                    document.getElementById('pending-count').textContent = '0';
+                    
+                    // Limpiar elementos pendientes
+                    document.getElementById('pending-items').innerHTML = `
+                        <div class="text-center py-8 text-gray-500">
+                            <span class="text-4xl mb-2 block">✅</span>
+                            <p>Todos los datos están sincronizados</p>
+                        </div>
+                    `;
+                    
+                    button.innerHTML = originalText;
+                    button.disabled = false;
+                    
+                    // Mostrar notificación
+                    const notification = document.createElement('div');
+                    notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50';
+                    notification.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="mr-2">✅</span>
+                            <span>Sincronización completada exitosamente</span>
+                        </div>
+                    `;
+                    
+                    document.body.appendChild(notification);
+                    
+                    setTimeout(() => {
+                        notification.remove();
+                    }, 3000);
+                }
+            }, 200);
+        }
+
+        // Simular cambios de conectividad
+        function updateConnectionStatus() {
+            const status = document.getElementById('connection-status');
+            const isOnline = navigator.onLine;
+            
+            if (isOnline) {
+                status.innerHTML = `
+                    <div class="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="text-sm text-green-600 font-medium">En línea</span>
+                `;
+            } else {
+                status.innerHTML = `
+                    <div class="w-3 h-3 bg-red-500 rounded-full"></div>
+                    <span class="text-sm text-red-600 font-medium">Sin conexión</span>
+                `;
+            }
+        }
+
+        window.addEventListener('online', updateConnectionStatus);
+        window.addEventListener('offline', updateConnectionStatus);
+        
+        // Actualizar estado inicial
+        updateConnectionStatus();
+
+        // Función para volver a la página principal
+        function goBackToMain() {
+            // Intentar cerrar la ventana primero (si fue abierta como popup)
+            if (window.opener) {
+                window.opener.location.reload();
+                window.close();
+            } else {
+                // Si no es un popup, redirigir a la página principal
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,8 +1,8 @@
 {
-  "name": "Control de Taxi - Gestión de Servicios y Gastos",
+  "name": "Control de Taxi - Gestión Profesional",
   "short_name": "Control Taxi",
-  "description": "Aplicación PWA para taxistas que permite registrar servicios, gestionar gastos y generar reportes detallados de ingresos y beneficios.",
-  "version": "1.0.0",
+  "description": "Sistema profesional de gestión de flotas de taxi con autenticación segura, reportes detallados y capacidades offline.",
+  "version": "2.0.0",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
@@ -11,7 +11,7 @@
   "background_color": "#f9fafb",
   "lang": "es",
   "dir": "ltr",
-  "categories": ["business", "productivity", "finance"],
+  "categories": ["business", "productivity", "finance", "transportation"],
   "icons": [
     {
       "src": "./icons/icon-72.png",
@@ -102,7 +102,7 @@
     {
       "name": "Nuevo Gasto",
       "short_name": "Gasto",
-      "description": "Registrar un nuevo gasto",
+      "description": "Registrar un nuevo gasto (gasolina, comida, etc.)",
       "url": "./index.html?action=new-expense",
       "icons": [
         {
@@ -115,7 +115,7 @@
     {
       "name": "Reportes",
       "short_name": "Reportes",
-      "description": "Ver reportes y estadísticas",
+      "description": "Ver reportes y estadísticas de turnos",
       "url": "./index.html?action=reports",
       "icons": [
         {

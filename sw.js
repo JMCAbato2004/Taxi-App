@@ -1,12 +1,12 @@
 /**
- * Service Worker para PWA Control de Taxi
+ * Service Worker para PWA Control de Ventas
  * Implementa cache-first strategy para recursos estáticos
  * y funcionalidad offline completa
  */
 
-const CACHE_NAME = 'taxi-control-v1.0.0';
-const STATIC_CACHE_NAME = 'taxi-static-v1.0.0';
-const DYNAMIC_CACHE_NAME = 'taxi-dynamic-v1.0.0';
+const CACHE_NAME = 'sales-control-v1.0.0';
+const STATIC_CACHE_NAME = 'sales-static-v1.0.0';
+const DYNAMIC_CACHE_NAME = 'sales-dynamic-v1.0.0';
 
 // Recursos estáticos para cachear (App Shell)
 const STATIC_ASSETS = [
@@ -17,6 +17,21 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './favicon.ico',
+  './offline-manager.js',
+  './config.js',
+  './reconciliation/types.js',
+  './reconciliation/calculation-engine.js',
+  './reconciliation/service-manager.js',
+  './reconciliation/expense-manager.js',
+  './reconciliation/reconciliation-generator.js',
+  './reconciliation/cash-calculator.js',
+  './reconciliation/storage-manager.js',
+  './reconciliation/validation-system.js',
+  './reconciliation/reconciliation-module.js',
+  './reconciliation/reconciliation-table.js',
+  './reconciliation/report-exporter.js',
+  './reconciliation/mobile-optimizations.js',
+  './reconciliation/desktop-optimizations.js',
   // CDN resources (se cachearán dinámicamente)
   'https://cdn.tailwindcss.com',
   'https://unpkg.com/react@18/umd/react.production.min.js',
@@ -73,7 +88,7 @@ self.addEventListener('activate', event => {
             // Eliminar caches antiguos
             if (cacheName !== STATIC_CACHE_NAME && 
                 cacheName !== DYNAMIC_CACHE_NAME &&
-                cacheName.startsWith('taxi-')) {
+                (cacheName.startsWith('sales-') || cacheName.startsWith('taxi-'))) {
               console.log('[SW] Deleting old cache:', cacheName);
               return caches.delete(cacheName);
             }
