@@ -952,6 +952,9 @@
             async login(email, password) {
                 return new Promise((resolve, reject) => {
                     setTimeout(() => {
+                        // Recargar usuarios desde localStorage para tener los datos más recientes
+                        this.users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+                        
                         const user = this.users.find(u => u.email === email && u.password === password);
                         
                         if (user) {
@@ -1053,6 +1056,9 @@
             async forgotPassword(email) {
                 return new Promise((resolve, reject) => {
                     setTimeout(() => {
+                        // Recargar usuarios desde localStorage para tener los datos más recientes
+                        this.users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+                        
                         const user = this.users.find(u => u.email === email);
                         
                         if (user) {
@@ -1070,6 +1076,9 @@
             async changePassword(email, currentPassword, newPassword) {
                 return new Promise((resolve, reject) => {
                     setTimeout(() => {
+                        // Recargar usuarios desde localStorage para tener los datos más recientes
+                        this.users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+                        
                         const userIndex = this.users.findIndex(u => u.email === email);
                         
                         if (userIndex === -1) {
