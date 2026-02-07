@@ -7,6 +7,7 @@
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#059669">
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="rgpd-styles.css">
 </head>
 <body class="bg-gray-50 min-h-screen">
     <nav class="bg-white shadow-sm border-b">
@@ -84,7 +85,7 @@
         </div>
 
         <!-- Cambio de Contraseña -->
-        <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
             <h2 class="text-xl font-bold text-gray-900 mb-4">Cambiar Contraseña</h2>
             <form id="change-password-form">
                 <div class="space-y-4">
@@ -115,10 +116,32 @@
                 </div>
             </form>
         </div>
+
+        <!-- Configuración de Privacidad RGPD -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h2 class="text-xl font-bold text-gray-900 mb-4">⚙️ Privacidad y Datos (RGPD)</h2>
+            <p class="text-gray-600 mb-4">
+                Gestiona tus datos personales y ejercita tus derechos conforme al Reglamento General de Protección de Datos.
+            </p>
+            <div class="flex flex-wrap gap-4">
+                <button onclick="showPrivacySettings()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors">
+                    🔧 Configuración de Privacidad
+                </button>
+                <button onclick="window.open('politica-privacidad.html', '_blank')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    📄 Política de Privacidad
+                </button>
+                <button onclick="window.open('terminos-condiciones.html', '_blank')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                    📋 Términos y Condiciones
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Messages -->
     <div id="message-container" class="fixed top-4 right-4 z-50"></div>
+
+    <!-- RGPD Manager -->
+    <script src="rgpd-manager.js"></script>
 
     <script>
         let currentUser = null;
@@ -275,6 +298,15 @@
                 window.close();
             } else {
                 window.location.href = 'index.html';
+            }
+        }
+
+        // Función para mostrar configuración de privacidad
+        function showPrivacySettings() {
+            if (window.rgpdManager && currentUser.id) {
+                window.rgpdManager.showPrivacySettings(currentUser.id);
+            } else {
+                showMessage('Error al cargar configuración de privacidad', 'error');
             }
         }
     </script>
