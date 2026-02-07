@@ -173,20 +173,31 @@ class MobileNativeUI {
 
     // Toast notifications
     showToast(message, duration = 3000) {
-        // Crear toast si no existe
-        let toast = document.querySelector('.mobile-toast');
-        if (!toast) {
-            toast = document.createElement('div');
-            toast.className = 'mobile-toast';
-            document.body.appendChild(toast);
+        // Remover toast anterior si existe
+        const existingToast = document.querySelector('.mobile-toast');
+        if (existingToast) {
+            existingToast.remove();
         }
 
+        // Crear nuevo toast
+        const toast = document.createElement('div');
+        toast.className = 'mobile-toast';
         toast.textContent = message;
-        toast.classList.add('show');
+        document.body.appendChild(toast);
+
+        // Mostrar con delay para animación
+        setTimeout(() => {
+            toast.classList.add('show');
+        }, 10);
+
         this.hapticFeedback('light');
 
+        // Ocultar y eliminar
         setTimeout(() => {
             toast.classList.remove('show');
+            setTimeout(() => {
+                toast.remove();
+            }, 300); // Esperar a que termine la animación
         }, duration);
     }
 

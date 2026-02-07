@@ -382,8 +382,21 @@
                 item.classList.remove('active');
             });
             element.classList.add('active');
-            window.mobileUI.hapticFeedback('light');
+            if (window.mobileUI) {
+                window.mobileUI.hapticFeedback('light');
+            }
         }
+
+        // Make functions global
+        window.setActiveTab = setActiveTab;
+        window.showWelcome = showWelcome;
+        window.showLogin = showLogin;
+        window.showRegister = showRegister;
+        window.showDashboard = showDashboard;
+        window.selectRole = selectRole;
+        window.showNewServiceSheet = showNewServiceSheet;
+        window.showMainMenu = showMainMenu;
+        window.showProfileMenu = showProfileMenu;
 
         // FAB action
         function showNewServiceSheet() {
