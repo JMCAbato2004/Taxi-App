@@ -286,7 +286,7 @@
             window.mobileUI.showLoading('Iniciando sesión...');
             setTimeout(() => {
                 window.mobileUI.hideLoading();
-                window.mobileUI.showToast('¡Bienvenido!');
+                window.mobileUI.showToast('¡Bienvenido!', 1500);
                 showDashboard();
             }, 1500);
         });
@@ -294,13 +294,13 @@
         document.getElementById('register-form').addEventListener('submit', (e) => {
             e.preventDefault();
             if (!selectedRole) {
-                window.mobileUI.showToast('Por favor selecciona un rol', 3000);
+                window.mobileUI.showToast('Por favor selecciona un rol', 2000);
                 return;
             }
             window.mobileUI.showLoading('Creando cuenta...');
             setTimeout(() => {
                 window.mobileUI.hideLoading();
-                window.mobileUI.showToast('¡Cuenta creada exitosamente!');
+                window.mobileUI.showToast('¡Cuenta creada exitosamente!', 1500);
                 showDashboard();
             }, 1500);
         });
