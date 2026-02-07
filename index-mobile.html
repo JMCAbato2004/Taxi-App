@@ -198,19 +198,19 @@
 
     <!-- Mobile Bottom Navigation -->
     <nav class="mobile-bottom-nav">
-        <a href="#" class="mobile-nav-item active">
+        <a href="#" class="mobile-nav-item active" onclick="event.preventDefault(); showDashboard(); setActiveTab(this);">
             <div class="mobile-nav-icon">🏠</div>
             <div class="mobile-nav-label">Inicio</div>
         </a>
-        <a href="#" class="mobile-nav-item">
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); window.mobileUI.showToast('Sección de Servicios próximamente', 2000); setActiveTab(this);">
             <div class="mobile-nav-icon">📊</div>
             <div class="mobile-nav-label">Servicios</div>
         </a>
-        <a href="#" class="mobile-nav-item">
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); window.mobileUI.showToast('Sección de Balance próximamente', 2000); setActiveTab(this);">
             <div class="mobile-nav-icon">💰</div>
             <div class="mobile-nav-label">Balance</div>
         </a>
-        <a href="#" class="mobile-nav-item">
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); showProfileMenu(); setActiveTab(this);">
             <div class="mobile-nav-icon">👤</div>
             <div class="mobile-nav-label">Perfil</div>
         </a>
@@ -307,18 +307,23 @@
 
         // Menu button
         document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            showMainMenu();
+        });
+
+        // Main menu function
+        function showMainMenu() {
             window.mobileUI.showActionSheet([
                 {
                     icon: '👤',
                     label: 'Mi Perfil',
                     action: 'profile',
-                    handler: () => window.mobileUI.showToast('Abriendo perfil...')
+                    handler: () => window.mobileUI.showToast('Abriendo perfil...', 2000)
                 },
                 {
                     icon: '⚙️',
                     label: 'Configuración',
                     action: 'settings',
-                    handler: () => window.mobileUI.showToast('Abriendo configuración...')
+                    handler: () => window.mobileUI.showToast('Abriendo configuración...', 2000)
                 },
                 {
                     icon: '🔒',
@@ -331,12 +336,54 @@
                     label: 'Cerrar Sesión',
                     action: 'logout',
                     handler: () => {
-                        window.mobileUI.showToast('Cerrando sesión...');
+                        window.mobileUI.showToast('Cerrando sesión...', 1500);
                         setTimeout(showWelcome, 1000);
                     }
                 }
             ]);
-        });
+        }
+
+        // Profile menu function
+        function showProfileMenu() {
+            window.mobileUI.showActionSheet([
+                {
+                    icon: '👤',
+                    label: 'Ver Perfil',
+                    action: 'view-profile',
+                    handler: () => window.open('profile.html', '_blank')
+                },
+                {
+                    icon: '🔒',
+                    label: 'Cambiar Contraseña',
+                    action: 'change-password',
+                    handler: () => window.mobileUI.showToast('Abriendo cambio de contraseña...', 2000)
+                },
+                {
+                    icon: '🔐',
+                    label: 'Privacidad (RGPD)',
+                    action: 'privacy',
+                    handler: () => window.open('politica-privacidad.html', '_blank')
+                },
+                {
+                    icon: '🚪',
+                    label: 'Cerrar Sesión',
+                    action: 'logout',
+                    handler: () => {
+                        window.mobileUI.showToast('Cerrando sesión...', 1500);
+                        setTimeout(showWelcome, 1000);
+                    }
+                }
+            ]);
+        }
+
+        // Set active tab
+        function setActiveTab(element) {
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            window.mobileUI.hapticFeedback('light');
+        }
 
         // FAB action
         function showNewServiceSheet() {
