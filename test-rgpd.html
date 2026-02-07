@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test RGPD - Control de Taxi</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="rgpd-styles.css">
+</head>
+<body class="bg-gray-50 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <div class="bg-white rounded-lg shadow-md p-8 mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-6">🧪 Test de Cumplimiento RGPD</h1>
+            
+            <div class="space-y-4">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-blue-900 mb-2">1. Banner de Consentimiento</h2>
+                    <p class="text-blue-800 mb-2">El banner debe aparecer automáticamente al cargar la página.</p>
+                    <button onclick="testConsentBanner()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        Mostrar Banner
+                    </button>
+                </div>
+
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-green-900 mb-2">2. Personalizar Consentimiento</h2>
+                    <p class="text-green-800 mb-2">Permite elegir qué tipos de cookies aceptar.</p>
+                    <button onclick="testCustomizeConsent()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                        Personalizar
+                    </button>
+                </div>
+
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-purple-900 mb-2">3. Configuración de Privacidad</h2>
+                    <p class="text-purple-800 mb-2">Panel completo de gestión de privacidad y derechos RGPD.</p>
+                    <button onclick="testPrivacySettings()" class="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700">
+                        Abrir Configuración
+                    </button>
+                </div>
+
+                <div class="bg-yellow-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-yellow-900 mb-2">4. Exportar Datos (Portabilidad)</h2>
+                    <p class="text-yellow-800 mb-2">Descarga todos los datos en formato JSON.</p>
+                    <button onclick="testExportData()" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">
+                        Exportar Datos de Prueba
+                    </button>
+                </div>
+
+                <div class="bg-red-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-red-900 mb-2">5. Eliminar Datos (Derecho al Olvido)</h2>
+                    <p class="text-red-800 mb-2">Elimina todos los datos del usuario.</p>
+                    <button onclick="testDeleteData()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">
+                        Simular Eliminación
+                    </button>
+                </div>
+
+                <div class="bg-indigo-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-indigo-900 mb-2">6. Ver Consentimientos</h2>
+                    <p class="text-indigo-800 mb-2">Muestra el historial de consentimientos.</p>
+                    <button onclick="testViewConsents()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700">
+                        Ver Historial
+                    </button>
+                </div>
+
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-gray-900 mb-2">7. Documentos Legales</h2>
+                    <div class="flex gap-2 mt-2">
+                        <button onclick="window.open('politica-privacidad.html', '_blank')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                            📄 Política de Privacidad
+                        </button>
+                        <button onclick="window.open('terminos-condiciones.html', '_blank')" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                            📋 Términos y Condiciones
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-teal-50 p-4 rounded-lg">
+                    <h2 class="font-semibold text-teal-900 mb-2">8. Limpiar Todo</h2>
+                    <p class="text-teal-800 mb-2">Resetea todos los consentimientos y datos de prueba.</p>
+                    <button onclick="testCleanAll()" class="bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700">
+                        Limpiar Todo
+                    </button>
+                </div>
+            </div>
+
+            <div id="test-results" class="mt-8 p-4 bg-gray-100 rounded-lg hidden">
+                <h3 class="font-semibold text-gray-900 mb-2">Resultados:</h3>
+                <pre id="results-content" class="text-sm text-gray-700 overflow-auto"></pre>
+            </div>
+        </div>
+    </div>
+
+    <script src="rgpd-manager.js"></script>
+    <script>
+        // Crear usuario de prueba si no existe
+        function createTestUser() {
+            const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+            if (users.length === 0) {
+                const testUser = {
+                    id: 1,
+                    nombre: 'Usuario de Prueba',
+                    email: 'test@example.com',
+                    password: 'test123',
+                    rol: 'TAXISTA',
+                    telefono: '+34600000000',
+                    numeroTaxista: 'TX001',
+                    estado: 'independiente',
+                    fechaRegistro: new Date().toISOString()
+                };
+                users.push(testUser);
+                localStorage.setItem('taxi_users', JSON.stringify(users));
+                localStorage.setItem('taxi_auth_current_user', JSON.stringify(testUser));
+                showResults('Usuario de prueba creado: ' + JSON.stringify(testUser, null, 2));
+            }
+            return users[0];
+        }
+
+        function testConsentBanner() {
+            // Limpiar consentimiento para que aparezca el banner
+            localStorage.removeItem('taxi_rgpd_consent');
+            window.rgpdManager.checkConsent();
+            showResults('Banner de consentimiento mostrado');
+        }
+
+        function testCustomizeConsent() {
+            window.rgpdManager.showCustomizeModal();
+            showResults('Modal de personalización abierto');
+        }
+
+        function testPrivacySettings() {
+            const user = createTestUser();
+            window.rgpdManager.showPrivacySettings(user.id);
+            showResults('Configuración de privacidad abierta para usuario ID: ' + user.id);
+        }
+
+        function testExportData() {
+            const user = createTestUser();
+            window.rgpdManager.exportUserData(user.id);
+            showResults('Datos exportados para usuario ID: ' + user.id);
+        }
+
+        function testDeleteData() {
+            if (confirm('¿Estás seguro? Esto eliminará los datos de prueba.')) {
+                const user = createTestUser();
+                const result = window.rgpdManager.deleteAllUserData(user.id);
+                showResults('Datos eliminados: ' + result);
+            }
+        }
+
+        function testViewConsents() {
+            const consent = window.rgpdManager.getConsent();
+            const log = JSON.parse(localStorage.getItem('taxi_rgpd_consent_log') || '[]');
+            showResults('Consentimiento actual:\n' + JSON.stringify(consent, null, 2) + 
+                       '\n\nHistorial:\n' + JSON.stringify(log, null, 2));
+        }
+
+        function testCleanAll() {
+            if (confirm('¿Limpiar todos los datos de prueba y consentimientos?')) {
+                localStorage.removeItem('taxi_rgpd_consent');
+                localStorage.removeItem('taxi_rgpd_consent_log');
+                localStorage.removeItem('taxi_rgpd_deletion_log');
+                localStorage.removeItem('taxi_users');
+                localStorage.removeItem('taxi_auth_current_user');
+                localStorage.removeItem('taxi_services');
+                localStorage.removeItem('taxi_expenses');
+                localStorage.removeItem('taxi_join_requests');
+                showResults('Todos los datos limpiados. Recarga la página para empezar de nuevo.');
+            }
+        }
+
+        function showResults(text) {
+            const resultsDiv = document.getElementById('test-results');
+            const resultsContent = document.getElementById('results-content');
+            resultsDiv.classList.remove('hidden');
+            resultsContent.textContent = text;
+        }
+
+        // Inicializar
+        document.addEventListener('DOMContentLoaded', function() {
+            showResults('Sistema RGPD cargado correctamente.\nHaz clic en los botones para probar cada funcionalidad.');
+        });
+    </script>
+</body>
+</html>
