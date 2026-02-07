@@ -370,35 +370,12 @@
     <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
     <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
     
-    <!-- Ionicons -->
-    <script type="module">
-        import { addIcons } from 'https://cdn.jsdelivr.net/npm/ionicons/dist/ionicons/index.esm.js';
-        import { 
-            home, car, wallet, person, logIn, personAdd, ellipsisVertical,
-            barChart, phonePortrait, shieldCheckmark, key, logOut, add
-        } from 'https://cdn.jsdelivr.net/npm/ionicons/icons/index.esm.js';
-        
-        addIcons({
-            'home': home,
-            'car': car,
-            'wallet': wallet,
-            'person': person,
-            'log-in': logIn,
-            'person-add': personAdd,
-            'ellipsis-vertical': ellipsisVertical,
-            'bar-chart': barChart,
-            'phone-portrait': phonePortrait,
-            'shield-checkmark': shieldCheckmark,
-            'key': key,
-            'log-out': logOut,
-            'add': add
-        });
-    </script>
-    
     <!-- App Logic -->
     <script>
         // Wait for Ionic to be ready
-        document.addEventListener('DOMContentLoaded', async () => {
+        customElements.whenDefined('ion-modal').then(() => {
+            console.log('Ionic components ready');
+            
             // Show login modal
             document.getElementById('show-login-btn').addEventListener('click', async () => {
                 await showLoginModal();
@@ -445,8 +422,8 @@
                     <ion-toolbar color="primary">
                         <ion-title>Iniciar Sesión</ion-title>
                         <ion-buttons slot="end">
-                            <ion-button onclick="this.closest('ion-modal').dismiss()">
-                                <ion-icon name="close"></ion-icon>
+                            <ion-button onclick="document.querySelector('ion-modal').dismiss()">
+                                Cerrar
                             </ion-button>
                         </ion-buttons>
                     </ion-toolbar>
@@ -462,13 +439,21 @@
                             <ion-input type="password" placeholder="••••••••" id="login-password"></ion-input>
                         </ion-item>
                     </ion-list>
-                    <ion-button expand="block" color="primary" style="margin-top: 20px;" onclick="handleLogin()">
+                    <ion-button expand="block" color="primary" style="margin-top: 20px;" id="login-submit-btn">
                         Iniciar Sesión
                     </ion-button>
                 </ion-content>
             `;
             document.body.appendChild(modal);
             await modal.present();
+            
+            // Add event listener after modal is presented
+            setTimeout(() => {
+                const submitBtn = modal.querySelector('#login-submit-btn');
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', () => handleLogin(modal));
+                }
+            }, 100);
         }
         
         // Show register modal
@@ -479,8 +464,8 @@
                     <ion-toolbar color="primary">
                         <ion-title>Registrarse</ion-title>
                         <ion-buttons slot="end">
-                            <ion-button onclick="this.closest('ion-modal').dismiss()">
-                                <ion-icon name="close"></ion-icon>
+                            <ion-button onclick="document.querySelector('ion-modal').dismiss()">
+                                Cerrar
                             </ion-button>
                         </ion-buttons>
                     </ion-toolbar>
@@ -490,13 +475,13 @@
                     <ion-grid>
                         <ion-row>
                             <ion-col size="6">
-                                <div class="role-selector" onclick="selectRole('PATRON', this)">
+                                <div class="role-selector" data-role="PATRON">
                                     <div class="role-icon">👔</div>
                                     <strong>Patrón</strong>
                                 </div>
                             </ion-col>
                             <ion-col size="6">
-                                <div class="role-selector" onclick="selectRole('TAXISTA', this)">
+                                <div class="role-selector" data-role="TAXISTA">
                                     <div class="role-icon">🚗</div>
                                     <strong>Taxista</strong>
                                 </div>
@@ -521,18 +506,34 @@
                             <ion-input type="password" placeholder="••••••••"></ion-input>
                         </ion-item>
                     </ion-list>
-                    <ion-button expand="block" color="primary" style="margin-top: 20px;" onclick="handleRegister()">
+                    <ion-button expand="block" color="primary" style="margin-top: 20px;" id="register-submit-btn">
                         Crear Cuenta
                     </ion-button>
                 </ion-content>
             `;
             document.body.appendChild(modal);
             await modal.present();
+            
+            // Add event listeners after modal is presented
+            setTimeout(() => {
+                // Role selectors
+                modal.querySelectorAll('.role-selector').forEach(selector => {
+                    selector.addEventListener('click', function() {
+                        modal.querySelectorAll('.role-selector').forEach(el => el.classList.remove('selected'));
+                        this.classList.add('selected');
+                    });
+                });
+                
+                // Submit button
+                const submitBtn = modal.querySelector('#register-submit-btn');
+                if (submitBtn) {
+                    submitBtn.addEventListener('click', () => handleRegister(modal));
+                }
+            }, 100);
         }
         
         // Handle login
-        async function handleLogin() {
-            const modal = document.querySelector('ion-modal');
+        async function handleLogin(modal) {
             await showLoading('Iniciando sesión...');
             setTimeout(async () => {
                 await hideLoading();
@@ -544,8 +545,7 @@
         }
         
         // Handle register
-        async function handleRegister() {
-            const modal = document.querySelector('ion-modal');
+        async function handleRegister(modal) {
             await showLoading('Creando cuenta...');
             setTimeout(async () => {
                 await hideLoading();
@@ -556,12 +556,6 @@
             }, 1500);
         }
         
-        // Select role
-        function selectRole(role, element) {
-            document.querySelectorAll('.role-selector').forEach(el => el.classList.remove('selected'));
-            element.classList.add('selected');
-        }
-        
         // Show menu action sheet
         async function showMenuActionSheet() {
             const actionSheet = document.createElement('ion-action-sheet');
@@ -569,22 +563,18 @@
             actionSheet.buttons = [
                 {
                     text: 'Mi Perfil',
-                    icon: 'person',
                     handler: () => window.open('profile.html', '_blank')
                 },
                 {
                     text: 'Configuración',
-                    icon: 'settings',
                     handler: () => showToast('Configuración próximamente')
                 },
                 {
                     text: 'Privacidad (RGPD)',
-                    icon: 'shield-checkmark',
                     handler: () => window.open('politica-privacidad.html', '_blank')
                 },
                 {
                     text: 'Cerrar Sesión',
-                    icon: 'log-out',
                     role: 'destructive',
                     handler: async () => {
                         await showToast('Cerrando sesión...');
@@ -610,17 +600,14 @@
             actionSheet.buttons = [
                 {
                     text: 'Nuevo Servicio',
-                    icon: 'car',
                     handler: () => showToast('Registrando servicio...')
                 },
                 {
                     text: 'Nuevo Gasto',
-                    icon: 'cash',
                     handler: () => showToast('Registrando gasto...')
                 },
                 {
                     text: 'Ver Reportes',
-                    icon: 'bar-chart',
                     handler: () => showToast('Abriendo reportes...')
                 },
                 {
