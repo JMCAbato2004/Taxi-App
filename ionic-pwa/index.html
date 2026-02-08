@@ -11,7 +11,7 @@
     
     <title>Control de Taxi - Gestión Profesional</title>
     
-    <!-- Version: 11.0 - Fixed logout (clears all views and returns to welcome) -->
+    <!-- Version: 12.0 - Added role badge and improved fleet management visibility -->
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="../manifest.json">
@@ -103,6 +103,11 @@
                     
                     <!-- Dashboard Section (shown when authenticated) -->
                     <div id="dashboard-section" style="display: none;">
+                        <!-- User Role Badge -->
+                        <div id="user-role-badge" style="text-align: center; margin-bottom: 20px; padding: 16px; background: var(--ion-color-light); border-radius: 12px;">
+                            <!-- Role badge will be rendered here -->
+                        </div>
+                        
                         <!-- Stats Grid -->
                         <ion-grid>
                             <ion-row>
