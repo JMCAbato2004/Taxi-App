@@ -681,7 +681,8 @@ window.app = {
   },
   
   showBalanceSettings: async () => {
-    ToastManager.showInfo('Ajustes de balance - Próximamente');
+    const modal = new BalanceSettingsModal();
+    await modal.show();
   },
   
   showDataSync: async () => {

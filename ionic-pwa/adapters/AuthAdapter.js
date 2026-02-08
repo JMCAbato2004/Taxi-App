@@ -174,6 +174,7 @@ class AuthAdapter {
         telefono: userData.telefono,
         rol: userData.rol,
         numeroTaxista: userData.rol === 'TAXISTA' ? 'T-' + Math.floor(Math.random() * 1000) : null,
+        codigoInvitacion: userData.rol === 'PATRON' ? this.generateInvitationCode() : null,
         activo: true,
         fechaCreacion: new Date().toISOString()
       };
@@ -441,6 +442,20 @@ class AuthAdapter {
       console.error('Error getting associated users:', error);
       return [];
     }
+  }
+  
+  /**
+   * Generate a unique invitation code for patrons
+   * @private
+   * @returns {string} 6-character invitation code
+   */
+  generateInvitationCode() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude similar looking characters
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
   }
   
   /**
