@@ -14,6 +14,7 @@ class RegisterModal {
       telefono: '',
       password: '',
       confirmPassword: '',
+      codigoInvitacion: '',
       rol: null
     };
   }
@@ -91,6 +92,22 @@ class RegisterModal {
             ></ion-input>
           </ion-item>
           <ion-note color="danger" id="telefono-error" style="display: none; padding-left: 16px;"></ion-note>
+          
+          <!-- Invitation Code (only for TAXISTA) -->
+          <ion-item id="codigoInvitacion-item" style="display: none;">
+            <ion-label position="stacked">Código de Invitación (opcional)</ion-label>
+            <ion-input 
+              type="text" 
+              placeholder="ABC123" 
+              id="register-codigoInvitacion"
+              maxlength="6"
+              style="text-transform: uppercase;"
+            ></ion-input>
+          </ion-item>
+          <ion-note id="codigoInvitacion-note" style="display: none; padding-left: 16px; font-size: 11px; color: var(--ion-color-medium);">
+            Si tienes un código de invitación de un patrón, ingrésalo aquí para unirte a su flota
+          </ion-note>
+          <ion-note color="danger" id="codigoInvitacion-error" style="display: none; padding-left: 16px;"></ion-note>
           
           <ion-item id="password-item">
             <ion-label position="stacked">Contraseña *</ion-label>
@@ -181,6 +198,12 @@ class RegisterModal {
       this.clearFieldError('telefono');
     });
     
+    const codigoInvitacionInput = this.modal.querySelector('#register-codigoInvitacion');
+    codigoInvitacionInput?.addEventListener('ionInput', (e) => {
+      this.formData.codigoInvitacion = e.target.value.toUpperCase();
+      this.clearFieldError('codigoInvitacion');
+    });
+    
     passwordInput?.addEventListener('ionInput', (e) => {
       this.formData.password = e.target.value;
       this.clearFieldError('password');
@@ -217,6 +240,18 @@ class RegisterModal {
         selector.classList.remove('selected');
       }
     });
+    
+    // Show/hide invitation code field based on role
+    const codigoInvitacionItem = this.modal.querySelector('#codigoInvitacion-item');
+    const codigoInvitacionNote = this.modal.querySelector('#codigoInvitacion-note');
+    
+    if (role === 'TAXISTA') {
+      codigoInvitacionItem.style.display = 'block';
+      codigoInvitacionNote.style.display = 'block';
+    } else {
+      codigoInvitacionItem.style.display = 'none';
+      codigoInvitacionNote.style.display = 'none';
+    }
     
     // Clear role error if any
     this.clearFieldError('role');
@@ -352,7 +387,7 @@ class RegisterModal {
    * Clear all validation errors
    */
   clearAllErrors() {
-    const fields = ['role', 'nombre', 'email', 'telefono', 'password', 'confirmPassword'];
+    const fields = ['role', 'nombre', 'email', 'telefono', 'codigoInvitacion', 'password', 'confirmPassword'];
     fields.forEach(field => this.clearFieldError(field));
   }
 
@@ -384,12 +419,21 @@ class RegisterModal {
       // Attempt registration via AuthAdapter
       const user = await this.authAdapter.register(userData);
       
+      // If taxista and has invitation code, create join request
+      if (this.selectedRole === 'TAXISTA' && this.formData.codigoInvitacion) {
+        await this.createJoinRequest(user, this.formData.codigoInvitacion.trim().toUpperCase());
+      }
+      
       // Hide loading
       await LoadingManager.hide();
       
       if (user) {
         // Show success message
-        ToastManager.showSuccess('¡Cuenta creada exitosamente! Bienvenido.');
+        let successMessage = '¡Cuenta creada exitosamente! Bienvenido.';
+        if (this.selectedRole === 'TAXISTA' && this.formData.codigoInvitacion) {
+          successMessage = '¡Cuenta creada! Solicitud de unión enviada al patrón.';
+        }
+        ToastManager.showSuccess(successMessage);
         
         // Close modal
         this.close();
@@ -409,6 +453,62 @@ class RegisterModal {
       ToastManager.showError(errorMessage);
       
       console.error('Registration error:', error);
+    }
+  }
+
+  /**
+   * Create join request for taxista with invitation code
+   * @param {Object} user - The taxista user
+   * @param {string} codigoInvitacion - Invitation code from patron
+   */
+  async createJoinRequest(user, codigoInvitacion) {
+    try {
+      // Get all users to find patron with this invitation code
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === codigoInvitacion);
+      
+      if (!patron) {
+        ToastManager.showWarning('Código de invitación no válido');
+        return;
+      }
+      
+      // Get existing requests
+      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
+      
+      // Check if request already exists
+      const existingRequest = requests.find(r => 
+        r.taxistaId === user.id && r.patronId === patron.id && r.estado === 'pendiente'
+      );
+      
+      if (existingRequest) {
+        return; // Request already exists
+      }
+      
+      // Create new join request
+      const newRequest = {
+        id: Date.now(),
+        taxistaId: user.id,
+        patronId: patron.id,
+        estado: 'pendiente',
+        fechaSolicitud: new Date().toISOString()
+      };
+      
+      requests.push(newRequest);
+      localStorage.setItem('taxi_join_requests', JSON.stringify(requests));
+      
+      // Update user status to 'solicitando'
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex].estado = 'solicitando';
+        users[userIndex].patronIdSolicitado = patron.id;
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+        
+        // Update current user in auth adapter
+        const updatedUser = users[userIndex];
+        localStorage.setItem('taxi_auth_current_user', JSON.stringify(updatedUser));
+      }
+    } catch (error) {
+      console.error('Error creating join request:', error);
     }
   }
 
@@ -440,6 +540,7 @@ class RegisterModal {
       telefono: '',
       password: '',
       confirmPassword: '',
+      codigoInvitacion: '',
       rol: null
     };
   }

@@ -175,9 +175,15 @@ class AuthAdapter {
         rol: userData.rol,
         numeroTaxista: userData.rol === 'TAXISTA' ? 'T-' + Math.floor(Math.random() * 1000) : null,
         codigoInvitacion: userData.rol === 'PATRON' ? this.generateInvitationCode() : null,
+        estado: 'independiente',
         activo: true,
         fechaCreacion: new Date().toISOString()
       };
+
+      // Save user to taxi_users
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      users.push(user);
+      localStorage.setItem('taxi_users', JSON.stringify(users));
 
       // Auto-login after registration
       this.currentUser = user;
