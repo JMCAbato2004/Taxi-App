@@ -227,6 +227,8 @@ class RegisterModal {
    * @param {string} role - Selected role (PATRON or TAXISTA)
    */
   handleRoleSelection(role) {
+    console.log('Role selected:', role);
+    
     // Update selected role
     this.selectedRole = role;
     this.formData.rol = role;
@@ -245,12 +247,21 @@ class RegisterModal {
     const codigoInvitacionItem = this.modal.querySelector('#codigoInvitacion-item');
     const codigoInvitacionNote = this.modal.querySelector('#codigoInvitacion-note');
     
-    if (role === 'TAXISTA') {
-      codigoInvitacionItem.style.display = 'block';
-      codigoInvitacionNote.style.display = 'block';
+    console.log('Invitation code item found:', !!codigoInvitacionItem);
+    console.log('Invitation code note found:', !!codigoInvitacionNote);
+    
+    if (codigoInvitacionItem && codigoInvitacionNote) {
+      if (role === 'TAXISTA') {
+        console.log('Showing invitation code field');
+        codigoInvitacionItem.style.display = 'block';
+        codigoInvitacionNote.style.display = 'block';
+      } else {
+        console.log('Hiding invitation code field');
+        codigoInvitacionItem.style.display = 'none';
+        codigoInvitacionNote.style.display = 'none';
+      }
     } else {
-      codigoInvitacionItem.style.display = 'none';
-      codigoInvitacionNote.style.display = 'none';
+      console.error('Invitation code elements not found in modal');
     }
     
     // Clear role error if any
