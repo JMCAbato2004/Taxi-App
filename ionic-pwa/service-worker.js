@@ -3,7 +3,7 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v15';
+const CACHE_NAME = 'taxi-pwa-v16';
 const RUNTIME_CACHE = 'taxi-runtime-v6';
 
 // Assets to cache on install
@@ -72,8 +72,20 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip cross-origin requests
+  // Skip cross-origin requests EXCEPT cdn.jsdelivr.net
   if (url.origin !== location.origin && !url.href.includes('cdn.jsdelivr.net')) {
+    return;
+  }
+
+  // For CDN requests, use network-first strategy (don't cache dynamic imports)
+  if (url.href.includes('cdn.jsdelivr.net') && url.href.includes('?module')) {
+    event.respondWith(
+      fetch(request, { mode: 'cors' })
+        .catch((error) => {
+          console.error('[Service Worker] CDN fetch failed:', error);
+          return caches.match(request);
+        })
+    );
     return;
   }
 
@@ -98,11 +110,13 @@ self.addEventListener('fetch', (event) => {
               // Clone the response
               const responseToCache = response.clone();
 
-              // Cache the fetched response
-              caches.open(RUNTIME_CACHE)
-                .then((cache) => {
-                  cache.put(request, responseToCache);
-                });
+              // Cache the fetched response (but not CDN dynamic imports)
+              if (!url.href.includes('cdn.jsdelivr.net') || !url.href.includes('?module')) {
+                caches.open(RUNTIME_CACHE)
+                  .then((cache) => {
+                    cache.put(request, responseToCache);
+                  });
+              }
 
               return response;
             })
