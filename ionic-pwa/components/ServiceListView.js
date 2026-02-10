@@ -13,6 +13,9 @@ class ServiceListView {
     this.sortBy = 'date'; // date, amount
     this.sortOrder = 'desc'; // asc, desc
     this.filterServiceSource = 'all'; // all, emisora, calle, uber, freenow, otro
+    this.filterTaxista = 'all'; // all, or taxista ID
+    this.filterDateFrom = ''; // YYYY-MM-DD
+    this.filterDateTo = ''; // YYYY-MM-DD
   }
 
   /**
@@ -25,6 +28,21 @@ class ServiceListView {
     // Load services
     await this.loadServices();
 
+    // Get current user to check if patron
+    const user = this.authAdapter.getCurrentUser();
+    const isPatron = user && user.rol === 'PATRON';
+
+    // Get taxistas list if patron
+    let taxistas = [];
+    if (isPatron) {
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      taxistas = users.filter(u => 
+        u.rol === 'TAXISTA' && 
+        u.estado === 'asociado' && 
+        u.patronId === user.id
+      );
+    }
+
     // Build UI
     container.innerHTML = `
       <!-- Search and Filter Bar -->
@@ -36,6 +54,7 @@ class ServiceListView {
         </ion-searchbar>
         
         <div class="filter-controls">
+          <!-- Source Filter -->
           <ion-segment id="source-filter" value="all" scrollable>
             <ion-segment-button value="all">
               <ion-label>Todos</ion-label>
@@ -57,7 +76,47 @@ class ServiceListView {
             </ion-segment-button>
           </ion-segment>
           
-          <div class="sort-controls">
+          <!-- Taxista Filter (only for patrons) -->
+          ${isPatron && taxistas.length > 0 ? `
+            <ion-item style="margin-top: 8px;">
+              <ion-label>Taxista</ion-label>
+              <ion-select id="taxista-filter" value="all" interface="popover">
+                <ion-select-option value="all">Todos los taxistas</ion-select-option>
+                ${taxistas.map(t => `
+                  <ion-select-option value="${t.id}">${t.nombre} (${t.numeroTaxista})</ion-select-option>
+                `).join('')}
+              </ion-select>
+            </ion-item>
+          ` : ''}
+          
+          <!-- Date Range Filter -->
+          <ion-grid style="margin-top: 8px;">
+            <ion-row>
+              <ion-col size="6">
+                <ion-item>
+                  <ion-label position="stacked">Desde</ion-label>
+                  <ion-input 
+                    type="date" 
+                    id="date-from-filter"
+                    placeholder="Fecha inicio">
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+              <ion-col size="6">
+                <ion-item>
+                  <ion-label position="stacked">Hasta</ion-label>
+                  <ion-input 
+                    type="date" 
+                    id="date-to-filter"
+                    placeholder="Fecha fin">
+                  </ion-input>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+          
+          <!-- Action Buttons -->
+          <div class="sort-controls" style="margin-top: 8px;">
             <ion-button id="sort-date-btn" fill="outline" size="small">
               <ion-icon name="calendar" slot="start"></ion-icon>
               Fecha
@@ -65,6 +124,10 @@ class ServiceListView {
             <ion-button id="sort-amount-btn" fill="outline" size="small">
               <ion-icon name="cash" slot="start"></ion-icon>
               Importe
+            </ion-button>
+            <ion-button id="clear-filters-btn" fill="clear" size="small" color="medium">
+              <ion-icon name="close-circle" slot="start"></ion-icon>
+              Limpiar
             </ion-button>
           </div>
         </div>
@@ -239,6 +302,40 @@ class ServiceListView {
       });
     }
 
+    // Taxista filter
+    const taxistaFilter = document.getElementById('taxista-filter');
+    if (taxistaFilter) {
+      taxistaFilter.addEventListener('ionChange', (e) => {
+        this.filterTaxista = e.detail.value;
+        this.applyFilters();
+        this.updateList();
+      });
+    }
+
+    // Date filters
+    const dateFromFilter = document.getElementById('date-from-filter');
+    if (dateFromFilter) {
+      dateFromFilter.addEventListener('ionChange', (e) => {
+        this.filterDateFrom = e.detail.value;
+        this.applyFilters();
+        this.updateList();
+      });
+    }
+
+    const dateToFilter = document.getElementById('date-to-filter');
+    if (dateToFilter) {
+      dateToFilter.addEventListener('ionChange', (e) => {
+        this.filterDateTo = e.detail.value;
+        this.applyFilters();
+        this.updateList();
+      });
+    }
+
+    // Clear filters button
+    document.getElementById('clear-filters-btn')?.addEventListener('click', () => {
+      this.clearAllFilters();
+    });
+
     // Sort buttons
     document.getElementById('sort-date-btn')?.addEventListener('click', () => {
       this.toggleSort('date');
@@ -293,6 +390,19 @@ class ServiceListView {
       filtered = filtered.filter(service => service.serviceSource === this.filterServiceSource);
     }
 
+    // Apply taxista filter
+    if (this.filterTaxista !== 'all') {
+      filtered = filtered.filter(service => service.userId === this.filterTaxista);
+    }
+
+    // Apply date range filter
+    if (this.filterDateFrom) {
+      filtered = filtered.filter(service => service.date >= this.filterDateFrom);
+    }
+    if (this.filterDateTo) {
+      filtered = filtered.filter(service => service.date <= this.filterDateTo);
+    }
+
     // Apply sorting
     filtered.sort((a, b) => {
       let comparison = 0;
@@ -309,6 +419,40 @@ class ServiceListView {
     });
 
     this.filteredServices = filtered;
+  }
+
+  /**
+   * Clear all filters
+   */
+  clearAllFilters() {
+    // Reset filter values
+    this.searchQuery = '';
+    this.filterServiceSource = 'all';
+    this.filterTaxista = 'all';
+    this.filterDateFrom = '';
+    this.filterDateTo = '';
+
+    // Reset UI elements
+    const searchBar = document.getElementById('service-search');
+    if (searchBar) searchBar.value = '';
+
+    const sourceFilter = document.getElementById('source-filter');
+    if (sourceFilter) sourceFilter.value = 'all';
+
+    const taxistaFilter = document.getElementById('taxista-filter');
+    if (taxistaFilter) taxistaFilter.value = 'all';
+
+    const dateFromFilter = document.getElementById('date-from-filter');
+    if (dateFromFilter) dateFromFilter.value = '';
+
+    const dateToFilter = document.getElementById('date-to-filter');
+    if (dateToFilter) dateToFilter.value = '';
+
+    // Reapply filters and update
+    this.applyFilters();
+    this.updateList();
+
+    ToastManager.showInfo('Filtros limpiados');
   }
 
   /**
