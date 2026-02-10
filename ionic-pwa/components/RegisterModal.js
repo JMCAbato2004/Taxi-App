@@ -93,9 +93,9 @@ class RegisterModal {
           </ion-item>
           <ion-note color="danger" id="telefono-error" style="display: none; padding-left: 16px;"></ion-note>
           
-          <!-- Invitation Code (only for TAXISTA) -->
+          <!-- Invitation Code (REQUIRED for TAXISTA) -->
           <ion-item id="codigoInvitacion-item" style="display: none;">
-            <ion-label position="stacked">Código de Invitación (opcional)</ion-label>
+            <ion-label position="stacked">Código de Invitación *</ion-label>
             <ion-input 
               type="text" 
               placeholder="ABC123" 
@@ -105,7 +105,7 @@ class RegisterModal {
             ></ion-input>
           </ion-item>
           <ion-note id="codigoInvitacion-note" style="display: none; padding-left: 16px; font-size: 11px; color: var(--ion-color-medium);">
-            Si tienes un código de invitación de un patrón, ingrésalo aquí para unirte a su flota
+            Solicita este código a tu patrón para asociarte a su flota
           </ion-note>
           <ion-note color="danger" id="codigoInvitacion-error" style="display: none; padding-left: 16px;"></ion-note>
           
@@ -299,6 +299,22 @@ class RegisterModal {
       errors.telefono = 'El formato del teléfono no es válido';
     }
     
+    // Invitation code validation (REQUIRED for TAXISTA)
+    if (this.selectedRole === 'TAXISTA') {
+      if (!this.formData.codigoInvitacion || this.formData.codigoInvitacion.trim().length === 0) {
+        errors.codigoInvitacion = 'El código de invitación es obligatorio para taxistas';
+      } else if (this.formData.codigoInvitacion.trim().length !== 6) {
+        errors.codigoInvitacion = 'El código debe tener 6 caracteres';
+      } else {
+        // Validate that the code exists
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === this.formData.codigoInvitacion.trim().toUpperCase());
+        if (!patron) {
+          errors.codigoInvitacion = 'Código de invitación inválido';
+        }
+      }
+    }
+    
     // Password validation
     if (!this.formData.password) {
       errors.password = 'La contraseña es obligatoria';
@@ -427,12 +443,17 @@ class RegisterModal {
         rol: this.selectedRole
       };
       
+      // Add invitation code for taxistas (already validated)
+      if (this.selectedRole === 'TAXISTA') {
+        userData.codigoPatron = this.formData.codigoInvitacion.trim().toUpperCase();
+      }
+      
       // Attempt registration via AuthAdapter
       const user = await this.authAdapter.register(userData);
       
-      // If taxista and has invitation code, create join request
-      if (this.selectedRole === 'TAXISTA' && this.formData.codigoInvitacion) {
-        await this.createJoinRequest(user, this.formData.codigoInvitacion.trim().toUpperCase());
+      // If taxista, create join request (code already validated)
+      if (this.selectedRole === 'TAXISTA') {
+        await this.createJoinRequest(user, userData.codigoPatron);
       }
       
       // Hide loading
@@ -441,7 +462,7 @@ class RegisterModal {
       if (user) {
         // Show success message
         let successMessage = '¡Cuenta creada exitosamente! Bienvenido.';
-        if (this.selectedRole === 'TAXISTA' && this.formData.codigoInvitacion) {
+        if (this.selectedRole === 'TAXISTA') {
           successMessage = '¡Cuenta creada! Solicitud de unión enviada al patrón.';
         }
         ToastManager.showSuccess(successMessage);
@@ -470,7 +491,7 @@ class RegisterModal {
   /**
    * Create join request for taxista with invitation code
    * @param {Object} user - The taxista user
-   * @param {string} codigoInvitacion - Invitation code from patron
+   * @param {string} codigoInvitacion - Invitation code from patron (already validated)
    */
   async createJoinRequest(user, codigoInvitacion) {
     try {
@@ -478,8 +499,9 @@ class RegisterModal {
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === codigoInvitacion);
       
+      // Code already validated in validateForm, but double-check
       if (!patron) {
-        ToastManager.showWarning('Código de invitación no válido');
+        console.error('Patron not found with code:', codigoInvitacion);
         return;
       }
       
@@ -520,6 +542,7 @@ class RegisterModal {
       }
     } catch (error) {
       console.error('Error creating join request:', error);
+      throw error; // Re-throw to be caught by handleSubmit
     }
   }
 
