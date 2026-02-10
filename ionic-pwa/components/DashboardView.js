@@ -367,11 +367,15 @@ class DashboardView {
       `;
     } else {
       buttons = `
+        <ion-button expand="block" color="primary" onclick="window.app.showTaxistaPanel()">
+          <ion-icon slot="start" name="person-circle"></ion-icon>
+          Mi Panel Personal
+        </ion-button>
         <ion-button expand="block" color="success" onclick="window.app.showBalanceLiquidacion()">
           <ion-icon slot="start" name="cash"></ion-icon>
           Balance y Liquidación
         </ion-button>
-        <ion-button expand="block" color="primary" onclick="window.app.showReports()">
+        <ion-button expand="block" color="tertiary" onclick="window.app.showReports()">
           <ion-icon slot="start" name="bar-chart"></ion-icon>
           Ver Reportes
         </ion-button>

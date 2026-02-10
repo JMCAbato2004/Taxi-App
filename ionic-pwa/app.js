@@ -664,6 +664,15 @@ window.app = {
     }
   },
   
+  showTaxistaPanel: async () => {
+    if (window.TaxistaPanelView) {
+      const taxistaPanelView = new TaxistaPanelView(authAdapter);
+      await taxistaPanelView.show();
+    } else {
+      ToastManager.showError('Panel personal no disponible');
+    }
+  },
+  
   showBalanceLiquidacion: async () => {
     if (balanceLiquidacionView) {
       await balanceLiquidacionView.show();
