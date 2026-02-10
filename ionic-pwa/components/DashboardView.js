@@ -71,6 +71,12 @@ class DashboardView {
     // If patron, display fleet info
     if (user.rol === 'PATRON') {
       await this.displayFleetInfo(user);
+    } else {
+      // Clear fleet info for taxistas
+      const fleetInfoContainer = document.getElementById('fleet-info');
+      if (fleetInfoContainer) {
+        fleetInfoContainer.innerHTML = '';
+      }
     }
   }
 
