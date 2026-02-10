@@ -457,7 +457,7 @@ class DashboardView {
       
       // Calculate today's stats
       const todayServices = services.filter(s => {
-        const serviceDate = new Date(s.datetime || s.date).toISOString().split('T')[0];
+        const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
         return serviceDate === today && associatedTaxistas.some(t => t.id === s.userId);
       });
       const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
@@ -550,11 +550,11 @@ class DashboardView {
       } else {
         const taxistaList = associatedTaxistas.slice(0, 3).map(taxista => {
           const taxistaServices = services.filter(s => {
-            const serviceDate = new Date(s.datetime || s.date).toISOString().split('T')[0];
+            const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
             return s.userId === taxista.id && serviceDate === today;
           });
           const todayIncome = taxistaServices.reduce((sum, s) => 
-            sum + parseFloat(s.netAmount || s.totalAmount || 0), 0
+            sum + parseFloat(s.amount || 0), 0
           );
           
           return `

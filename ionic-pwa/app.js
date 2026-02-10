@@ -458,6 +458,11 @@ customElements.whenDefined('ion-modal').then(() => {
     if (dashboardView) {
       await dashboardView.render();
     }
+    // Also refresh fleet info if user is patron
+    const user = authAdapter.getCurrentUser();
+    if (user && user.rol === 'PATRON' && dashboardView) {
+      await dashboardView.displayFleetInfo(user);
+    }
   });
 
   // Listen for expense saved event

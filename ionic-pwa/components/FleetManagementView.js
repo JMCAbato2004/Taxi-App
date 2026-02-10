@@ -137,7 +137,10 @@ class FleetManagementView {
       const today = new Date().toISOString().split('T')[0];
       const taxistasWithStats = associatedTaxistas.map(taxista => {
         const taxistaServices = services.filter(s => s.userId === taxista.id);
-        const todayServices = taxistaServices.filter(s => s.date === today);
+        const todayServices = taxistaServices.filter(s => {
+          const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+          return serviceDate === today;
+        });
         const totalIncome = taxistaServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         
