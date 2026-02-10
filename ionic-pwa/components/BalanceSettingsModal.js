@@ -297,47 +297,47 @@ class BalanceSettingsModal {
     const previewContent = modal.querySelector('#preview-content');
     previewContent.innerHTML = `
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-        <div style="background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
-          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">Patrón</h3>
-          <div style="font-size: 12px;">
+        <div style="background: rgba(5, 150, 105, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-primary);">
+          <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: var(--ion-color-primary);">Patrón</h3>
+          <div style="font-size: 13px; color: var(--ion-text-color);">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Ingresos:</span>
-              <span>€${patronGross.toFixed(2)}</span>
+              <span style="font-weight: 500;">Ingresos:</span>
+              <span style="font-weight: 600; color: var(--ion-color-success);">€${patronGross.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Propinas:</span>
-              <span>€${patronTips.toFixed(2)}</span>
+              <span style="font-weight: 500;">Propinas:</span>
+              <span style="font-weight: 600; color: var(--ion-color-tertiary);">€${patronTips.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Comisiones:</span>
-              <span style="color: var(--ion-color-danger);">-€${patronCommissions.toFixed(2)}</span>
+              <span style="font-weight: 500;">Comisiones:</span>
+              <span style="font-weight: 600; color: var(--ion-color-danger);">-€${patronCommissions.toFixed(2)}</span>
             </div>
-            <hr style="margin: 8px 0; border-color: var(--ion-color-primary);">
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+            <hr style="margin: 8px 0; border: none; border-top: 2px solid var(--ion-color-primary);">
+            <div style="display: flex; justify-content: space-between; font-weight: 700;">
               <span>Neto:</span>
-              <span>€${patronNet.toFixed(2)}</span>
+              <span style="font-size: 15px; color: var(--ion-color-primary);">€${patronNet.toFixed(2)}</span>
             </div>
           </div>
         </div>
-        <div style="background: var(--ion-color-success-tint); padding: 12px; border-radius: 8px;">
-          <h3 style="margin: 0 0 8px 0; font-size: 14px; font-weight: bold;">Taxista</h3>
-          <div style="font-size: 12px;">
+        <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-success);">
+          <h3 style="margin: 0 0 8px 0; font-size: 15px; font-weight: 700; color: var(--ion-color-success);">Taxista</h3>
+          <div style="font-size: 13px; color: var(--ion-text-color);">
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Ingresos:</span>
-              <span>€${taxistaGross.toFixed(2)}</span>
+              <span style="font-weight: 500;">Ingresos:</span>
+              <span style="font-weight: 600; color: var(--ion-color-success);">€${taxistaGross.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Propinas:</span>
-              <span>€${taxistaTips.toFixed(2)}</span>
+              <span style="font-weight: 500;">Propinas:</span>
+              <span style="font-weight: 600; color: var(--ion-color-tertiary);">€${taxistaTips.toFixed(2)}</span>
             </div>
             <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-              <span>Comisiones:</span>
-              <span style="color: var(--ion-color-danger);">-€${taxistaCommissions.toFixed(2)}</span>
+              <span style="font-weight: 500;">Comisiones:</span>
+              <span style="font-weight: 600; color: var(--ion-color-danger);">-€${taxistaCommissions.toFixed(2)}</span>
             </div>
-            <hr style="margin: 8px 0; border-color: var(--ion-color-success);">
-            <div style="display: flex; justify-content: space-between; font-weight: bold;">
+            <hr style="margin: 8px 0; border: none; border-top: 2px solid var(--ion-color-success);">
+            <div style="display: flex; justify-content: space-between; font-weight: 700;">
               <span>Neto:</span>
-              <span>€${taxistaNet.toFixed(2)}</span>
+              <span style="font-size: 15px; color: var(--ion-color-success);">€${taxistaNet.toFixed(2)}</span>
             </div>
           </div>
         </div>
