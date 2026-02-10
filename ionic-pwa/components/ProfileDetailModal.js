@@ -43,6 +43,7 @@ class ProfileDetailModal {
   getModalContent() {
     const roleIcon = this.user.rol === 'PATRON' ? '👔' : '🚗';
     const roleLabel = this.user.rol === 'PATRON' ? 'Patrón' : 'Taxista';
+    const photoUrl = this.user.photoUrl || null;
 
     return `
       <ion-header>
@@ -59,10 +60,39 @@ class ProfileDetailModal {
       <ion-content class="ion-padding">
         <!-- Profile Header -->
         <div style="text-align: center; padding: 20px 0;">
-          <div style="font-size: 64px; margin-bottom: 12px;">${roleIcon}</div>
-          <h2 style="margin: 0;">${this.user.nombre}</h2>
+          <div style="position: relative; display: inline-block;">
+            ${photoUrl ? `
+              <img src="${photoUrl}" alt="Foto de perfil" style="width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 4px solid var(--ion-color-primary);">
+            ` : `
+              <div style="width: 120px; height: 120px; border-radius: 50%; background: var(--ion-color-primary-tint); display: flex; align-items: center; justify-content: center; font-size: 64px; border: 4px solid var(--ion-color-primary);">
+                ${roleIcon}
+              </div>
+            `}
+            <ion-button id="change-photo-btn" size="small" color="primary" style="position: absolute; bottom: 0; right: 0; --border-radius: 50%;">
+              <ion-icon name="camera" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+          <h2 style="margin: 12px 0 0 0;">${this.user.nombre}</h2>
           <ion-badge color="primary" style="margin-top: 8px;">${roleLabel}</ion-badge>
         </div>
+
+        <!-- Action Buttons -->
+        <ion-grid style="margin-bottom: 16px;">
+          <ion-row>
+            <ion-col size="6">
+              <ion-button expand="block" fill="outline" size="small" id="edit-profile-btn">
+                <ion-icon name="create" slot="start"></ion-icon>
+                Editar
+              </ion-button>
+            </ion-col>
+            <ion-col size="6">
+              <ion-button expand="block" fill="outline" size="small" id="export-data-btn">
+                <ion-icon name="download" slot="start"></ion-icon>
+                Exportar
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
 
         <!-- Basic Information -->
         <ion-list>
@@ -132,6 +162,24 @@ class ProfileDetailModal {
             </ion-item>
           ` : ''}
         </ion-list>
+
+        <!-- Danger Zone -->
+        <ion-list style="margin-top: 24px;">
+          <ion-list-header>
+            <ion-label color="danger">Zona de Peligro</ion-label>
+          </ion-list-header>
+
+          <ion-item button id="delete-account-btn" lines="none" style="--background: var(--ion-color-danger-tint);">
+            <ion-icon name="trash" slot="start" color="danger"></ion-icon>
+            <ion-label color="danger">
+              <h3>Eliminar Cuenta</h3>
+              <p style="font-size: 11px;">Esta acción no se puede deshacer</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+
+        <!-- Hidden file input for photo upload -->
+        <input type="file" id="photo-upload-input" accept="image/*" style="display: none;">
       </ion-content>
     `;
   }
@@ -247,6 +295,277 @@ class ProfileDetailModal {
     document.getElementById('close-profile-modal')?.addEventListener('click', () => {
       this.close();
     });
+
+    // Change photo button
+    document.getElementById('change-photo-btn')?.addEventListener('click', () => {
+      this.handleChangePhoto();
+    });
+
+    // Photo upload input
+    document.getElementById('photo-upload-input')?.addEventListener('change', (e) => {
+      this.handlePhotoUpload(e);
+    });
+
+    // Edit profile button
+    document.getElementById('edit-profile-btn')?.addEventListener('click', () => {
+      this.handleEditProfile();
+    });
+
+    // Export data button
+    document.getElementById('export-data-btn')?.addEventListener('click', () => {
+      this.handleExportData();
+    });
+
+    // Delete account button
+    document.getElementById('delete-account-btn')?.addEventListener('click', () => {
+      this.handleDeleteAccount();
+    });
+  }
+
+  /**
+   * Handle change photo
+   */
+  handleChangePhoto() {
+    const input = document.getElementById('photo-upload-input');
+    if (input) {
+      input.click();
+    }
+  }
+
+  /**
+   * Handle photo upload
+   */
+  async handlePhotoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      ToastManager.showError('Por favor selecciona una imagen válida');
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      ToastManager.showError('La imagen debe ser menor a 2MB');
+      return;
+    }
+
+    try {
+      await LoadingManager.show('Subiendo foto...');
+
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const photoUrl = e.target.result;
+
+        // Update user photo
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const userIndex = users.findIndex(u => u.id === this.user.id);
+        
+        if (userIndex !== -1) {
+          users[userIndex].photoUrl = photoUrl;
+          localStorage.setItem('taxi_users', JSON.stringify(users));
+
+          // Update current user in auth adapter
+          this.authAdapter.updateCurrentUser({ photoUrl });
+
+          await LoadingManager.hide();
+          ToastManager.showSuccess('Foto actualizada');
+
+          // Refresh modal
+          await this.close();
+          await this.show();
+        }
+      };
+
+      reader.readAsDataURL(file);
+    } catch (error) {
+      await LoadingManager.hide();
+      console.error('Error uploading photo:', error);
+      ToastManager.showError('Error al subir la foto');
+    }
+  }
+
+  /**
+   * Handle edit profile
+   */
+  async handleEditProfile() {
+    if (window.EditProfileModal) {
+      await this.close();
+      const editModal = new EditProfileModal(this.authAdapter);
+      await editModal.show();
+    } else {
+      ToastManager.showInfo('Editar perfil - Próximamente');
+    }
+  }
+
+  /**
+   * Handle export data (RGPD compliance)
+   */
+  async handleExportData() {
+    try {
+      await LoadingManager.show('Exportando datos...');
+
+      // Collect all user data
+      const userData = {
+        perfil: this.user,
+        servicios: await this.getUserServices(),
+        gastos: await this.getUserExpenses(),
+        conciliaciones: await this.getUserReconciliations(),
+        exportDate: new Date().toISOString()
+      };
+
+      // Convert to JSON
+      const dataStr = JSON.stringify(userData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+
+      // Create download link
+      const url = URL.createObjectURL(dataBlob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `mis-datos-taxi-${this.user.id}-${Date.now()}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      await LoadingManager.hide();
+      ToastManager.showSuccess('Datos exportados correctamente');
+    } catch (error) {
+      await LoadingManager.hide();
+      console.error('Error exporting data:', error);
+      ToastManager.showError('Error al exportar datos');
+    }
+  }
+
+  /**
+   * Get user services
+   */
+  async getUserServices() {
+    try {
+      const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      return services.filter(s => s.userId === this.user.id);
+    } catch (error) {
+      console.error('Error getting services:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user expenses
+   */
+  async getUserExpenses() {
+    try {
+      const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
+      return expenses.filter(e => e.userId === this.user.id);
+    } catch (error) {
+      console.error('Error getting expenses:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get user reconciliations
+   */
+  async getUserReconciliations() {
+    try {
+      const reconciliations = JSON.parse(localStorage.getItem('taxi_reconciliations') || '[]');
+      return reconciliations.filter(r => r.userId === this.user.id);
+    } catch (error) {
+      console.error('Error getting reconciliations:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Handle delete account
+   */
+  async handleDeleteAccount() {
+    await ActionSheetManager.showConfirmation(
+      'Eliminar Cuenta',
+      '¿Estás seguro? Esta acción eliminará permanentemente tu cuenta y todos tus datos. No se puede deshacer.',
+      async () => {
+        // Show second confirmation
+        await ActionSheetManager.showConfirmation(
+          'Confirmación Final',
+          'Escribe "ELIMINAR" para confirmar la eliminación de tu cuenta',
+          async () => {
+            try {
+              await LoadingManager.show('Eliminando cuenta...');
+
+              // Delete user data
+              await this.deleteUserData();
+
+              // Logout
+              await this.authAdapter.logout();
+
+              await LoadingManager.hide();
+              ToastManager.showSuccess('Cuenta eliminada correctamente');
+
+              // Close modal and redirect to welcome
+              await this.close();
+              window.location.reload();
+            } catch (error) {
+              await LoadingManager.hide();
+              console.error('Error deleting account:', error);
+              ToastManager.showError('Error al eliminar cuenta');
+            }
+          }
+        );
+      }
+    );
+  }
+
+  /**
+   * Delete all user data
+   */
+  async deleteUserData() {
+    try {
+      // Delete user from users list
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const filteredUsers = users.filter(u => u.id !== this.user.id);
+      localStorage.setItem('taxi_users', JSON.stringify(filteredUsers));
+
+      // Delete user services
+      const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      const filteredServices = services.filter(s => s.userId !== this.user.id);
+      localStorage.setItem('taxi_services', JSON.stringify(filteredServices));
+
+      // Delete user expenses
+      const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
+      const filteredExpenses = expenses.filter(e => e.userId !== this.user.id);
+      localStorage.setItem('taxi_expenses', JSON.stringify(filteredExpenses));
+
+      // Delete user reconciliations
+      const reconciliations = JSON.parse(localStorage.getItem('taxi_reconciliations') || '[]');
+      const filteredReconciliations = reconciliations.filter(r => r.userId !== this.user.id);
+      localStorage.setItem('taxi_reconciliations', JSON.stringify(filteredReconciliations));
+
+      // If patron, disassociate taxistas
+      if (this.user.rol === 'PATRON') {
+        const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        allUsers.forEach(u => {
+          if (u.patronId === this.user.id) {
+            delete u.patronId;
+            u.estado = 'independiente';
+          }
+        });
+        localStorage.setItem('taxi_users', JSON.stringify(allUsers));
+      }
+
+      // Delete join requests
+      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
+      const filteredRequests = requests.filter(r => 
+        r.taxistaId !== this.user.id && r.patronId !== this.user.id
+      );
+      localStorage.setItem('taxi_join_requests', JSON.stringify(filteredRequests));
+
+      console.log('User data deleted successfully');
+    } catch (error) {
+      console.error('Error deleting user data:', error);
+      throw error;
+    }
   }
 
   /**

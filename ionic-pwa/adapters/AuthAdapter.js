@@ -256,6 +256,30 @@ class AuthAdapter {
   }
 
   /**
+   * Update current user data
+   * @param {Object} updates - Object with fields to update
+   * @returns {Object} Updated user
+   */
+  updateCurrentUser(updates) {
+    if (!this.currentUser) {
+      throw new Error('No hay usuario autenticado');
+    }
+
+    // Merge updates with current user
+    this.currentUser = { ...this.currentUser, ...updates };
+
+    // Save to localStorage
+    localStorage.setItem(this.STORAGE_KEY_USER, JSON.stringify(this.currentUser));
+
+    // Save to secure storage if available
+    if (this.secureStorageService) {
+      this.secureStorageService.setUserData(this.currentUser);
+    }
+
+    return this.currentUser;
+  }
+
+  /**
    * Check if user is authenticated
    * @returns {boolean}
    */
