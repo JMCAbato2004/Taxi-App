@@ -63,29 +63,38 @@ class TaxistaPanelView {
    */
   async loadPanelData(user) {
     try {
-      // Get all services and users
+      // Get all services, users, and expenses
       const allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
       const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const allExpenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
       
       console.log('Loading panel for user:', user.id);
       console.log('Total services in storage:', allServices.length);
+      console.log('Total expenses in storage:', allExpenses.length);
       
       // Filter user's services - use userId field
       const myServices = allServices.filter(s => s.userId === user.id);
+      const myExpenses = allExpenses.filter(e => e.userId === user.id);
       
       console.log('My services:', myServices.length);
+      console.log('My expenses:', myExpenses.length);
       
-      // Get today's services
+      // Get today's services and expenses
       const today = new Date().toISOString().split('T')[0];
       const todayServices = myServices.filter(s => {
         const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
         return serviceDate === today;
       });
+      const todayExpenses = myExpenses.filter(e => {
+        const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];
+        return expenseDate === today;
+      });
       
       console.log('Today services:', todayServices.length);
+      console.log('Today expenses:', todayExpenses.length);
       
       // Calculate statistics
-      const stats = this.calculateStats(todayServices, myServices);
+      const stats = this.calculateStats(todayServices, myServices, todayExpenses);
       
       // Get user status
       const userRecord = allUsers.find(u => u.id === user.id);
@@ -111,12 +120,13 @@ class TaxistaPanelView {
   /**
    * Calculate statistics
    */
-  calculateStats(todayServices, allServices) {
+  calculateStats(todayServices, allServices, todayExpenses) {
     const servicesToday = todayServices.length;
     const grossEarnings = todayServices.reduce((sum, s) => sum + (s.amount || 0), 0);
     const commissions = todayServices.reduce((sum, s) => sum + (s.commission || 0), 0);
     const tips = todayServices.reduce((sum, s) => sum + (s.tip || 0), 0);
-    const netEarnings = grossEarnings - commissions + tips;
+    const expenses = todayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netEarnings = grossEarnings + tips - commissions - expenses;
     
     // Group by source
     const bySource = {};
@@ -141,6 +151,7 @@ class TaxistaPanelView {
       grossEarnings,
       commissions,
       tips,
+      expenses,
       netEarnings,
       bySource
     };
@@ -213,7 +224,7 @@ class TaxistaPanelView {
       <!-- Stats Grid -->
       <ion-grid>
         <ion-row>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="4">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">${stats.servicesToday}</div>
@@ -221,7 +232,7 @@ class TaxistaPanelView {
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="4">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">€${stats.grossEarnings.toFixed(2)}</div>
@@ -229,19 +240,37 @@ class TaxistaPanelView {
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="4">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.netEarnings.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Ingresos Netos</div>
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.tips.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Propinas</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
+        </ion-row>
+        <ion-row>
+          <ion-col size="6" size-md="4">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">€${stats.commissions.toFixed(2)}</div>
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-danger);">€${stats.commissions.toFixed(2)}</div>
                 <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Comisiones</div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6" size-md="4">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">€${stats.expenses.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Gastos</div>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6" size-md="4">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.netEarnings.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Neto Final</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
