@@ -121,7 +121,7 @@ class ReportsView {
    */
   calculateAdvancedStats(services, taxistas, allUsers) {
     const totalServices = services.length;
-    const totalEarnings = services.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+    const totalEarnings = services.reduce((sum, s) => sum + (s.amount || 0), 0);
     const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
     const activeTaxistas = taxistas.length;
     
@@ -183,7 +183,7 @@ class ReportsView {
   getEarningsByTaxista(services, taxistas) {
     return taxistas.map(taxista => {
       const taxistaServices = services.filter(s => s.taxistaId === taxista.id);
-      const earnings = taxistaServices.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+      const earnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
       return {
         name: taxista.nombre,
         earnings: earnings

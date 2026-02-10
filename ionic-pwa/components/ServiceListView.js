@@ -489,7 +489,7 @@ class ServiceListView {
    */
   updateStatistics() {
     const totalServices = this.filteredServices.length;
-    const totalIncome = this.filteredServices.reduce((sum, s) => sum + parseFloat(s.netAmount || 0), 0);
+    const totalIncome = this.filteredServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
     const avgService = totalServices > 0 ? totalIncome / totalServices : 0;
 
     document.getElementById('total-services').textContent = totalServices;

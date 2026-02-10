@@ -303,7 +303,7 @@ class ReconciliationView {
    */
   calculateReconciliation(config, services, expenses) {
     // Calculate totals
-    const totalIncome = services.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+    const totalIncome = services.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
     const netIncome = totalIncome - totalExpenses;
 

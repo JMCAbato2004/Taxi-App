@@ -37,8 +37,8 @@ class TaxistaDetailsModal {
     // Calculate statistics
     const today = new Date().toISOString().split('T')[0];
     const todayServices = taxistaServices.filter(s => s.date === today);
-    const totalEarnings = taxistaServices.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
-    const todayEarnings = todayServices.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+    const totalEarnings = taxistaServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+    const todayEarnings = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
 
     const modal = document.createElement('ion-modal');
     modal.innerHTML = `

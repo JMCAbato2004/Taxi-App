@@ -268,7 +268,7 @@ async function loadDashboardData() {
     const todayServices = services.filter(s => s.date === today);
     const todayExpenses = expenses.filter(e => e.date === today);
     
-    const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+    const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
     const totalExpenses = todayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
     const netAmount = totalIncome - totalExpenses;
     

@@ -114,9 +114,16 @@ class DashboardView {
       const todayServices = filteredServices.filter(s => s.date === today);
       const todayExpenses = filteredExpenses.filter(e => e.date === today);
       
-      const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
+      // Calculate total income (gross amount before commissions)
+      const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+      
+      // Calculate total expenses
       const totalExpenses = todayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-      const netAmount = totalIncome - totalExpenses;
+      
+      // Calculate net amount (income + tips - commissions - expenses)
+      const totalCommissions = todayServices.reduce((sum, s) => sum + parseFloat(s.commission || 0), 0);
+      const totalTips = todayServices.reduce((sum, s) => sum + parseFloat(s.tip || 0), 0);
+      const netAmount = totalIncome + totalTips - totalCommissions - totalExpenses;
       
       this.stats = {
         servicesCount: todayServices.length,
@@ -431,7 +438,7 @@ class DashboardView {
         const serviceDate = new Date(s.datetime || s.date).toISOString().split('T')[0];
         return serviceDate === today && associatedTaxistas.some(t => t.id === s.userId);
       });
-      const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.netAmount || s.totalAmount || 0), 0);
+      const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
       
       // Build HTML
       let html = `
