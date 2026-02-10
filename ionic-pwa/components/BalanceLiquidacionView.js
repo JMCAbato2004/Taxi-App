@@ -296,29 +296,29 @@ class BalanceLiquidacionView {
           <ion-grid>
             <ion-row>
               <ion-col size="6">
-                <div style="background: var(--ion-color-success-tint); padding: 12px; border-radius: 8px; text-align: center;">
-                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-success);">Ingresos Brutos</p>
-                  <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: var(--ion-color-success);">€${totals.gross.toFixed(2)}</h3>
+                <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; text-align: center; border: 2px solid var(--ion-color-success);">
+                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-success); font-weight: 600;">Ingresos Brutos</p>
+                  <h3 style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: var(--ion-color-success);">€${totals.gross.toFixed(2)}</h3>
                 </div>
               </ion-col>
               <ion-col size="6">
-                <div style="background: var(--ion-color-danger-tint); padding: 12px; border-radius: 8px; text-align: center;">
-                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-danger);">Comisiones</p>
-                  <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: var(--ion-color-danger);">€${totals.commissions.toFixed(2)}</h3>
+                <div style="background: rgba(239, 68, 68, 0.15); padding: 12px; border-radius: 8px; text-align: center; border: 2px solid var(--ion-color-danger);">
+                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-danger); font-weight: 600;">Comisiones</p>
+                  <h3 style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: var(--ion-color-danger);">€${totals.commissions.toFixed(2)}</h3>
                 </div>
               </ion-col>
             </ion-row>
             <ion-row>
               <ion-col size="6">
-                <div style="background: var(--ion-color-tertiary-tint); padding: 12px; border-radius: 8px; text-align: center;">
-                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-tertiary);">Propinas</p>
-                  <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: var(--ion-color-tertiary);">€${totals.tips.toFixed(2)}</h3>
+                <div style="background: rgba(59, 130, 246, 0.15); padding: 12px; border-radius: 8px; text-align: center; border: 2px solid var(--ion-color-tertiary);">
+                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-tertiary); font-weight: 600;">Propinas</p>
+                  <h3 style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: var(--ion-color-tertiary);">€${totals.tips.toFixed(2)}</h3>
                 </div>
               </ion-col>
               <ion-col size="6">
-                <div style="background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px; text-align: center;">
-                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-primary);">Neto Total</p>
-                  <h3 style="margin: 4px 0 0 0; font-size: 18px; font-weight: bold; color: var(--ion-color-primary);">€${totals.net.toFixed(2)}</h3>
+                <div style="background: rgba(5, 150, 105, 0.15); padding: 12px; border-radius: 8px; text-align: center; border: 2px solid var(--ion-color-primary);">
+                  <p style="margin: 0; font-size: 11px; color: var(--ion-color-primary); font-weight: 600;">Neto Total</p>
+                  <h3 style="margin: 4px 0 0 0; font-size: 20px; font-weight: bold; color: var(--ion-color-primary);">€${totals.net.toFixed(2)}</h3>
                 </div>
               </ion-col>
             </ion-row>
@@ -340,50 +340,50 @@ class BalanceLiquidacionView {
           <ion-grid>
             <ion-row>
               <ion-col size="6">
-                <div style="background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
-                  <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--ion-color-primary);">Patrón (${distribution.settings.patronPercentage}%)</h4>
-                  <div style="font-size: 11px;">
+                <div style="background: rgba(5, 150, 105, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-primary);">
+                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: var(--ion-color-primary);">Patrón (${distribution.settings.patronPercentage}%)</h4>
+                  <div style="font-size: 12px; color: var(--ion-text-color);">
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Bruto:</span>
-                      <span style="font-weight: 500;">€${distribution.patron.gross.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Bruto:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-success);">€${distribution.patron.gross.toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Propinas:</span>
-                      <span style="font-weight: 500;">€${distribution.patron.tips.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Propinas:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-tertiary);">€${distribution.patron.tips.toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Comisiones:</span>
-                      <span style="font-weight: 500; color: var(--ion-color-danger);">-€${distribution.patron.commissions.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Comisiones:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-danger);">-€${distribution.patron.commissions.toFixed(2)}</span>
                     </div>
-                    <div style="border-top: 1px solid var(--ion-color-primary); padding-top: 4px; margin-top: 4px;">
+                    <div style="border-top: 2px solid var(--ion-color-primary); padding-top: 6px; margin-top: 6px;">
                       <div style="display: flex; justify-between;">
-                        <span style="font-weight: 600;">Neto:</span>
-                        <span style="font-weight: 700; color: var(--ion-color-primary);">€${distribution.patron.net.toFixed(2)}</span>
+                        <span style="font-weight: 700;">Neto:</span>
+                        <span style="font-weight: 800; font-size: 14px; color: var(--ion-color-primary);">€${distribution.patron.net.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>
                 </div>
               </ion-col>
               <ion-col size="6">
-                <div style="background: var(--ion-color-success-tint); padding: 12px; border-radius: 8px;">
-                  <h4 style="margin: 0 0 8px 0; font-size: 13px; font-weight: 600; color: var(--ion-color-success);">Taxista (${100 - distribution.settings.patronPercentage}%)</h4>
-                  <div style="font-size: 11px;">
+                <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-success);">
+                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: var(--ion-color-success);">Taxista (${100 - distribution.settings.patronPercentage}%)</h4>
+                  <div style="font-size: 12px; color: var(--ion-text-color);">
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Bruto:</span>
-                      <span style="font-weight: 500;">€${distribution.taxista.gross.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Bruto:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-success);">€${distribution.taxista.gross.toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Propinas:</span>
-                      <span style="font-weight: 500;">€${distribution.taxista.tips.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Propinas:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-tertiary);">€${distribution.taxista.tips.toFixed(2)}</span>
                     </div>
                     <div style="display: flex; justify-between; margin-bottom: 4px;">
-                      <span>Comisiones:</span>
-                      <span style="font-weight: 500; color: var(--ion-color-danger);">-€${distribution.taxista.commissions.toFixed(2)}</span>
+                      <span style="font-weight: 500;">Comisiones:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-danger);">-€${distribution.taxista.commissions.toFixed(2)}</span>
                     </div>
-                    <div style="border-top: 1px solid var(--ion-color-success); padding-top: 4px; margin-top: 4px;">
+                    <div style="border-top: 2px solid var(--ion-color-success); padding-top: 6px; margin-top: 6px;">
                       <div style="display: flex; justify-between;">
-                        <span style="font-weight: 600;">Neto:</span>
-                        <span style="font-weight: 700; color: var(--ion-color-success);">€${distribution.taxista.net.toFixed(2)}</span>
+                        <span style="font-weight: 700;">Neto:</span>
+                        <span style="font-weight: 800; font-size: 14px; color: var(--ion-color-success);">€${distribution.taxista.net.toFixed(2)}</span>
                       </div>
                     </div>
                   </div>

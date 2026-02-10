@@ -805,3 +805,77 @@ body.modal-open {
     overflow-y: auto;
   }
 }
+
+/* ===== ACTION SHEET IMPROVEMENTS ===== */
+
+/* Improve contrast in action sheets */
+ion-action-sheet {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
+ion-action-sheet .action-sheet-button {
+  color: var(--ion-text-color) !important;
+  font-weight: 500;
+}
+
+ion-action-sheet .action-sheet-destructive {
+  color: var(--ion-color-danger) !important;
+  font-weight: 600;
+}
+
+ion-action-sheet .action-sheet-cancel {
+  color: var(--ion-color-medium) !important;
+  font-weight: 600;
+}
+
+ion-action-sheet .action-sheet-title {
+  color: var(--ion-text-color) !important;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* Dark mode adjustments for action sheets */
+body.dark ion-action-sheet {
+  --background: var(--ion-color-dark);
+}
+
+body.dark ion-action-sheet .action-sheet-button {
+  color: var(--ion-color-light) !important;
+}
+
+/* ===== ALERT IMPROVEMENTS ===== */
+
+/* Improve contrast in alerts */
+ion-alert {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
+ion-alert .alert-title {
+  color: var(--ion-text-color) !important;
+  font-weight: 700;
+}
+
+ion-alert .alert-message {
+  color: var(--ion-text-color) !important;
+}
+
+ion-alert .alert-button {
+  color: var(--ion-color-primary) !important;
+  font-weight: 600;
+}
+
+ion-alert .alert-button.alert-button-role-cancel {
+  color: var(--ion-color-medium) !important;
+}
+
+/* Dark mode adjustments for alerts */
+body.dark ion-alert {
+  --background: var(--ion-color-dark);
+}
+
+body.dark ion-alert .alert-title,
+body.dark ion-alert .alert-message {
+  color: var(--ion-color-light) !important;
+}
