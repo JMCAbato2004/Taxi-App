@@ -43,24 +43,36 @@ class FleetManagementView {
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
-        <ion-toolbar>
-          <ion-segment id="fleet-segment" value="fleet">
-            <ion-segment-button value="fleet">
-              <ion-label>Mi Flota</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="requests">
-              <ion-label>Solicitudes</ion-label>
-              <ion-badge id="requests-badge" color="danger" style="margin-left: 4px;">0</ion-badge>
-            </ion-segment-button>
-          </ion-segment>
-        </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
-        <div id="fleet-tab-content">
-          <ion-spinner name="circles"></ion-spinner>
+        <!-- Real-time Stats -->
+        <div id="fleet-stats-container">
+          <div style="text-align: center; padding: 20px;">
+            <ion-spinner name="circles"></ion-spinner>
+          </div>
         </div>
-        <div id="requests-tab-content" style="display: none;">
-          <ion-spinner name="circles"></ion-spinner>
+        
+        <!-- Tabs -->
+        <ion-segment id="fleet-segment" value="fleet" style="margin-top: 16px;">
+          <ion-segment-button value="fleet">
+            <ion-label>Mi Flota</ion-label>
+          </ion-segment-button>
+          <ion-segment-button value="requests">
+            <ion-label>Solicitudes</ion-label>
+            <ion-badge id="requests-badge" color="danger" style="margin-left: 4px;">0</ion-badge>
+          </ion-segment-button>
+        </ion-segment>
+        
+        <!-- Tab Contents -->
+        <div id="fleet-tab-content" style="margin-top: 16px;">
+          <div style="text-align: center; padding: 20px;">
+            <ion-spinner name="circles"></ion-spinner>
+          </div>
+        </div>
+        <div id="requests-tab-content" style="display: none; margin-top: 16px;">
+          <div style="text-align: center; padding: 20px;">
+            <ion-spinner name="circles"></ion-spinner>
+          </div>
         </div>
       </ion-content>
     `;
@@ -109,6 +121,7 @@ class FleetManagementView {
     try {
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const services = await this.reconcileAdapter.getServices();
+      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
       
       // Get associated taxistas
       const associatedTaxistas = users.filter(u => 
@@ -134,11 +147,83 @@ class FleetManagementView {
         };
       });
       
+      // Calculate fleet-wide stats
+      const pendingRequests = requests.filter(r => 
+        r.estado === 'pendiente' && r.patronId === user.id
+      );
+      
+      const todayServicesCount = taxistasWithStats.reduce((sum, t) => sum + t.todayServices, 0);
+      const todayIncomeTotal = taxistasWithStats.reduce((sum, t) => sum + t.todayIncome, 0);
+      
+      const stats = {
+        activeTaxistas: associatedTaxistas.length,
+        pendingRequests: pendingRequests.length,
+        todayServices: todayServicesCount,
+        todayIncome: todayIncomeTotal
+      };
+      
+      this.renderFleetStats(stats);
       this.renderFleet(taxistasWithStats, user);
     } catch (error) {
       console.error('Error loading fleet:', error);
       ToastManager.showError('Error al cargar flota');
     }
+  }
+
+  /**
+   * Render fleet statistics
+   */
+  renderFleetStats(stats) {
+    const container = document.getElementById('fleet-stats-container');
+    if (!container) return;
+    
+    container.innerHTML = `
+      <ion-grid style="padding: 0;">
+        <ion-row>
+          <ion-col size="6">
+            <ion-card style="margin: 0; height: 100%;">
+              <ion-card-content style="padding: 12px; text-align: center;">
+                <ion-icon name="people" style="font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
+                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-primary);">${stats.activeTaxistas}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Taxistas Activos</p>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6">
+            <ion-card style="margin: 0; height: 100%;">
+              <ion-card-content style="padding: 12px; text-align: center;">
+                <ion-icon name="mail" style="font-size: 24px; color: var(--ion-color-warning);"></ion-icon>
+                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-warning);">
+                  ${stats.pendingRequests}
+                  ${stats.pendingRequests > 0 ? '<ion-badge color="danger" style="margin-left: 4px; font-size: 10px;">!</ion-badge>' : ''}
+                </h2>
+                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Solicitudes Pendientes</p>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col size="6">
+            <ion-card style="margin: 0; height: 100%;">
+              <ion-card-content style="padding: 12px; text-align: center;">
+                <ion-icon name="car" style="font-size: 24px; color: var(--ion-color-tertiary);"></ion-icon>
+                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-tertiary);">${stats.todayServices}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Servicios Hoy</p>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="6">
+            <ion-card style="margin: 0; height: 100%;">
+              <ion-card-content style="padding: 12px; text-align: center;">
+                <ion-icon name="cash" style="font-size: 24px; color: var(--ion-color-success);"></ion-icon>
+                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-success);">€${stats.todayIncome.toFixed(2)}</h2>
+                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Ingresos Hoy</p>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    `;
   }
 
   /**
