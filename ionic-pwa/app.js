@@ -452,13 +452,18 @@ customElements.whenDefined('ion-modal').then(() => {
 
   // Listen for service saved event
   window.addEventListener('service-saved', async () => {
+    console.log('service-saved event received');
     if (serviceListView) {
       await serviceListView.refresh();
     }
     if (dashboardView) {
       await dashboardView.render();
     }
-    // Also refresh fleet info if user is patron
+  });
+  
+  // Listen for taxista updated event (also refresh dashboard for patrons)
+  window.addEventListener('taxista-updated', async () => {
+    console.log('taxista-updated event received');
     const user = authAdapter.getCurrentUser();
     if (user && user.rol === 'PATRON' && dashboardView) {
       await dashboardView.displayFleetInfo(user);

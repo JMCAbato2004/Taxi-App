@@ -97,14 +97,23 @@ class FleetManagementView {
 
     // Listen for taxista updates
     const updateHandler = async () => {
+      console.log('Reloading fleet data due to taxista-updated event');
       await this.loadFleet(user);
       await this.loadRequests(user);
     };
     window.addEventListener('taxista-updated', updateHandler);
+    
+    // Listen for service updates to refresh stats
+    const serviceUpdateHandler = async () => {
+      console.log('Reloading fleet data due to service-saved event');
+      await this.loadFleet(user);
+    };
+    window.addEventListener('service-saved', serviceUpdateHandler);
 
-    // Clean up listener when modal is dismissed
+    // Clean up listeners when modal is dismissed
     modal.addEventListener('ionModalDidDismiss', () => {
       window.removeEventListener('taxista-updated', updateHandler);
+      window.removeEventListener('service-saved', serviceUpdateHandler);
     });
 
     // Load fleet data
