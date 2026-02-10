@@ -84,10 +84,10 @@ class ReportsView {
         
         // Get services from associated taxistas
         const taxistaIds = relevantTaxistas.map(t => t.id);
-        relevantServices = allServices.filter(s => taxistaIds.includes(s.taxistaId));
+        relevantServices = allServices.filter(s => taxistaIds.includes(s.userId));
       } else if (user.rol === 'TAXISTA') {
         // Only own services
-        relevantServices = allServices.filter(s => s.taxistaId === user.id);
+        relevantServices = allServices.filter(s => s.userId === user.id);
         relevantTaxistas = [user];
       }
       
@@ -165,7 +165,7 @@ class ReportsView {
     weekAgo.setDate(weekAgo.getDate() - 7);
     
     services.forEach(service => {
-      const serviceDate = new Date(service.datetime);
+      const serviceDate = new Date(service.datetime || service.date);
       if (serviceDate >= weekAgo) {
         const dayName = days[serviceDate.getDay()];
         if (dailyServices.hasOwnProperty(dayName)) {
@@ -182,7 +182,7 @@ class ReportsView {
    */
   getEarningsByTaxista(services, taxistas) {
     return taxistas.map(taxista => {
-      const taxistaServices = services.filter(s => s.taxistaId === taxista.id);
+      const taxistaServices = services.filter(s => s.userId === taxista.id);
       const earnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
       return {
         name: taxista.nombre,
@@ -196,7 +196,7 @@ class ReportsView {
    */
   getTaxistaDetailedStats(services, taxistas) {
     return taxistas.map(taxista => {
-      const taxistaServices = services.filter(s => s.taxistaId === taxista.id);
+      const taxistaServices = services.filter(s => s.userId === taxista.id);
       const totalServices = taxistaServices.length;
       const grossEarnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
       const commissions = taxistaServices.reduce((sum, s) => sum + (s.commission || 0), 0);
