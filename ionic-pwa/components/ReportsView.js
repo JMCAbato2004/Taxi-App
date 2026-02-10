@@ -369,14 +369,6 @@ class ReportsView {
       </div>
     `;
   }
-}
-
-// Export for use in other modules
-if (typeof window !== 'undefined') {
-  window.ReportsView = ReportsView;
-}
-
-console.log('ReportsView component loaded');
 
   /**
    * Render charts using Chart.js
@@ -497,4 +489,4 @@ if (typeof window !== 'undefined') {
   window.ReportsView = ReportsView;
 }
 
-console.log('ReportsView component loaded (Advanced with Chart.js)');
+console.log('ReportsView component loaded');
