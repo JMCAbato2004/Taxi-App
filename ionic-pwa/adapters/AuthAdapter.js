@@ -116,31 +116,41 @@ class AuthAdapter {
         };
       }
       
-      // Fallback: simulate login for development
-      const user = {
-        id: 'user-' + Date.now(),
-        email: credentials.email,
-        nombre: 'Usuario Demo',
-        rol: 'TAXISTA',
-        activo: true,
-        fechaCreacion: new Date().toISOString()
-      };
+      // Fallback: Check against registered users in localStorage
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const user = users.find(u => u.email === credentials.email);
+
+      if (!user) {
+        throw new Error('Usuario no encontrado');
+      }
+
+      // In a real app, we would verify the password here
+      // For now, we'll accept any password for demo purposes
+      
+      // Update last login
+      user.lastLogin = new Date().toISOString();
+      localStorage.setItem('taxi_users', JSON.stringify(users));
 
       this.currentUser = user;
-      this.currentToken = 'demo-token-' + Date.now();
+      this.currentToken = 'token-' + user.id + '-' + Date.now();
+      
+      // Determine permissions based on role
+      const permissions = user.rol === 'PATRON' 
+        ? ['VIEW_ALL_DRIVERS', 'VIEW_AGGREGATED_DATA', 'MANAGE_ASSOCIATIONS', 'VIEW_OWN_DATA', 'EDIT_OWN_PROFILE']
+        : ['VIEW_OWN_DATA', 'INPUT_OPERATIONAL_DATA', 'EDIT_OWN_PROFILE'];
       
       // Store in localStorage
-      this.storeInLocalStorage(user, this.currentToken, ['VIEW_OWN_DATA']);
+      this.storeInLocalStorage(user, this.currentToken, permissions);
       
       return {
         success: true,
         user: user,
         token: this.currentToken,
-        permissions: ['VIEW_OWN_DATA']
+        permissions: permissions
       };
     } catch (error) {
       console.error('Login error:', error);
-      throw new Error('Error al iniciar sesión: ' + (error.message || 'Error desconocido'));
+      throw new Error('Error al iniciar sesión: ' + (error.message || 'Credenciales inválidas'));
     }
   }
 
