@@ -118,6 +118,9 @@ class FleetManagementView {
    * Load fleet data
    */
   async loadFleet(user) {
+    const statsContainer = document.getElementById('fleet-stats-container');
+    const fleetContainer = document.getElementById('fleet-tab-content');
+    
     try {
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const services = await this.reconcileAdapter.getServices();
@@ -166,6 +169,15 @@ class FleetManagementView {
       this.renderFleet(taxistasWithStats, user);
     } catch (error) {
       console.error('Error loading fleet:', error);
+      
+      // Clear spinners on error
+      if (statsContainer) {
+        statsContainer.innerHTML = '<p style="text-align: center; color: var(--ion-color-danger);">Error al cargar estadísticas</p>';
+      }
+      if (fleetContainer) {
+        fleetContainer.innerHTML = '<p style="text-align: center; color: var(--ion-color-danger);">Error al cargar flota</p>';
+      }
+      
       ToastManager.showError('Error al cargar flota');
     }
   }
@@ -177,7 +189,10 @@ class FleetManagementView {
     const container = document.getElementById('fleet-stats-container');
     if (!container) return;
     
-    container.innerHTML = `
+    // Clear any loading spinners
+    container.innerHTML = '';
+    
+    const statsHTML = `
       <ion-grid style="padding: 0;">
         <ion-row>
           <ion-col size="6">
@@ -224,12 +239,16 @@ class FleetManagementView {
         </ion-row>
       </ion-grid>
     `;
+    
+    container.innerHTML = statsHTML;
   }
 
   /**
    * Load pending requests
    */
   async loadRequests(user) {
+    const requestsContainer = document.getElementById('requests-tab-content');
+    
     try {
       const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
@@ -257,6 +276,12 @@ class FleetManagementView {
       this.renderRequests(requestsWithUsers);
     } catch (error) {
       console.error('Error loading requests:', error);
+      
+      // Clear spinner on error
+      if (requestsContainer) {
+        requestsContainer.innerHTML = '<p style="text-align: center; color: var(--ion-color-danger);">Error al cargar solicitudes</p>';
+      }
+      
       ToastManager.showError('Error al cargar solicitudes');
     }
   }
