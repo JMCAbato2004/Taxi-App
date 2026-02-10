@@ -11,6 +11,9 @@ const rgpdAdapter = new RGPDAdapter();
 // Initialize data sync
 const dataSyncView = new DataSyncView();
 
+// Initialize push notifications (will be initialized after auth)
+let pushNotificationManager = null;
+
 // Initialize components
 let tabNavigation = null;
 let dashboardView = null;
@@ -465,6 +468,11 @@ async function showLoginModal() {
  * Handle login success event
  */
 async function handleLoginSuccess() {
+  // Initialize push notifications after login
+  if (window.PushNotificationManager && !pushNotificationManager) {
+    pushNotificationManager = new PushNotificationManager(authAdapter);
+  }
+  
   await showDashboard();
 }
 
@@ -472,6 +480,11 @@ async function handleLoginSuccess() {
  * Handle register success event
  */
 async function handleRegisterSuccess() {
+  // Initialize push notifications after register
+  if (window.PushNotificationManager && !pushNotificationManager) {
+    pushNotificationManager = new PushNotificationManager(authAdapter);
+  }
+  
   await showDashboard();
 }
 
@@ -547,6 +560,17 @@ async function showMenuActionSheet() {
       text: 'Mi Perfil',
       icon: 'person',
       handler: () => ToastManager.showInfo('Ver perfil - Próximamente')
+    },
+    {
+      text: 'Notificaciones',
+      icon: 'notifications',
+      handler: async () => {
+        if (pushNotificationManager) {
+          await pushNotificationManager.show();
+        } else {
+          ToastManager.showError('Notificaciones no disponibles');
+        }
+      }
     },
     {
       text: 'Configuración',
