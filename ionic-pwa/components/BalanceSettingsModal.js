@@ -42,8 +42,8 @@ class BalanceSettingsModal {
    * Create the modal
    */
   async createModal() {
-    const modal = document.createElement('ion-modal');
-    modal.innerHTML = `
+    this.modal = document.createElement('ion-modal');
+    this.modal.innerHTML = `
       <ion-header>
         <ion-toolbar color="primary">
           <ion-title>⚙️ Ajustes de Balance</ion-title>
@@ -204,19 +204,19 @@ class BalanceSettingsModal {
       </ion-content>
     `;
 
-    document.body.appendChild(modal);
-    await modal.componentOnReady();
+    document.body.appendChild(this.modal);
+    await this.modal.componentOnReady();
 
     // Set up event listeners
-    this.setupEventListeners(modal);
+    this.setupEventListeners(this.modal);
     
     // Initial preview update
-    this.updatePreview(modal);
+    this.updatePreview(this.modal);
 
     // Store reference for save handler
     window.balanceSettingsModal = this;
 
-    return modal;
+    return this.modal;
   }
 
   /**
@@ -350,13 +350,27 @@ class BalanceSettingsModal {
    */
   async handleSave() {
     try {
-      const modal = document.querySelector('ion-modal');
+      if (!this.modal) {
+        ToastManager.showError('Modal no encontrado');
+        return;
+      }
+      
+      const patronPercentageInput = this.modal.querySelector('#patron-percentage');
+      const tipDistributionInput = this.modal.querySelector('#tip-distribution');
+      const commissionDistributionInput = this.modal.querySelector('#commission-distribution');
+      const expenseDistributionInput = this.modal.querySelector('#expense-distribution');
+      
+      if (!patronPercentageInput || !tipDistributionInput || !commissionDistributionInput || !expenseDistributionInput) {
+        console.error('Missing form elements');
+        ToastManager.showError('Error al leer el formulario');
+        return;
+      }
       
       this.settings = {
-        patronPercentage: parseInt(modal.querySelector('#patron-percentage').value) || 30,
-        tipDistribution: modal.querySelector('#tip-distribution').value,
-        commissionDistribution: modal.querySelector('#commission-distribution').value,
-        expenseDistribution: modal.querySelector('#expense-distribution').value
+        patronPercentage: parseInt(patronPercentageInput.value) || 30,
+        tipDistribution: tipDistributionInput.value,
+        commissionDistribution: commissionDistributionInput.value,
+        expenseDistribution: expenseDistributionInput.value
       };
 
       this.saveSettings();
@@ -366,7 +380,7 @@ class BalanceSettingsModal {
       // Dispatch event to refresh balance views
       window.dispatchEvent(new CustomEvent('balance-settings-updated'));
       
-      await modal.dismiss();
+      await this.modal.dismiss();
     } catch (error) {
       console.error('Error saving settings:', error);
       ToastManager.showError('Error al guardar ajustes');
