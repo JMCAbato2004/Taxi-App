@@ -451,14 +451,25 @@ ion-grid ion-col {
 
 /* Recent Activity Card */
 #recent-activity {
-  max-height: 400px;
-  overflow-y: auto;
+  max-height: none; /* Remove height restriction to allow natural scrolling */
+  overflow-y: visible; /* Let ion-content handle the scroll */
 }
 
 /* ===== SWIPE GESTURE FEEDBACK ===== */
 
+/* Ensure ion-content can scroll properly */
 ion-content {
-  --overflow: hidden;
+  --overflow: auto;
+}
+
+/* Enable smooth scrolling on iOS */
+ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure proper scrolling in modals */
+ion-modal ion-content {
+  --overflow: auto;
 }
 
 /* Add subtle feedback for swipe gestures */
@@ -723,4 +734,74 @@ body.dark .summary-item {
 
 body.dark .reconciliation-icon {
   background: var(--ion-color-dark);
+}
+
+/* ===== SCROLL FIXES ===== */
+
+/* Ensure proper scrolling in all ion-content elements */
+ion-content {
+  --overflow: auto !important;
+  overflow: auto;
+}
+
+/* Fix for iOS momentum scrolling */
+ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Ensure lists can scroll */
+ion-list {
+  overflow: visible;
+}
+
+/* Fix for nested scrollable areas */
+.scrollable-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 100%;
+}
+
+/* Ensure modals can scroll properly */
+ion-modal ion-content {
+  --overflow: auto !important;
+}
+
+ion-modal ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Fix for tab content scrolling */
+ion-tab {
+  overflow: visible;
+}
+
+/* Ensure proper height for scrollable containers */
+ion-content::part(background) {
+  height: 100%;
+}
+
+/* Fix for pull-to-refresh interfering with scroll */
+ion-refresher {
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Ensure proper scrolling on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  ion-content {
+    --overflow: auto !important;
+    touch-action: pan-y;
+  }
+  
+  ion-content::part(scroll) {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
 }
