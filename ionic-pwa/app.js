@@ -706,13 +706,10 @@ window.app = {
   },
   
   toggleOfflineMode: async () => {
-    const isOffline = localStorage.getItem('taxi_offline_mode') === 'true';
-    if (isOffline) {
-      localStorage.setItem('taxi_offline_mode', 'false');
-      ToastManager.showSuccess('Modo online activado');
+    if (window.offlineModeManager) {
+      await window.offlineModeManager.show();
     } else {
-      localStorage.setItem('taxi_offline_mode', 'true');
-      ToastManager.showSuccess('Modo offline activado');
+      ToastManager.showError('Modo offline no disponible');
     }
   },
   
