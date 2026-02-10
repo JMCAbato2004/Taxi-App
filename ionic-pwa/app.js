@@ -35,6 +35,9 @@ let isDarkMode = false;
 function initializeApp() {
   console.log('Initializing Ionic PWA...');
   
+  // Clean up any invalid or demo data
+  cleanupInvalidData();
+  
   // Initialize components
   initializeComponents();
   
@@ -56,6 +59,40 @@ function initializeApp() {
   
   // Show RGPD consent if needed
   checkRGPDConsent();
+}
+
+/**
+ * Clean up invalid or demo data from localStorage
+ */
+function cleanupInvalidData() {
+  try {
+    const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+    
+    // Remove any users with "Demo" in their name or invalid data
+    const validUsers = users.filter(user => {
+      // Check if user has required fields
+      if (!user.id || !user.email || !user.nombre || !user.rol) {
+        console.log('Removing invalid user:', user);
+        return false;
+      }
+      
+      // Remove demo users
+      if (user.nombre.includes('Demo') || user.email.includes('demo')) {
+        console.log('Removing demo user:', user);
+        return false;
+      }
+      
+      return true;
+    });
+    
+    // Only update if we removed something
+    if (validUsers.length !== users.length) {
+      localStorage.setItem('taxi_users', JSON.stringify(validUsers));
+      console.log(`Cleaned up ${users.length - validUsers.length} invalid/demo users`);
+    }
+  } catch (error) {
+    console.error('Error cleaning up data:', error);
+  }
 }
 
 /**
@@ -578,6 +615,13 @@ async function showMenuActionSheet() {
       handler: () => ToastManager.showInfo('Configuración - Próximamente')
     },
     {
+      text: 'Limpiar Todos los Datos',
+      icon: 'trash',
+      handler: async () => {
+        await clearAllData();
+      }
+    },
+    {
       text: 'Privacidad (RGPD)',
       icon: 'shield-checkmark',
       handler: () => window.open('../politica-privacidad.html', '_blank')
@@ -594,6 +638,55 @@ async function showMenuActionSheet() {
       role: 'cancel'
     }
   ]);
+}
+
+/**
+ * Clear all application data
+ */
+async function clearAllData() {
+  await ActionSheetManager.showConfirmation(
+    'Limpiar Todos los Datos',
+    '¿Estás seguro? Se eliminarán TODOS los usuarios, servicios, gastos y configuraciones. Esta acción no se puede deshacer.',
+    async () => {
+      try {
+        await LoadingManager.show('Limpiando datos...');
+        
+        // Clear all localStorage data
+        const keysToRemove = [
+          'taxi_users',
+          'taxi_services',
+          'taxi_expenses',
+          'taxi_reconciliations',
+          'taxi_join_requests',
+          'taxi_auth_current_user',
+          'taxi_auth_current_token',
+          'taxi_auth_permissions',
+          'taxi_balance_settings',
+          'taxi_pending_operations',
+          'taxi_offline_queue',
+          'taxi_conflict_queue',
+          'taxi_notification_settings',
+          'taxi_push_subscription'
+        ];
+        
+        keysToRemove.forEach(key => {
+          localStorage.removeItem(key);
+        });
+        
+        await LoadingManager.hide();
+        ToastManager.showSuccess('Todos los datos han sido eliminados');
+        
+        // Reload the page
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
+      } catch (error) {
+        await LoadingManager.hide();
+        console.error('Error clearing data:', error);
+        ToastManager.showError('Error al limpiar datos');
+      }
+    }
+  );
 }
 
 /**
