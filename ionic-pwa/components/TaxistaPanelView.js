@@ -67,15 +67,22 @@ class TaxistaPanelView {
       const allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
       const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       
-      // Filter user's services
-      const myServices = allServices.filter(s => s.taxistaId === user.id);
+      console.log('Loading panel for user:', user.id);
+      console.log('Total services in storage:', allServices.length);
+      
+      // Filter user's services - use userId field
+      const myServices = allServices.filter(s => s.userId === user.id);
+      
+      console.log('My services:', myServices.length);
       
       // Get today's services
-      const today = new Date().toDateString();
+      const today = new Date().toISOString().split('T')[0];
       const todayServices = myServices.filter(s => {
-        const serviceDate = new Date(s.datetime);
-        return serviceDate.toDateString() === today;
+        const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+        return serviceDate === today;
       });
+      
+      console.log('Today services:', todayServices.length);
       
       // Calculate statistics
       const stats = this.calculateStats(todayServices, myServices);
@@ -316,20 +323,22 @@ class TaxistaPanelView {
     return `
       <ion-list style="background: transparent;">
         ${services.map(service => {
-          const serviceDate = new Date(service.datetime);
+          const serviceDate = service.datetime ? new Date(service.datetime) : new Date(service.date);
           const timeStr = serviceDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
           const dateStr = serviceDate.toLocaleDateString();
+          const netAmount = service.netAmount || service.totalAmount || service.amount || 0;
+          const baseAmount = service.amount || 0;
           
           return `
             <ion-item lines="full" style="--background: var(--ion-color-light); margin-bottom: 8px; border-radius: 8px;">
               <div slot="start" style="font-size: 24px;">${sourceIcons[service.serviceSource] || '🚕'}</div>
               <ion-label>
-                <h3 style="font-weight: 600;">${service.origin} → ${service.destination}</h3>
+                <h3 style="font-weight: 600;">${service.origin || 'Origen'} → ${service.destination || 'Destino'}</h3>
                 <p style="font-size: 12px; color: var(--ion-color-medium);">${dateStr} ${timeStr}</p>
               </ion-label>
               <div slot="end" style="text-align: right;">
-                <div style="font-weight: bold; color: var(--ion-color-success);">€${service.netAmount.toFixed(2)}</div>
-                ${service.amount !== service.netAmount ? `<div style="font-size: 11px; color: var(--ion-color-medium);">Base: €${service.amount.toFixed(2)}</div>` : ''}
+                <div style="font-weight: bold; color: var(--ion-color-success);">€${parseFloat(netAmount).toFixed(2)}</div>
+                ${baseAmount !== netAmount ? `<div style="font-size: 11px; color: var(--ion-color-medium);">Base: €${parseFloat(baseAmount).toFixed(2)}</div>` : ''}
               </div>
             </ion-item>
           `;
