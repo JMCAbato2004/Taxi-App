@@ -162,6 +162,25 @@ class ServiceFormModal {
             Propina del cliente
           </p>
 
+          <!-- Net Amount Preview -->
+          <ion-card style="margin: 16px 0; background: var(--ion-color-success-tint);">
+            <ion-card-content style="padding: 12px;">
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                  <p style="margin: 0; font-size: 12px; color: var(--ion-color-success);">Importe Neto</p>
+                  <p style="margin: 4px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
+                    Base <span id="preview-base">€0.00</span>
+                    <span id="preview-commission-text" style="display: none;"> - Comisión <span id="preview-commission">€0.00</span></span>
+                    <span id="preview-tip-text" style="display: none;"> + Propina <span id="preview-tip">€0.00</span></span>
+                  </p>
+                </div>
+                <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-success);" id="preview-net">
+                  €0.00
+                </div>
+              </div>
+            </ion-card-content>
+          </ion-card>
+
           <!-- Client Information -->
           <ion-list-header style="margin-top: 16px;">
             <ion-label>Información del Cliente (Opcional)</ion-label>
@@ -248,7 +267,53 @@ class ServiceFormModal {
 
     document.getElementById('service-amount')?.addEventListener('ionInput', () => {
       this.clearError('amount-error');
+      this.updateNetAmountPreview();
     });
+
+    // Auto-calculation listeners
+    document.getElementById('service-commission')?.addEventListener('ionInput', () => {
+      this.updateNetAmountPreview();
+    });
+
+    document.getElementById('service-tip')?.addEventListener('ionInput', () => {
+      this.updateNetAmountPreview();
+    });
+
+    // Initial preview update
+    this.updateNetAmountPreview();
+  }
+
+  /**
+   * Update net amount preview in real-time
+   */
+  updateNetAmountPreview() {
+    const amount = parseFloat(document.getElementById('service-amount')?.value) || 0;
+    const commission = parseFloat(document.getElementById('service-commission')?.value) || 0;
+    const tip = parseFloat(document.getElementById('service-tip')?.value) || 0;
+
+    const netAmount = amount + tip - commission;
+
+    // Update preview elements
+    document.getElementById('preview-base').textContent = '€' + amount.toFixed(2);
+    document.getElementById('preview-commission').textContent = '€' + commission.toFixed(2);
+    document.getElementById('preview-tip').textContent = '€' + tip.toFixed(2);
+    document.getElementById('preview-net').textContent = '€' + netAmount.toFixed(2);
+
+    // Show/hide commission and tip text
+    const commissionText = document.getElementById('preview-commission-text');
+    const tipText = document.getElementById('preview-tip-text');
+
+    if (commission > 0) {
+      commissionText.style.display = 'inline';
+    } else {
+      commissionText.style.display = 'none';
+    }
+
+    if (tip > 0) {
+      tipText.style.display = 'inline';
+    } else {
+      tipText.style.display = 'none';
+    }
   }
 
   /**
@@ -269,6 +334,9 @@ class ServiceFormModal {
     document.getElementById('service-client-phone').value = this.service.clientPhone || '';
     document.getElementById('service-payment-method').value = this.service.paymentMethod || 'efectivo';
     document.getElementById('service-notes').value = this.service.notes || '';
+
+    // Update preview after prefilling
+    this.updateNetAmountPreview();
   }
 
   /**
@@ -330,6 +398,7 @@ class ServiceFormModal {
     const amount = parseFloat(document.getElementById('service-amount').value) || 0;
     const commission = parseFloat(document.getElementById('service-commission').value) || 0;
     const tip = parseFloat(document.getElementById('service-tip').value) || 0;
+    const netAmount = amount + tip - commission;
 
     const serviceData = {
       date: document.getElementById('service-date').value,
@@ -340,7 +409,8 @@ class ServiceFormModal {
       amount: amount,
       commission: commission,
       tip: tip,
-      netAmount: amount + tip - commission, // Calculate net amount
+      netAmount: netAmount,
+      totalAmount: netAmount, // For compatibility
       clientName: document.getElementById('service-client-name').value,
       clientPhone: document.getElementById('service-client-phone').value,
       paymentMethod: document.getElementById('service-payment-method').value,
@@ -349,14 +419,14 @@ class ServiceFormModal {
     };
 
     try {
-      await LoadingManager.show(this.isEditMode ? 'Guardando...' : 'Creando...');
+      await LoadingManager.show(this.isEditMode ? 'Guardando cambios...' : 'Creando servicio...');
 
       if (this.isEditMode) {
         await this.reconcileAdapter.updateService(this.service.id, serviceData);
-        ToastManager.showSuccess('Servicio actualizado');
+        ToastManager.showSuccess(`Servicio actualizado • €${netAmount.toFixed(2)}`);
       } else {
         await this.reconcileAdapter.createService(serviceData);
-        ToastManager.showSuccess('Servicio creado');
+        ToastManager.showSuccess(`Servicio creado • €${netAmount.toFixed(2)}`);
       }
 
       await LoadingManager.hide();
@@ -369,7 +439,7 @@ class ServiceFormModal {
     } catch (error) {
       await LoadingManager.hide();
       console.error('Error saving service:', error);
-      ToastManager.showError('Error al guardar el servicio');
+      ToastManager.showError('Error al guardar el servicio. Inténtalo de nuevo.');
     }
   }
 
