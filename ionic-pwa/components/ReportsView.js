@@ -1,12 +1,15 @@
 /**
  * ReportsView Component
- * Displays reports and statistics
+ * Displays advanced reports and statistics with Chart.js
+ * Based on main branch reports.html functionality
  */
 
 class ReportsView {
   constructor(authAdapter, reconcileAdapter) {
     this.authAdapter = authAdapter;
     this.reconcileAdapter = reconcileAdapter;
+    this.servicesChart = null;
+    this.earningsChart = null;
   }
 
   /**
@@ -21,6 +24,9 @@ class ReportsView {
 
     const modal = await this.createModal(user);
     await modal.present();
+    
+    // Load data after modal is visible
+    setTimeout(() => this.loadReports(user), 300);
   }
 
   /**
@@ -41,16 +47,16 @@ class ReportsView {
       </ion-header>
       <ion-content class="ion-padding">
         <div id="reports-content">
-          <ion-spinner name="circles"></ion-spinner>
+          <div style="text-align: center; padding: 40px;">
+            <ion-spinner name="circles"></ion-spinner>
+            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando reportes...</p>
+          </div>
         </div>
       </ion-content>
     `;
 
     document.body.appendChild(modal);
     await modal.componentOnReady();
-
-    // Load reports data
-    await this.loadReports(user);
 
     return modal;
   }
@@ -60,220 +66,307 @@ class ReportsView {
    */
   async loadReports(user) {
     try {
-      const services = await this.reconcileAdapter.getServices();
-      const expenses = await this.reconcileAdapter.getExpenses();
+      // Get all services and users
+      const allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       
-      // Filter by role
-      const filteredServices = this.filterByRole(services, user);
-      const filteredExpenses = this.filterByRole(expenses, user);
+      // Filter services by role
+      let relevantServices = [];
+      let relevantTaxistas = [];
+      
+      if (user.rol === 'PATRON') {
+        // Get associated taxistas
+        relevantTaxistas = allUsers.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === user.id
+        );
+        
+        // Get services from associated taxistas
+        const taxistaIds = relevantTaxistas.map(t => t.id);
+        relevantServices = allServices.filter(s => taxistaIds.includes(s.taxistaId));
+      } else if (user.rol === 'TAXISTA') {
+        // Only own services
+        relevantServices = allServices.filter(s => s.taxistaId === user.id);
+        relevantTaxistas = [user];
+      }
       
       // Calculate statistics
-      const stats = this.calculateStats(filteredServices, filteredExpenses);
+      const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers);
       
       // Render reports
-      this.renderReports(stats, user);
+      this.renderAdvancedReports(stats, user, relevantTaxistas);
+      
+      // Render charts after DOM is ready
+      setTimeout(() => {
+        this.renderCharts(stats, relevantTaxistas);
+      }, 100);
     } catch (error) {
       console.error('Error loading reports:', error);
-      ToastManager.showError('Error al cargar reportes');
-    }
-  }
-
-  /**
-   * Filter data by role
-   */
-  filterByRole(data, user) {
-    if (!user || !data) return [];
-    
-    if (user.rol === 'TAXISTA') {
-      return data.filter(item => item.userId === user.id);
-    }
-    
-    if (user.rol === 'PATRON') {
-      // Get associated taxistas
-      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-      const associatedTaxistas = users.filter(u => 
-        u.rol === 'TAXISTA' && 
-        u.estado === 'asociado' && 
-        u.patronId === user.id
-      );
-      const taxistaIds = associatedTaxistas.map(t => t.id);
-      
-      return data.filter(item => taxistaIds.includes(item.userId));
-    }
-    
-    return data;
-  }
-
-  /**
-   * Calculate statistics
-   */
-  calculateStats(services, expenses) {
-    const totalServices = services.length;
-    const totalIncome = services.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
-    const totalExpenses = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
-    const netAmount = totalIncome - totalExpenses;
-    const averageService = totalServices > 0 ? totalIncome / totalServices : 0;
-    
-    // Group by date (last 7 days)
-    const last7Days = [];
-    const today = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayServices = services.filter(s => s.date === dateStr);
-      const dayIncome = dayServices.reduce((sum, s) => sum + parseFloat(s.totalAmount || 0), 0);
-      
-      last7Days.push({
-        date: dateStr,
-        label: this.formatDateLabel(date),
-        services: dayServices.length,
-        income: dayIncome
-      });
-    }
-    
-    // Group by payment type
-    const byPaymentType = {};
-    services.forEach(service => {
-      const type = service.paymentType || 'cash';
-      if (!byPaymentType[type]) {
-        byPaymentType[type] = {
-          count: 0,
-          income: 0
-        };
+      const container = document.getElementById('reports-content');
+      if (container) {
+        container.innerHTML = `
+          <div style="text-align: center; padding: 40px;">
+            <ion-icon name="alert-circle" style="font-size: 64px; color: var(--ion-color-danger);"></ion-icon>
+            <h2>Error al cargar reportes</h2>
+            <p style="color: var(--ion-color-medium);">${error.message}</p>
+          </div>
+        `;
       }
-      byPaymentType[type].count++;
-      byPaymentType[type].income += parseFloat(service.totalAmount || 0);
-    });
+    }
+  }
+
+  /**
+   * Calculate advanced statistics
+   */
+  calculateAdvancedStats(services, taxistas, allUsers) {
+    const totalServices = services.length;
+    const totalEarnings = services.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+    const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
+    const activeTaxistas = taxistas.length;
+    
+    // Services by day (last 7 days)
+    const last7Days = this.getServicesLast7Days(services);
+    
+    // Earnings by taxista
+    const earningsByTaxista = this.getEarningsByTaxista(services, taxistas);
+    
+    // Detailed taxista stats
+    const taxistaStats = this.getTaxistaDetailedStats(services, taxistas);
     
     return {
       totalServices,
-      totalIncome,
-      totalExpenses,
-      netAmount,
+      totalEarnings,
       averageService,
+      activeTaxistas,
       last7Days,
-      byPaymentType
+      earningsByTaxista,
+      taxistaStats
     };
   }
-
+  
   /**
-   * Format date label
+   * Get services for last 7 days
    */
-  formatDateLabel(date) {
+  getServicesLast7Days(services) {
     const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-    return days[date.getDay()];
+    const dailyServices = {};
+    
+    // Initialize last 7 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      const dayName = days[date.getDay()];
+      dailyServices[dayName] = 0;
+    }
+    
+    // Count services per day
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    services.forEach(service => {
+      const serviceDate = new Date(service.datetime);
+      if (serviceDate >= weekAgo) {
+        const dayName = days[serviceDate.getDay()];
+        if (dailyServices.hasOwnProperty(dayName)) {
+          dailyServices[dayName]++;
+        }
+      }
+    });
+    
+    return dailyServices;
+  }
+  
+  /**
+   * Get earnings by taxista
+   */
+  getEarningsByTaxista(services, taxistas) {
+    return taxistas.map(taxista => {
+      const taxistaServices = services.filter(s => s.taxistaId === taxista.id);
+      const earnings = taxistaServices.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+      return {
+        name: taxista.nombre,
+        earnings: earnings
+      };
+    }).filter(t => t.earnings > 0);
+  }
+  
+  /**
+   * Get detailed stats per taxista
+   */
+  getTaxistaDetailedStats(services, taxistas) {
+    return taxistas.map(taxista => {
+      const taxistaServices = services.filter(s => s.taxistaId === taxista.id);
+      const totalServices = taxistaServices.length;
+      const grossEarnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
+      const commissions = taxistaServices.reduce((sum, s) => sum + (s.commission || 0), 0);
+      const tips = taxistaServices.reduce((sum, s) => sum + (s.tip || 0), 0);
+      const netEarnings = grossEarnings - commissions + tips;
+      const averageService = totalServices > 0 ? grossEarnings / totalServices : 0;
+      
+      // Get expenses (if available)
+      const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
+      const taxistaExpenses = expenses.filter(e => e.userId === taxista.id);
+      const totalExpenses = taxistaExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+      
+      return {
+        taxista,
+        totalServices,
+        grossEarnings,
+        commissions,
+        tips,
+        netEarnings,
+        averageService,
+        totalExpenses
+      };
+    });
   }
 
   /**
-   * Render reports
+   * Render advanced reports
    */
-  renderReports(stats, user) {
+  renderAdvancedReports(stats, user, taxistas) {
     const container = document.getElementById('reports-content');
     if (!container) return;
-    
-    const paymentIcons = {
-      cash: '💵',
-      card: '💳',
-      app: '📱'
-    };
-    
-    const paymentLabels = {
-      cash: 'Efectivo',
-      card: 'Tarjeta',
-      app: 'App'
-    };
     
     container.innerHTML = `
       <!-- Summary Cards -->
       <ion-grid>
         <ion-row>
-          <ion-col size="6">
-            <ion-card color="primary">
-              <ion-card-content style="text-align: center;">
-                <div style="font-size: 24px; font-weight: bold;">${stats.totalServices}</div>
-                <div style="font-size: 12px;">Total Servicios</div>
+          <ion-col size="6" size-md="3">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${stats.totalServices}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Servicios</div>
+                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6">
-            <ion-card color="success">
-              <ion-card-content style="text-align: center;">
-                <div style="font-size: 24px; font-weight: bold;">€${stats.totalIncome.toFixed(2)}</div>
-                <div style="font-size: 12px;">Ingresos Totales</div>
+          <ion-col size="6" size-md="3">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.totalEarnings.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Ingresos Totales</div>
+                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col size="6">
-            <ion-card color="warning">
-              <ion-card-content style="text-align: center;">
-                <div style="font-size: 24px; font-weight: bold;">€${stats.averageService.toFixed(2)}</div>
-                <div style="font-size: 12px;">Promedio/Servicio</div>
+          <ion-col size="6" size-md="3">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.averageService.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Promedio/Servicio</div>
+                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6">
-            <ion-card color="tertiary">
-              <ion-card-content style="text-align: center;">
-                <div style="font-size: 24px; font-weight: bold;">€${stats.netAmount.toFixed(2)}</div>
-                <div style="font-size: 12px;">Neto</div>
+          <ion-col size="6" size-md="3">
+            <ion-card style="margin: 0;">
+              <ion-card-content style="text-align: center; padding: 16px;">
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Taxistas Activos</div>
+                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
           </ion-col>
         </ion-row>
       </ion-grid>
       
-      <!-- Last 7 Days Chart -->
+      <!-- Charts Row -->
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12" size-md="6">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title style="font-size: 16px;">Servicios por Día (Última Semana)</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <canvas id="servicesChart" style="max-height: 250px;"></canvas>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col size="12" size-md="6">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title style="font-size: 16px;">Ingresos por Taxista (Este Mes)</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <canvas id="earningsChart" style="max-height: 250px;"></canvas>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+      
+      <!-- Detailed Table -->
       <ion-card>
         <ion-card-header>
-          <ion-card-title>Últimos 7 Días</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <div style="display: flex; align-items: flex-end; justify-content: space-around; height: 150px; border-bottom: 1px solid var(--ion-color-medium);">
-            ${stats.last7Days.map(day => {
-              const maxIncome = Math.max(...stats.last7Days.map(d => d.income), 1);
-              const height = (day.income / maxIncome) * 100;
-              return `
-                <div style="text-align: center; flex: 1;">
-                  <div style="background: var(--ion-color-primary); height: ${height}%; min-height: 5px; margin: 0 5px; border-radius: 4px 4px 0 0;"></div>
-                  <div style="font-size: 10px; margin-top: 5px;">${day.label}</div>
-                  <div style="font-size: 10px; color: var(--ion-color-medium);">${day.services}</div>
-                </div>
-              `;
-            }).join('')}
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <ion-card-title style="font-size: 16px;">Detalle por Taxista</ion-card-title>
+            <ion-button size="small" color="primary" onclick="window.app.exportReports()">
+              <ion-icon name="download" slot="start"></ion-icon>
+              Exportar
+            </ion-button>
           </div>
-        </ion-card-content>
-      </ion-card>
-      
-      <!-- By Payment Type -->
-      <ion-card>
-        <ion-card-header>
-          <ion-card-title>Por Método de Pago</ion-card-title>
         </ion-card-header>
-        <ion-card-content>
-          <ion-list>
-            ${Object.entries(stats.byPaymentType).map(([type, data]) => `
-              <ion-item>
-                <div slot="start" style="font-size: 24px;">${paymentIcons[type] || '💵'}</div>
-                <ion-label>
-                  <h2>${paymentLabels[type] || type}</h2>
-                  <p>${data.count} servicio${data.count !== 1 ? 's' : ''}</p>
-                </ion-label>
-                <ion-note slot="end" color="success">€${data.income.toFixed(2)}</ion-note>
-              </ion-item>
-            `).join('')}
-          </ion-list>
+        <ion-card-content style="padding: 0;">
+          ${this.renderTaxistaTable(stats.taxistaStats)}
         </ion-card-content>
       </ion-card>
-      
-      <!-- Export Button -->
-      <ion-button expand="block" color="primary" onclick="window.app.exportReports()">
-        <ion-icon name="download" slot="start"></ion-icon>
-        Exportar Reporte
-      </ion-button>
+    `;
+  }
+  
+  /**
+   * Render taxista table
+   */
+  renderTaxistaTable(taxistaStats) {
+    if (taxistaStats.length === 0) {
+      return `
+        <div style="text-align: center; padding: 40px;">
+          <ion-icon name="people" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
+          <h3 style="color: var(--ion-color-medium);">No hay datos para mostrar</h3>
+          <p style="color: var(--ion-color-medium); font-size: 14px;">Debes tener servicios registrados para ver los reportes</p>
+        </div>
+      `;
+    }
+    
+    return `
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse;">
+          <thead style="background: var(--ion-color-light);">
+            <tr>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">TAXISTA</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">SERVICIOS</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">INGRESOS</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">PROMEDIO</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">GASTOS</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">NETO</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${taxistaStats.map((stats, index) => `
+              <tr style="border-bottom: 1px solid var(--ion-color-light);">
+                <td style="padding: 12px;">
+                  <div style="display: flex; align-items: center;">
+                    <div style="width: 32px; height: 32px; background: var(--ion-color-success-tint); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
+                      <span style="font-weight: bold; font-size: 12px; color: var(--ion-color-success);">${stats.taxista.numeroTaxista?.slice(-2) || (index + 1).toString().padStart(2, '0')}</span>
+                    </div>
+                    <div>
+                      <div style="font-weight: 500; font-size: 14px;">${stats.taxista.nombre}</div>
+                      <div style="font-size: 12px; color: var(--ion-color-medium);">${stats.taxista.numeroTaxista || 'Sin número'}</div>
+                    </div>
+                  </div>
+                </td>
+                <td style="padding: 12px; font-size: 14px;">${stats.totalServices}</td>
+                <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</td>
+                <td style="padding: 12px; font-size: 14px;">€${stats.averageService.toFixed(2)}</td>
+                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-danger);">€${stats.totalExpenses.toFixed(2)}</td>
+                <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-primary);">€${stats.netEarnings.toFixed(2)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
     `;
   }
 }
@@ -284,3 +377,124 @@ if (typeof window !== 'undefined') {
 }
 
 console.log('ReportsView component loaded');
+
+  /**
+   * Render charts using Chart.js
+   */
+  renderCharts(stats, taxistas) {
+    // Destroy existing charts
+    if (this.servicesChart) {
+      this.servicesChart.destroy();
+    }
+    if (this.earningsChart) {
+      this.earningsChart.destroy();
+    }
+    
+    // Services chart
+    const servicesCtx = document.getElementById('servicesChart');
+    if (servicesCtx && typeof Chart !== 'undefined') {
+      this.servicesChart = new Chart(servicesCtx, {
+        type: 'line',
+        data: {
+          labels: Object.keys(stats.last7Days),
+          datasets: [{
+            label: 'Servicios',
+            data: Object.values(stats.last7Days),
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: {
+              display: false
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              ticks: {
+                precision: 0
+              }
+            }
+          }
+        }
+      });
+    }
+    
+    // Earnings chart
+    const earningsCtx = document.getElementById('earningsChart');
+    if (earningsCtx && typeof Chart !== 'undefined') {
+      if (stats.earningsByTaxista.length === 0) {
+        // Show empty state
+        this.earningsChart = new Chart(earningsCtx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Sin datos'],
+            datasets: [{
+              data: [1],
+              backgroundColor: ['#e5e7eb'],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                display: false
+              }
+            }
+          }
+        });
+      } else {
+        this.earningsChart = new Chart(earningsCtx, {
+          type: 'doughnut',
+          data: {
+            labels: stats.earningsByTaxista.map(t => t.name),
+            datasets: [{
+              data: stats.earningsByTaxista.map(t => t.earnings),
+              backgroundColor: [
+                'rgb(34, 197, 94)',
+                'rgb(59, 130, 246)',
+                'rgb(168, 85, 247)',
+                'rgb(245, 158, 11)',
+                'rgb(239, 68, 68)',
+                'rgb(20, 184, 166)',
+                'rgb(251, 146, 60)'
+              ],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+              legend: {
+                position: 'bottom',
+                labels: {
+                  padding: 15,
+                  usePointStyle: true,
+                  font: {
+                    size: 11
+                  }
+                }
+              }
+            }
+          }
+        });
+      }
+    }
+  }
+}
+
+// Export for use in other modules
+if (typeof window !== 'undefined') {
+  window.ReportsView = ReportsView;
+}
+
+console.log('ReportsView component loaded (Advanced with Chart.js)');
