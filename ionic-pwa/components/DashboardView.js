@@ -134,6 +134,8 @@ class DashboardView {
       this.stats = {
         servicesCount: todayServices.length,
         totalIncome,
+        totalCommissions,
+        totalTips,
         totalExpenses,
         netAmount,
         recentServices: filteredServices.slice(-5).reverse()
@@ -145,6 +147,8 @@ class DashboardView {
       this.stats = {
         servicesCount: 0,
         totalIncome: 0,
+        totalCommissions: 0,
+        totalTips: 0,
         totalExpenses: 0,
         netAmount: 0,
         recentServices: []
@@ -185,6 +189,8 @@ class DashboardView {
     
     const statServices = document.getElementById('stat-services');
     const statIncome = document.getElementById('stat-income');
+    const statTips = document.getElementById('stat-tips');
+    const statCommissions = document.getElementById('stat-commissions');
     const statExpenses = document.getElementById('stat-expenses');
     const statNet = document.getElementById('stat-net');
     
@@ -194,6 +200,16 @@ class DashboardView {
     
     if (statIncome) {
       statIncome.textContent = '€' + this.stats.totalIncome.toFixed(2);
+    }
+    
+    if (statTips) {
+      statTips.textContent = '€' + this.stats.totalTips.toFixed(2);
+      statTips.style.color = 'var(--ion-color-tertiary)';
+    }
+    
+    if (statCommissions) {
+      statCommissions.textContent = '€' + this.stats.totalCommissions.toFixed(2);
+      statCommissions.style.color = 'var(--ion-color-danger)';
     }
     
     if (statExpenses) {
