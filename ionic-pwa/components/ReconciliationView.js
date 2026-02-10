@@ -17,6 +17,9 @@ class ReconciliationView {
     const container = document.getElementById('reconciliation-content');
     if (!container) return;
 
+    // Clear any loading spinners
+    container.innerHTML = '';
+
     if (this.showingResults && this.currentReconciliation) {
       this.renderResults();
     } else {

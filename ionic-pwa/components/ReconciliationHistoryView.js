@@ -17,6 +17,9 @@ class ReconciliationHistoryView {
     const container = document.getElementById('reconciliation-history-content');
     if (!container) return;
 
+    // Clear any loading spinners
+    container.innerHTML = '';
+
     await this.loadReconciliations();
 
     container.innerHTML = `

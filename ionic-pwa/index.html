@@ -212,13 +212,22 @@
                 </ion-header>
                 <ion-content class="ion-padding">
                     <div id="expenses-content" style="display: block;">
-                        <!-- ExpenseListView will render here -->
+                        <div style="text-align: center; padding: 40px;">
+                            <ion-spinner name="circles"></ion-spinner>
+                            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando gastos...</p>
+                        </div>
                     </div>
                     <div id="reconciliation-content" style="display: none;">
-                        <!-- ReconciliationView will render here -->
+                        <div style="text-align: center; padding: 40px;">
+                            <ion-spinner name="circles"></ion-spinner>
+                            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando conciliación...</p>
+                        </div>
                     </div>
                     <div id="reconciliation-history-content" style="display: none;">
-                        <!-- ReconciliationHistoryView will render here -->
+                        <div style="text-align: center; padding: 40px;">
+                            <ion-spinner name="circles"></ion-spinner>
+                            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando historial...</p>
+                        </div>
                     </div>
                 </ion-content>
             </ion-tab>
