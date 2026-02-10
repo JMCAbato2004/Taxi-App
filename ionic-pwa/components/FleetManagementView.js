@@ -98,15 +98,21 @@ class FleetManagementView {
     // Listen for taxista updates
     const updateHandler = async () => {
       console.log('Reloading fleet data due to taxista-updated event');
-      await this.loadFleet(user);
-      await this.loadRequests(user);
+      // Only reload if modal is still present
+      if (document.body.contains(modal)) {
+        await this.loadFleet(user);
+        await this.loadRequests(user);
+      }
     };
     window.addEventListener('taxista-updated', updateHandler);
     
     // Listen for service updates to refresh stats
     const serviceUpdateHandler = async () => {
       console.log('Reloading fleet data due to service-saved event');
-      await this.loadFleet(user);
+      // Only reload if modal is still present
+      if (document.body.contains(modal)) {
+        await this.loadFleet(user);
+      }
     };
     window.addEventListener('service-saved', serviceUpdateHandler);
 
@@ -119,6 +125,7 @@ class FleetManagementView {
     // Load fleet data
     await this.loadFleet(user);
     await this.loadRequests(user);
+    await this.loadRequests(user);
 
     return modal;
   }
@@ -127,13 +134,25 @@ class FleetManagementView {
    * Load fleet data
    */
   async loadFleet(user) {
+    console.log('loadFleet called for user:', user.id);
     const statsContainer = document.getElementById('fleet-stats-container');
     const fleetContainer = document.getElementById('fleet-tab-content');
+    
+    console.log('Containers found:', { 
+      statsContainer: !!statsContainer, 
+      fleetContainer: !!fleetContainer 
+    });
     
     try {
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const services = await this.reconcileAdapter.getServices();
       const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
+      
+      console.log('Data loaded:', { 
+        totalUsers: users.length, 
+        totalServices: services.length, 
+        totalRequests: requests.length 
+      });
       
       // Get associated taxistas
       const associatedTaxistas = users.filter(u => 
@@ -141,6 +160,8 @@ class FleetManagementView {
         u.estado === 'asociado' && 
         u.patronId === user.id
       );
+      
+      console.log('Associated taxistas:', associatedTaxistas.length);
       
       // Calculate stats for each taxista
       const today = new Date().toISOString().split('T')[0];
@@ -177,8 +198,12 @@ class FleetManagementView {
         todayIncome: todayIncomeTotal
       };
       
+      console.log('Fleet stats calculated:', stats);
+      
       this.renderFleetStats(stats);
       this.renderFleet(taxistasWithStats, user);
+      
+      console.log('Fleet data rendered successfully');
     } catch (error) {
       console.error('Error loading fleet:', error);
       
@@ -198,8 +223,14 @@ class FleetManagementView {
    * Render fleet statistics
    */
   renderFleetStats(stats) {
+    console.log('renderFleetStats called with:', stats);
     const container = document.getElementById('fleet-stats-container');
-    if (!container) return;
+    if (!container) {
+      console.error('fleet-stats-container not found!');
+      return;
+    }
+    
+    console.log('Rendering stats into container');
     
     // Clear any loading spinners
     container.innerHTML = '';
