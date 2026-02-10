@@ -8,6 +8,9 @@ const authAdapter = new AuthAdapter();
 const reconcileAdapter = new ReconcileAdapter();
 const rgpdAdapter = new RGPDAdapter();
 
+// Initialize data sync
+const dataSyncView = new DataSyncView();
+
 // Initialize components
 let tabNavigation = null;
 let dashboardView = null;
@@ -695,7 +698,11 @@ window.app = {
   },
   
   showDataSync: async () => {
-    ToastManager.showInfo('Sincronización de datos - Próximamente');
+    if (dataSyncView) {
+      await dataSyncView.show();
+    } else {
+      ToastManager.showError('Sincronización no disponible');
+    }
   },
   
   toggleOfflineMode: async () => {
