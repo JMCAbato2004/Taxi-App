@@ -79,27 +79,35 @@ class FleetManagementView {
 
     document.body.appendChild(modal);
     
+    // Store modal reference for use in render methods
+    this.currentModal = modal;
+    
     // Wait for modal to be ready
     try {
       await modal.componentOnReady();
     } catch (e) {
       console.log('componentOnReady not available, continuing...');
     }
+    
+    // Add a small delay to ensure DOM is fully ready
+    await new Promise(resolve => setTimeout(resolve, 100));
 
     // Set up segment change handler
     const segment = modal.querySelector('#fleet-segment');
-    segment.addEventListener('ionChange', (e) => {
-      const fleetContent = modal.querySelector('#fleet-tab-content');
-      const requestsContent = modal.querySelector('#requests-tab-content');
-      
-      if (e.detail.value === 'fleet') {
-        fleetContent.style.display = 'block';
-        requestsContent.style.display = 'none';
-      } else {
-        fleetContent.style.display = 'none';
-        requestsContent.style.display = 'block';
-      }
-    });
+    if (segment) {
+      segment.addEventListener('ionChange', (e) => {
+        const fleetContent = modal.querySelector('#fleet-tab-content');
+        const requestsContent = modal.querySelector('#requests-tab-content');
+        
+        if (e.detail.value === 'fleet') {
+          fleetContent.style.display = 'block';
+          requestsContent.style.display = 'none';
+        } else {
+          fleetContent.style.display = 'none';
+          requestsContent.style.display = 'block';
+        }
+      });
+    }
 
     // Listen for taxista updates
     const updateHandler = async () => {
@@ -126,6 +134,7 @@ class FleetManagementView {
     modal.addEventListener('ionModalDidDismiss', () => {
       window.removeEventListener('taxista-updated', updateHandler);
       window.removeEventListener('service-saved', serviceUpdateHandler);
+      this.currentModal = null;
     });
 
     // Load fleet data
@@ -140,13 +149,22 @@ class FleetManagementView {
    */
   async loadFleet(user) {
     console.log('loadFleet called for user:', user.id);
-    const statsContainer = document.getElementById('fleet-stats-container');
-    const fleetContainer = document.getElementById('fleet-tab-content');
+    
+    // Use modal reference if available, otherwise fall back to document
+    const container = this.currentModal || document;
+    const statsContainer = container.querySelector('#fleet-stats-container');
+    const fleetContainer = container.querySelector('#fleet-tab-content');
     
     console.log('Containers found:', { 
       statsContainer: !!statsContainer, 
-      fleetContainer: !!fleetContainer 
+      fleetContainer: !!fleetContainer,
+      hasModal: !!this.currentModal
     });
+    
+    if (!statsContainer || !fleetContainer) {
+      console.error('Required containers not found in DOM');
+      return;
+    }
     
     try {
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
@@ -229,8 +247,10 @@ class FleetManagementView {
    */
   renderFleetStats(stats) {
     console.log('renderFleetStats called with:', stats);
-    const container = document.getElementById('fleet-stats-container');
-    if (!container) {
+    const container = this.currentModal || document;
+    const statsContainer = container.querySelector('#fleet-stats-container');
+    
+    if (!statsContainer) {
       console.error('fleet-stats-container not found!');
       return;
     }
@@ -238,7 +258,7 @@ class FleetManagementView {
     console.log('Rendering stats into container');
     
     // Clear any loading spinners
-    container.innerHTML = '';
+    statsContainer.innerHTML = '';
     
     const statsHTML = `
       <ion-grid style="padding: 0;">
@@ -288,14 +308,20 @@ class FleetManagementView {
       </ion-grid>
     `;
     
-    container.innerHTML = statsHTML;
+    statsContainer.innerHTML = statsHTML;
   }
 
   /**
    * Load pending requests
    */
   async loadRequests(user) {
-    const requestsContainer = document.getElementById('requests-tab-content');
+    const container = this.currentModal || document;
+    const requestsContainer = container.querySelector('#requests-tab-content');
+    
+    if (!requestsContainer) {
+      console.error('requests-tab-content not found!');
+      return;
+    }
     
     try {
       const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
@@ -306,7 +332,7 @@ class FleetManagementView {
       );
       
       // Update badge
-      const badge = document.getElementById('requests-badge');
+      const badge = container.querySelector('#requests-badge');
       if (badge) {
         badge.textContent = pendingRequests.length;
         badge.style.display = pendingRequests.length > 0 ? 'inline-block' : 'none';
@@ -338,8 +364,13 @@ class FleetManagementView {
    * Render fleet list
    */
   renderFleet(taxistas, user) {
-    const container = document.getElementById('fleet-tab-content');
-    if (!container) return;
+    const container = this.currentModal || document;
+    const fleetContainer = container.querySelector('#fleet-tab-content');
+    
+    if (!fleetContainer) {
+      console.error('fleet-tab-content not found!');
+      return;
+    }
     
     if (taxistas.length === 0) {
       const safeCode = sanitizer.escapeHTML(user.codigoInvitacion || 'No disponible');
@@ -358,7 +389,7 @@ class FleetManagementView {
           </ion-card>
         </div>
       `;
-      sanitizer.setInnerHTML(container, html);
+      sanitizer.setInnerHTML(fleetContainer, html);
       return;
     }
     
@@ -423,15 +454,20 @@ class FleetManagementView {
       </ion-list>
     `;
     
-    sanitizer.setInnerHTML(container, html);
+    sanitizer.setInnerHTML(fleetContainer, html);
   }
 
   /**
    * Render requests list
    */
   renderRequests(requests) {
-    const container = document.getElementById('requests-tab-content');
-    if (!container) return;
+    const container = this.currentModal || document;
+    const requestsContainer = container.querySelector('#requests-tab-content');
+    
+    if (!requestsContainer) {
+      console.error('requests-tab-content not found!');
+      return;
+    }
     
     if (requests.length === 0) {
       const html = `
@@ -441,7 +477,7 @@ class FleetManagementView {
           <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
         </div>
       `;
-      sanitizer.setInnerHTML(container, html);
+      sanitizer.setInnerHTML(requestsContainer, html);
       return;
     }
     
@@ -485,7 +521,7 @@ class FleetManagementView {
       </ion-list>
     `;
     
-    sanitizer.setInnerHTML(container, html);
+    sanitizer.setInnerHTML(requestsContainer, html);
   }
 }
 
