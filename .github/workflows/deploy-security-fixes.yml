@@ -1,0 +1,44 @@
+# GitHub Actions workflow para desplegar la rama security-fixes en GitHub Pages
+name: Deploy Security Fixes to GitHub Pages
+
+on:
+  push:
+    branches: [ security-fixes ]
+  workflow_dispatch:
+
+# Permisos necesarios para GitHub Pages
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Solo permitir un despliegue concurrente
+concurrency:
+  group: "pages-security-fixes"
+  cancel-in-progress: false
+
+jobs:
+  # Job de construcción y despliegue
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: security-fixes
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          # Subir la carpeta ionic-pwa
+          path: './ionic-pwa'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
