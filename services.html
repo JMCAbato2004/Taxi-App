@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestión de Servicios - Control de Taxi</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#059669">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal.show {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-900">🚕 Gestión de Servicios</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="window.open('new-service.html', '_blank')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors">
+                        ➕ Nuevo Servicio
+                    </button>
+                    <button onclick="goBackToMain()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        ← Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-4 py-8">
+        <!-- Filtros y Búsqueda -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <div class="flex-1 min-w-64">
+                    <input type="text" id="searchInput" placeholder="Buscar por origen, destino o cliente..." 
+                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+                <!-- Filtro por taxista (solo para patrones) -->
+                <select id="taxistaFilter" class="px-4 py-2 border border-gray-300 rounded-lg hidden">
+                    <option value="">Todos los taxistas</option>
+                </select>
+                <select id="sourceFilter" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="">Todos los orígenes</option>
+                    <option value="emisora">📻 Emisora</option>
+                    <option value="calle">🚶 Calle</option>
+                    <option value="uber">🚗 Uber</option>
+                    <option value="freenow">🚕 FreeNow</option>
+                    <option value="otro">📋 Otro</option>
+                </select>
+                <select id="dateFilter" class="px-4 py-2 border border-gray-300 rounded-lg">
+                    <option value="today">Hoy</option>
+                    <option value="week">Última semana</option>
+                    <option value="month">Último mes</option>
+                    <option value="all">Todos</option>
+                </select>
+                <button onclick="applyFilters()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                    🔍 Buscar
+                </button>
+                <button onclick="clearAllData()" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors" title="Limpiar todos los servicios">
+                    🗑️ Limpiar Todo
+                </button>
+            </div>
+        </div>
+
+        <!-- Lista de Servicios -->
+        <div class="bg-white rounded-lg shadow-md">
+            <div class="p-6 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h2 id="servicesTitle" class="text-xl font-bold text-gray-900">Servicios</h2>
+                    <span id="servicesCount" class="text-sm text-gray-500">0 servicios encontrados</span>
+                </div>
+            </div>
+            
+            <div id="servicesList" class="divide-y divide-gray-200">
+                <!-- Los servicios se cargarán aquí dinámicamente -->
+            </div>
+
+            <!-- Estado vacío -->
+            <div id="emptyState" class="p-12 text-center text-gray-500 hidden">
+                <div class="text-6xl mb-4">🚕</div>
+                <h3 id="emptyStateTitle" class="text-lg font-semibold mb-2">No hay servicios registrados</h3>
+                <p id="emptyStateMessage" class="mb-4">Comienza registrando tu primer servicio</p>
+                <button id="emptyStateButton" onclick="window.open('new-service.html', '_blank')" class="bg-green-600 text-white px-6 py-3 rounded-lg hover:bg-green-700 transition-colors">
+                    ➕ Registrar Primer Servicio
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Edición -->
+    <div id="editModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-screen overflow-y-auto fade-in">
+            <div class="p-6 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Editar Servicio</h3>
+            </div>
+            <form id="editForm" class="p-6 space-y-4">
+                <input type="hidden" id="editServiceId">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Fecha y Hora</label>
+                    <input type="datetime-local" id="editDatetime" required
+                           class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Origen (Opcional)</label>
+                        <input type="text" id="editOrigin"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Destino (Opcional)</label>
+                        <input type="text" id="editDestination"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Origen del Servicio</label>
+                    <select id="editServiceSource" required
+                            class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="emisora">📻 Emisora</option>
+                        <option value="calle">🚶 Calle</option>
+                        <option value="uber">🚗 Uber</option>
+                        <option value="freenow">🚕 FreeNow</option>
+                        <option value="otro">📋 Otro</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Importe</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">€</span>
+                            <input type="number" id="editAmount" step="0.01" min="0" required
+                                   class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Comisión</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">€</span>
+                            <input type="number" id="editCommission" step="0.01" min="0"
+                                   class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Propina</label>
+                        <div class="relative">
+                            <span class="absolute left-3 top-2 text-gray-500">€</span>
+                            <input type="number" id="editTip" step="0.01" min="0"
+                                   class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
+                        <input type="text" id="editClientName"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                        <input type="tel" id="editClientPhone"
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Método de Pago</label>
+                    <select id="editPaymentMethod" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="efectivo">💵 Efectivo</option>
+                        <option value="tarjeta">💳 Tarjeta</option>
+                        <option value="transferencia">🏦 Transferencia</option>
+                        <option value="app">📱 App</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notas</label>
+                    <textarea id="editNotes" rows="3"
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <div class="flex space-x-4 pt-4">
+                    <button type="submit" class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        💾 Guardar Cambios
+                    </button>
+                    <button type="button" onclick="closeEditModal()" class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmación de Eliminación -->
+    <div id="deleteModal" class="modal">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 fade-in">
+            <div class="p-6">
+                <div class="flex items-center mb-4">
+                    <div class="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
+                        <span class="text-red-600 text-xl">⚠️</span>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold text-gray-900">Eliminar Servicio</h3>
+                        <p class="text-sm text-gray-600">Esta acción no se puede deshacer</p>
+                    </div>
+                </div>
+                <p class="text-gray-700 mb-6">¿Estás seguro de que quieres eliminar este servicio?</p>
+                <div class="flex space-x-4">
+                    <button id="confirmDelete" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors">
+                        🗑️ Eliminar
+                    </button>
+                    <button onclick="closeDeleteModal()" class="flex-1 border border-gray-300 py-2 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let allServices = [];
+        let filteredServices = [];
+        let currentUser = null;
+        let serviceToDelete = null;
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || '{}');
+            
+            // Limpiar datos de muestra si existen (solo en primera carga)
+            cleanSampleData();
+            
+            loadServices();
+            setupEventListeners();
+        });
+
+        function cleanSampleData() {
+            // Esta función elimina cualquier servicio de muestra que pueda existir
+            // Solo se ejecuta si no hay un flag que indique que ya se limpió
+            const cleanupFlag = localStorage.getItem('taxi_cleanup_done');
+            if (cleanupFlag) return;
+
+            // Limpiar servicios de muestra
+            const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+            const cleanServices = services.filter(service => {
+                // Eliminar servicios que parezcan de muestra (con nombres genéricos)
+                const sampleNames = ['María Fernández', 'Juan Pérez', 'Cliente habitual', 'Centro', 'Aeropuerto', 'Hotel', 'Estación de Tren'];
+                return !sampleNames.some(name => 
+                    service.clientName === name || 
+                    service.origin === name || 
+                    service.destination === name
+                );
+            });
+
+            if (cleanServices.length !== services.length) {
+                localStorage.setItem('taxi_services', JSON.stringify(cleanServices));
+                console.log('🧹 Datos de muestra eliminados');
+            }
+
+            // Marcar como limpiado
+            localStorage.setItem('taxi_cleanup_done', 'true');
+        }
+
+        function setupEventListeners() {
+            // Filtros en tiempo real
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('sourceFilter').addEventListener('change', applyFilters);
+            document.getElementById('dateFilter').addEventListener('change', applyFilters);
+
+            // Formulario de edición
+            document.getElementById('editForm').addEventListener('submit', handleEditSubmit);
+        }
+
+        function loadServices() {
+            allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+            
+            // Configurar vista según el rol del usuario
+            if (currentUser.rol === 'TAXISTA') {
+                // Para taxistas: mostrar solo sus servicios
+                allServices = allServices.filter(service => service.taxistaId === currentUser.id);
+                document.getElementById('servicesTitle').textContent = 'Mis Servicios';
+            } else if (currentUser.rol === 'PATRON') {
+                // Para patrones: mostrar servicios de su flota y configurar filtros
+                setupPatronView();
+                document.getElementById('servicesTitle').textContent = 'Servicios de la Flota';
+            }
+            
+            // Proyecto limpio - sin servicios de ejemplo por defecto
+            
+            applyFilters();
+        }
+
+        function setupPatronView() {
+            // Mostrar filtro por taxista
+            const taxistaFilter = document.getElementById('taxistaFilter');
+            taxistaFilter.classList.remove('hidden');
+            
+            // Cargar taxistas de la flota
+            const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+            const associatedTaxistas = users.filter(u => 
+                u.rol === 'TAXISTA' && 
+                u.estado === 'asociado' && 
+                u.patronId === currentUser.id
+            );
+            
+            // Poblar el filtro de taxistas
+            taxistaFilter.innerHTML = '<option value="">Todos los taxistas</option>';
+            associatedTaxistas.forEach(taxista => {
+                const option = document.createElement('option');
+                option.value = taxista.id;
+                option.textContent = `${taxista.nombre} (${taxista.numeroTaxista || 'Sin número'})`;
+                taxistaFilter.appendChild(option);
+            });
+            
+            // Filtrar servicios de la flota
+            const fleetTaxistaIds = associatedTaxistas.map(t => t.id);
+            allServices = allServices.filter(service => 
+                fleetTaxistaIds.includes(service.taxistaId)
+            );
+            
+            // Configurar estado vacío para patrones
+            document.getElementById('emptyStateTitle').textContent = 'No hay servicios en la flota';
+            document.getElementById('emptyStateMessage').textContent = 'Los servicios de tus taxistas aparecerán aquí cuando los registren';
+            document.getElementById('emptyStateButton').style.display = 'none'; // Ocultar botón de registro para patrones
+            
+            // Añadir event listener para el filtro de taxista
+            taxistaFilter.addEventListener('change', applyFilters);
+        }
+
+        function addSampleServices() {
+            // Esta función ya no se ejecuta automáticamente
+            // Se mantiene para uso manual si es necesario
+            const sampleServices = [
+                {
+                    id: Date.now() + 1,
+                    datetime: new Date(Date.now() - 3600000).toISOString().slice(0, 16),
+                    origin: 'Centro',
+                    destination: 'Aeropuerto',
+                    serviceSource: 'emisora',
+                    amount: 25.50,
+                    commission: 2.50,
+                    tip: 3.00,
+                    netAmount: 26.00,
+                    clientName: 'María Fernández',
+                    clientPhone: '+34 666 123 456',
+                    paymentMethod: 'efectivo',
+                    notes: 'Cliente habitual',
+                    taxistaId: currentUser.id || 1,
+                    status: 'completado'
+                },
+                {
+                    id: Date.now() + 2,
+                    datetime: new Date(Date.now() - 7200000).toISOString().slice(0, 16),
+                    origin: 'Hotel',
+                    destination: 'Estación de Tren',
+                    serviceSource: 'uber',
+                    amount: 15.75,
+                    commission: 3.15,
+                    tip: 0,
+                    netAmount: 12.60,
+                    clientName: 'Juan Pérez',
+                    clientPhone: '+34 677 987 654',
+                    paymentMethod: 'app',
+                    notes: '',
+                    taxistaId: currentUser.id || 1,
+                    status: 'completado'
+                }
+            ];
+            
+            allServices = sampleServices;
+            localStorage.setItem('taxi_services', JSON.stringify(allServices));
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const sourceFilter = document.getElementById('sourceFilter').value;
+            const dateFilter = document.getElementById('dateFilter').value;
+            const taxistaFilter = document.getElementById('taxistaFilter').value;
+            
+            filteredServices = allServices.filter(service => {
+                // Filtro de búsqueda
+                const matchesSearch = !searchTerm || 
+                    service.origin.toLowerCase().includes(searchTerm) ||
+                    service.destination.toLowerCase().includes(searchTerm) ||
+                    (service.clientName && service.clientName.toLowerCase().includes(searchTerm));
+                
+                // Filtro de origen
+                const matchesSource = !sourceFilter || service.serviceSource === sourceFilter;
+                
+                // Filtro por taxista (solo para patrones)
+                const matchesTaxista = !taxistaFilter || service.taxistaId.toString() === taxistaFilter;
+                
+                // Filtro de fecha
+                const serviceDate = new Date(service.datetime);
+                const now = new Date();
+                let matchesDate = true;
+                
+                if (dateFilter === 'today') {
+                    matchesDate = serviceDate.toDateString() === now.toDateString();
+                } else if (dateFilter === 'week') {
+                    const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+                    matchesDate = serviceDate >= weekAgo;
+                } else if (dateFilter === 'month') {
+                    const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+                    matchesDate = serviceDate >= monthAgo;
+                }
+                
+                return matchesSearch && matchesSource && matchesDate && matchesTaxista;
+            });
+            
+            renderServices();
+        }
+
+        function renderServices() {
+            const servicesList = document.getElementById('servicesList');
+            const emptyState = document.getElementById('emptyState');
+            const servicesCount = document.getElementById('servicesCount');
+            
+            servicesCount.textContent = `${filteredServices.length} servicios encontrados`;
+            
+            if (filteredServices.length === 0) {
+                servicesList.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            
+            servicesList.innerHTML = filteredServices.map(service => {
+                const serviceDate = new Date(service.datetime);
+                const sourceIcons = {
+                    emisora: '📻',
+                    calle: '🚶',
+                    uber: '🚗',
+                    freenow: '🚕',
+                    otro: '📋'
+                };
+                
+                // Obtener información del taxista si el usuario es patrón
+                let taxistaInfo = '';
+                if (currentUser.rol === 'PATRON') {
+                    const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+                    const taxista = users.find(u => u.id === service.taxistaId);
+                    if (taxista) {
+                        taxistaInfo = `<p class="text-xs text-blue-600 font-medium">Taxista: ${taxista.nombre} (${taxista.numeroTaxista || 'Sin número'})</p>`;
+                    }
+                }
+                
+                return `
+                    <div class="p-6 hover:bg-gray-50 transition-colors">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center space-x-4">
+                                <div class="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                    <span class="text-blue-600 font-bold">${sourceIcons[service.serviceSource] || '🚕'}</span>
+                                </div>
+                                <div>
+                                    <h3 class="font-semibold text-gray-900">${service.origin} → ${service.destination}</h3>
+                                    <p class="text-sm text-gray-600">
+                                        ${serviceDate.toLocaleDateString()} ${serviceDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                    </p>
+                                    ${taxistaInfo}
+                                    ${service.clientName ? `<p class="text-xs text-gray-500">Cliente: ${service.clientName}${service.clientPhone ? ` • ${service.clientPhone}` : ''}</p>` : ''}
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <div class="flex flex-col items-end space-y-1">
+                                    <p class="text-lg font-bold text-green-600">€${service.netAmount.toFixed(2)}</p>
+                                    ${service.amount !== service.netAmount ? `<p class="text-xs text-gray-500">Base: €${service.amount.toFixed(2)}</p>` : ''}
+                                    ${service.commission > 0 ? `<p class="text-xs text-red-500">-€${service.commission.toFixed(2)} comisión</p>` : ''}
+                                    ${service.tip > 0 ? `<p class="text-xs text-green-500">+€${service.tip.toFixed(2)} propina</p>` : ''}
+                                </div>
+                                <div class="flex space-x-2 mt-2">
+                                    <button onclick="editService(${service.id})" 
+                                            class="px-3 py-1 text-xs bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors">
+                                        ✏️ Editar
+                                    </button>
+                                    <button onclick="deleteService(${service.id})" 
+                                            class="px-3 py-1 text-xs bg-red-100 text-red-700 rounded hover:bg-red-200 transition-colors">
+                                        🗑️ Borrar
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function editService(serviceId) {
+            const service = allServices.find(s => s.id === serviceId);
+            if (!service) return;
+            
+            // Llenar el formulario de edición
+            document.getElementById('editServiceId').value = service.id;
+            document.getElementById('editDatetime').value = service.datetime;
+            document.getElementById('editOrigin').value = service.origin;
+            document.getElementById('editDestination').value = service.destination;
+            document.getElementById('editServiceSource').value = service.serviceSource;
+            document.getElementById('editAmount').value = service.amount;
+            document.getElementById('editCommission').value = service.commission || 0;
+            document.getElementById('editTip').value = service.tip || 0;
+            document.getElementById('editClientName').value = service.clientName || '';
+            document.getElementById('editClientPhone').value = service.clientPhone || '';
+            document.getElementById('editPaymentMethod').value = service.paymentMethod;
+            document.getElementById('editNotes').value = service.notes || '';
+            
+            // Mostrar modal
+            document.getElementById('editModal').classList.add('show');
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').classList.remove('show');
+        }
+
+        function handleEditSubmit(e) {
+            e.preventDefault();
+            
+            const serviceId = parseInt(document.getElementById('editServiceId').value);
+            const serviceIndex = allServices.findIndex(s => s.id === serviceId);
+            
+            if (serviceIndex === -1) return;
+            
+            // Actualizar el servicio
+            const updatedService = {
+                ...allServices[serviceIndex],
+                datetime: document.getElementById('editDatetime').value,
+                origin: document.getElementById('editOrigin').value || 'No especificado',
+                destination: document.getElementById('editDestination').value || 'No especificado',
+                serviceSource: document.getElementById('editServiceSource').value,
+                amount: parseFloat(document.getElementById('editAmount').value) || 0,
+                commission: parseFloat(document.getElementById('editCommission').value) || 0,
+                tip: parseFloat(document.getElementById('editTip').value) || 0,
+                clientName: document.getElementById('editClientName').value,
+                clientPhone: document.getElementById('editClientPhone').value,
+                paymentMethod: document.getElementById('editPaymentMethod').value,
+                notes: document.getElementById('editNotes').value
+            };
+            
+            // Recalcular total neto
+            updatedService.netAmount = updatedService.amount + updatedService.tip - updatedService.commission;
+            
+            allServices[serviceIndex] = updatedService;
+            localStorage.setItem('taxi_services', JSON.stringify(allServices));
+            
+            // Cerrar modal y actualizar vista
+            closeEditModal();
+            applyFilters();
+            
+            // Mostrar notificación
+            showNotification('Servicio actualizado exitosamente', 'success');
+        }
+
+        function deleteService(serviceId) {
+            serviceToDelete = serviceId;
+            document.getElementById('deleteModal').classList.add('show');
+            
+            document.getElementById('confirmDelete').onclick = function() {
+                const serviceIndex = allServices.findIndex(s => s.id === serviceToDelete);
+                if (serviceIndex !== -1) {
+                    allServices.splice(serviceIndex, 1);
+                    localStorage.setItem('taxi_services', JSON.stringify(allServices));
+                    applyFilters();
+                    showNotification('Servicio eliminado', 'info');
+                }
+                closeDeleteModal();
+            };
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('show');
+            serviceToDelete = null;
+        }
+
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = `fixed top-4 right-4 p-4 rounded-lg shadow-lg z-50 ${
+                type === 'success' ? 'bg-green-500 text-white' : 
+                type === 'error' ? 'bg-red-500 text-white' : 
+                'bg-blue-500 text-white'
+            }`;
+            notification.textContent = message;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function clearAllData() {
+            if (!confirm('¿Estás seguro de que quieres eliminar TODOS los servicios? Esta acción no se puede deshacer.')) {
+                return;
+            }
+
+            // Limpiar todos los servicios
+            localStorage.setItem('taxi_services', '[]');
+            
+            // Resetear flag de limpieza para permitir nueva limpieza automática
+            localStorage.removeItem('taxi_cleanup_done');
+            
+            // Recargar la vista
+            allServices = [];
+            applyFilters();
+            
+            showNotification('Todos los servicios han sido eliminados', 'info');
+        }
+
+        // Cerrar modales al hacer clic fuera
+        window.onclick = function(event) {
+            const editModal = document.getElementById('editModal');
+            const deleteModal = document.getElementById('deleteModal');
+            
+            if (event.target === editModal) {
+                closeEditModal();
+            }
+            if (event.target === deleteModal) {
+                closeDeleteModal();
+            }
+        };
+
+        // Función para volver a la página principal
+        function goBackToMain() {
+            // Intentar cerrar la ventana primero (si fue abierta como popup)
+            if (window.opener) {
+                window.opener.location.reload();
+                window.close();
+            } else {
+                // Si no es un popup, redirigir a la página principal
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

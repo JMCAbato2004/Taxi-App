@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Synchronization Demo - Taxi PWA</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50 0%, #3498db 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.2em;
+            opacity: 0.9;
+        }
+
+        .demo-content {
+            padding: 30px;
+        }
+
+        .data-sync-demo h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
+            font-size: 2em;
+            text-align: center;
+        }
+
+        .data-sync-demo > p {
+            text-align: center;
+            color: #7f8c8d;
+            margin-bottom: 30px;
+            font-size: 1.1em;
+        }
+
+        /* Network Status */
+        .network-status {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #3498db;
+        }
+
+        .network-status h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .status-item {
+            margin-bottom: 8px;
+            padding: 8px 12px;
+            border-radius: 5px;
+            background: white;
+            border: 1px solid #e9ecef;
+        }
+
+        .status-item.online {
+            border-left: 4px solid #27ae60;
+        }
+
+        .status-item.offline {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .capabilities ul {
+            list-style: none;
+            margin-top: 10px;
+        }
+
+        .capabilities li {
+            padding: 5px 0;
+            font-size: 0.95em;
+        }
+
+        /* Sync Statistics */
+        .sync-stats {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #9b59b6;
+        }
+
+        .sync-stats h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .stat-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid #e9ecef;
+            transition: transform 0.2s ease;
+        }
+
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        /* Operations Demo */
+        .operations-demo {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #f39c12;
+        }
+
+        .operations-demo h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .operation-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .operation-buttons button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .operation-buttons button:hover {
+            background: #2980b9;
+            transform: translateY(-1px);
+        }
+
+        .operations-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .operation-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 10px;
+            transition: all 0.3s ease;
+        }
+
+        .operation-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .operation-item.pending {
+            border-left: 4px solid #f39c12;
+        }
+
+        .operation-item.in_progress {
+            border-left: 4px solid #3498db;
+        }
+
+        .operation-item.completed {
+            border-left: 4px solid #27ae60;
+        }
+
+        .operation-item.failed {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .operation-item.conflict {
+            border-left: 4px solid #9b59b6;
+        }
+
+        .operation-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.in_progress {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .status-badge.completed {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .status-badge.conflict {
+            background: #e2e3f1;
+            color: #383d41;
+        }
+
+        .operation-details {
+            color: #6c757d;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .operation-actions {
+            text-align: right;
+        }
+
+        .cancel-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .cancel-btn:hover {
+            background: #c82333;
+        }
+
+        /* Conflicts Demo */
+        .conflicts-demo {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 25px;
+            border-left: 4px solid #e74c3c;
+        }
+
+        .conflicts-demo h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .conflict-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .conflict-buttons button {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+        }
+
+        .conflict-buttons button:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .conflicts-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .conflict-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid #e74c3c;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        .conflict-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .conflict-time {
+            color: #6c757d;
+            font-size: 0.9em;
+        }
+
+        .conflict-data {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .local-data, .server-data {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 5px;
+        }
+
+        .local-data {
+            border-left: 3px solid #3498db;
+        }
+
+        .server-data {
+            border-left: 3px solid #e74c3c;
+        }
+
+        .conflict-data pre {
+            font-size: 0.8em;
+            margin-top: 5px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .conflict-fields {
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #fff3cd;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .conflict-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .resolve-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            transition: all 0.3s ease;
+        }
+
+        .resolve-btn:hover {
+            background: #218838;
+            transform: translateY(-1px);
+        }
+
+        /* Data Demo */
+        .data-demo {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 20px;
+            border-left: 4px solid #17a2b8;
+        }
+
+        .data-demo h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+
+        .data-demo h4 {
+            color: #495057;
+            margin: 20px 0 10px 0;
+            font-size: 1.1em;
+        }
+
+        .data-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .data-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .data-item.synced {
+            border-left: 4px solid #27ae60;
+        }
+
+        .data-item.pending {
+            border-left: 4px solid #f39c12;
+        }
+
+        .data-item.conflict {
+            border-left: 4px solid #9b59b6;
+        }
+
+        .data-item.failed {
+            border-left: 4px solid #e74c3c;
+        }
+
+        .data-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .sync-badge {
+            padding: 3px 8px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .sync-badge.synced {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .sync-badge.pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .sync-badge.conflict {
+            background: #e2e3f1;
+            color: #383d41;
+        }
+
+        .sync-badge.failed {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .data-details {
+            color: #6c757d;
+            font-size: 0.85em;
+        }
+
+        /* Buttons */
+        button {
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        /* Notifications */
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification {
+            animation: slideIn 0.3s ease;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+
+            .header {
+                padding: 20px;
+            }
+
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .demo-content {
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .conflict-data {
+                grid-template-columns: 1fr;
+            }
+
+            .operation-buttons,
+            .conflict-buttons {
+                flex-direction: column;
+            }
+
+            .operation-buttons button,
+            .conflict-buttons button {
+                width: 100%;
+            }
+        }
+
+        /* Loading Animation */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Success/Error States */
+        .success {
+            color: #27ae60;
+        }
+
+        .error {
+            color: #e74c3c;
+        }
+
+        .warning {
+            color: #f39c12;
+        }
+
+        .info {
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔄 Data Synchronization Demo</h1>
+            <p>Offline Operation Queue & Conflict Resolution</p>
+            <p><small>Requirements 5.1 & 5.3 - PWA Taxi Authentication System</small></p>
+        </div>
+        
+        <div class="demo-content">
+            <div id="demo-container">
+                <!-- Demo content will be inserted here by JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo Scripts -->
+    <script type="module">
+        import { initializeDataSyncDemo } from './src/auth/examples/data-sync-demo.js';
+        import { SecureStorageService } from './src/auth/services/secure-storage.js';
+        import { RoleService } from './src/auth/services/role-service.js';
+        import { ServiceExpenseIntegrationService } from './src/auth/services/service-expense-integration.js';
+        import { UserRole } from './src/auth/types/index.js';
+
+        // Mock dependencies for demo
+        class MockAuthService {
+            getCurrentUser() {
+                return {
+                    id: 'demo-user-1',
+                    email: 'demo@taxi.com',
+                    nombre: 'Demo User',
+                    rol: UserRole.PATRON,
+                    activo: true,
+                    fechaCreacion: new Date(),
+                    fechaActualizacion: new Date()
+                };
+            }
+        }
+
+        class MockReconciliationService {
+            filterServices(services) { return services; }
+            filterExpenses(expenses) { return expenses; }
+            addUserContextToService(service) { return service; }
+            addUserContextToExpense(expense) { return expense; }
+            canModifyReconciliationData() { return true; }
+            canAccessReconciliationData() { return true; }
+        }
+
+        // Initialize demo
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                const container = document.getElementById('demo-container');
+                
+                // Create mock services
+                const mockAuthService = new MockAuthService();
+                const secureStorage = new SecureStorageService();
+                const roleService = new RoleService(mockAuthService, {});
+                const reconciliationService = new MockReconciliationService();
+                const serviceExpenseIntegration = new ServiceExpenseIntegrationService(
+                    roleService,
+                    reconciliationService,
+                    () => mockAuthService.getCurrentUser()
+                );
+
+                // Initialize demo
+                const demo = initializeDataSyncDemo(
+                    container,
+                    secureStorage,
+                    roleService,
+                    serviceExpenseIntegration,
+                    () => mockAuthService.getCurrentUser()
+                );
+
+                console.log('Data Sync Demo initialized successfully');
+
+                // Add demo instructions
+                const instructions = document.createElement('div');
+                instructions.innerHTML = `
+                    <div style="background: #e8f4fd; border: 1px solid #bee5eb; border-radius: 8px; padding: 20px; margin-bottom: 20px;">
+                        <h3 style="color: #0c5460; margin-bottom: 15px;">🎯 Demo Instructions</h3>
+                        <ul style="color: #0c5460; line-height: 1.8;">
+                            <li><strong>Toggle Offline Mode:</strong> Simulate network connectivity changes</li>
+                            <li><strong>Create Operations:</strong> Add services, expenses, and associations to the sync queue</li>
+                            <li><strong>Monitor Sync Status:</strong> Watch operations move through pending → completed states</li>
+                            <li><strong>Simulate Conflicts:</strong> Create conflicts and resolve them manually</li>
+                            <li><strong>Force Sync:</strong> Manually trigger synchronization when online</li>
+                            <li><strong>View Data Status:</strong> See how data items show their sync status</li>
+                        </ul>
+                        <p style="margin-top: 15px; font-style: italic; color: #6c757d;">
+                            This demo showcases Requirements 5.1 (offline operation queue) and 5.3 (conflict resolution) 
+                            for the PWA taxi authentication system.
+                        </p>
+                    </div>
+                `;
+                container.insertBefore(instructions, container.firstChild);
+
+            } catch (error) {
+                console.error('Error initializing demo:', error);
+                document.getElementById('demo-container').innerHTML = `
+                    <div style="background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; padding: 20px; color: #721c24;">
+                        <h3>❌ Demo Initialization Error</h3>
+                        <p>There was an error initializing the demo. Please check the console for details.</p>
+                        <pre style="margin-top: 10px; font-size: 0.9em;">${error.message}</pre>
+                    </div>
+                `;
+            }
+        });
+
+        // Add CSS animations
+        const style = document.createElement('style');
+        style.textContent = `
+            .fade-in {
+                animation: fadeIn 0.5s ease-in;
+            }
+            
+            @keyframes fadeIn {
+                from { opacity: 0; transform: translateY(10px); }
+                to { opacity: 1; transform: translateY(0); }
+            }
+            
+            .pulse {
+                animation: pulse 2s infinite;
+            }
+            
+            @keyframes pulse {
+                0% { transform: scale(1); }
+                50% { transform: scale(1.05); }
+                100% { transform: scale(1); }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

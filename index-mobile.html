@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Control de Taxi - Gestión Profesional</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#059669">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="rgpd-styles.css">
+    <link rel="stylesheet" href="mobile-native.css">
+</head>
+<body>
+    <!-- Mobile Header -->
+    <header class="mobile-header">
+        <button class="mobile-header-action" onclick="window.history.back()">
+            ←
+        </button>
+        <h1 class="mobile-header-title">🚕 Control de Taxi</h1>
+        <button class="mobile-header-action" id="mobile-menu-btn">
+            ⋮
+        </button>
+    </header>
+
+    <!-- Mobile Content -->
+    <main class="mobile-content">
+        <!-- Welcome Section -->
+        <div id="welcome-section">
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div>
+                        <h2 class="mobile-card-title">Bienvenido</h2>
+                        <p class="mobile-card-subtitle">Gestión profesional para taxistas</p>
+                    </div>
+                </div>
+                <p style="color: #6b7280; font-size: 14px; margin-bottom: 16px;">
+                    Sistema completo de gestión de flotas con autenticación segura, 
+                    reportes detallados y capacidades offline.
+                </p>
+                <div style="display: flex; flex-direction: column; gap: 12px;">
+                    <button class="mobile-btn mobile-btn-primary" onclick="showLogin()">
+                        🔑 Iniciar Sesión
+                    </button>
+                    <button class="mobile-btn mobile-btn-secondary" onclick="showRegister()">
+                        📝 Registrarse
+                    </button>
+                </div>
+            </div>
+
+            <!-- Features -->
+            <div class="mobile-list">
+                <div class="mobile-list-item">
+                    <div class="mobile-list-item-icon" style="background: #dbeafe;">
+                        📊
+                    </div>
+                    <div class="mobile-list-item-content">
+                        <div class="mobile-list-item-title">Reportes Detallados</div>
+                        <div class="mobile-list-item-subtitle">Estadísticas y análisis completos</div>
+                    </div>
+                </div>
+                <div class="mobile-list-item">
+                    <div class="mobile-list-item-icon" style="background: #d1fae5;">
+                        📱
+                    </div>
+                    <div class="mobile-list-item-content">
+                        <div class="mobile-list-item-title">Modo Offline</div>
+                        <div class="mobile-list-item-subtitle">Funciona sin conexión</div>
+                    </div>
+                </div>
+                <div class="mobile-list-item">
+                    <div class="mobile-list-item-icon" style="background: #fef3c7;">
+                        🔒
+                    </div>
+                    <div class="mobile-list-item-content">
+                        <div class="mobile-list-item-title">Seguro y Privado</div>
+                        <div class="mobile-list-item-subtitle">Cumplimiento RGPD</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Login Section (hidden by default) -->
+        <div id="login-section" style="display: none;">
+            <div class="mobile-card">
+                <h2 class="mobile-card-title" style="margin-bottom: 20px;">Iniciar Sesión</h2>
+                <form id="login-form">
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Email</label>
+                        <input type="email" class="mobile-input" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Contraseña</label>
+                        <input type="password" class="mobile-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="mobile-btn mobile-btn-primary">
+                        Iniciar Sesión
+                    </button>
+                    <button type="button" class="mobile-btn mobile-btn-secondary" style="margin-top: 12px;" onclick="showWelcome()">
+                        Cancelar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Register Section (hidden by default) -->
+        <div id="register-section" style="display: none;">
+            <div class="mobile-card">
+                <h2 class="mobile-card-title" style="margin-bottom: 20px;">Crear Cuenta</h2>
+                
+                <!-- Role Selection -->
+                <div style="margin-bottom: 20px;">
+                    <label class="mobile-input-label">Selecciona tu rol:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 8px;">
+                        <button type="button" class="role-selector" data-role="PATRON" onclick="selectRole('PATRON')">
+                            <div style="font-size: 32px; margin-bottom: 8px;">👔</div>
+                            <div style="font-weight: 600;">Patrón</div>
+                        </button>
+                        <button type="button" class="role-selector" data-role="TAXISTA" onclick="selectRole('TAXISTA')">
+                            <div style="font-size: 32px; margin-bottom: 8px;">🚗</div>
+                            <div style="font-weight: 600;">Taxista</div>
+                        </button>
+                    </div>
+                </div>
+
+                <form id="register-form">
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Nombre Completo</label>
+                        <input type="text" class="mobile-input" placeholder="Juan Pérez" required>
+                    </div>
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Email</label>
+                        <input type="email" class="mobile-input" placeholder="juan@email.com" required>
+                    </div>
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Teléfono</label>
+                        <input type="tel" class="mobile-input" placeholder="+34 600 000 000" required>
+                    </div>
+                    <div class="mobile-input-group" id="patron-code-group" style="display: none;">
+                        <label class="mobile-input-label">Código de Patrón</label>
+                        <input type="text" class="mobile-input" placeholder="Código de invitación">
+                    </div>
+                    <div class="mobile-input-group">
+                        <label class="mobile-input-label">Contraseña</label>
+                        <input type="password" class="mobile-input" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="mobile-btn mobile-btn-primary">
+                        Crear Cuenta
+                    </button>
+                    <button type="button" class="mobile-btn mobile-btn-secondary" style="margin-top: 12px;" onclick="showWelcome()">
+                        Cancelar
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dashboard Section (hidden by default) -->
+        <div id="dashboard-section" style="display: none;">
+            <!-- Stats Cards -->
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 0 16px 16px;">
+                <div class="mobile-card" style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #059669;">12</div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Servicios Hoy</div>
+                </div>
+                <div class="mobile-card" style="text-align: center;">
+                    <div style="font-size: 24px; font-weight: bold; color: #3b82f6;">€245</div>
+                    <div style="font-size: 12px; color: #6b7280; margin-top: 4px;">Ingresos</div>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="mobile-card">
+                <h3 class="mobile-card-title" style="margin-bottom: 16px;">Actividad Reciente</h3>
+                <div class="mobile-list-item" style="padding: 12px 0; border-bottom: 1px solid #e5e7eb;">
+                    <div class="mobile-list-item-icon" style="background: #d1fae5;">
+                        🚕
+                    </div>
+                    <div class="mobile-list-item-content">
+                        <div class="mobile-list-item-title">Servicio #1234</div>
+                        <div class="mobile-list-item-subtitle">Hace 5 minutos • €25.50</div>
+                    </div>
+                    <span class="mobile-badge mobile-badge-success">Completado</span>
+                </div>
+                <div class="mobile-list-item" style="padding: 12px 0;">
+                    <div class="mobile-list-item-icon" style="background: #dbeafe;">
+                        🚕
+                    </div>
+                    <div class="mobile-list-item-content">
+                        <div class="mobile-list-item-title">Servicio #1233</div>
+                        <div class="mobile-list-item-subtitle">Hace 1 hora • €18.00</div>
+                    </div>
+                    <span class="mobile-badge mobile-badge-success">Completado</span>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="mobile-bottom-nav">
+        <a href="#" class="mobile-nav-item active" onclick="event.preventDefault(); showDashboard(); setActiveTab(this);">
+            <div class="mobile-nav-icon">🏠</div>
+            <div class="mobile-nav-label">Inicio</div>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); window.mobileUI.showToast('Sección de Servicios próximamente', 2000); setActiveTab(this);">
+            <div class="mobile-nav-icon">📊</div>
+            <div class="mobile-nav-label">Servicios</div>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); window.mobileUI.showToast('Sección de Balance próximamente', 2000); setActiveTab(this);">
+            <div class="mobile-nav-icon">💰</div>
+            <div class="mobile-nav-label">Balance</div>
+        </a>
+        <a href="#" class="mobile-nav-item" onclick="event.preventDefault(); showProfileMenu(); setActiveTab(this);">
+            <div class="mobile-nav-icon">👤</div>
+            <div class="mobile-nav-label">Perfil</div>
+        </a>
+    </nav>
+
+    <!-- Floating Action Button -->
+    <button class="mobile-fab" onclick="showNewServiceSheet()">
+        ➕
+    </button>
+
+    <!-- Scripts -->
+    <script src="rgpd-manager.js"></script>
+    <script src="mobile-native.js"></script>
+    <script>
+        // Navigation functions
+        function showWelcome() {
+            document.getElementById('welcome-section').style.display = 'block';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('register-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'none';
+        }
+
+        function showLogin() {
+            document.getElementById('welcome-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'block';
+            document.getElementById('register-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'none';
+            window.mobileUI.hapticFeedback('light');
+        }
+
+        function showRegister() {
+            document.getElementById('welcome-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('register-section').style.display = 'block';
+            document.getElementById('dashboard-section').style.display = 'none';
+            window.mobileUI.hapticFeedback('light');
+        }
+
+        function showDashboard() {
+            document.getElementById('welcome-section').style.display = 'none';
+            document.getElementById('login-section').style.display = 'none';
+            document.getElementById('register-section').style.display = 'none';
+            document.getElementById('dashboard-section').style.display = 'block';
+            window.mobileUI.hapticFeedback('success');
+        }
+
+        // Role selection
+        let selectedRole = null;
+        function selectRole(role) {
+            selectedRole = role;
+            document.querySelectorAll('.role-selector').forEach(btn => {
+                btn.style.border = '2px solid #e5e7eb';
+                btn.style.background = 'white';
+            });
+            const selected = document.querySelector(`[data-role="${role}"]`);
+            selected.style.border = '2px solid #059669';
+            selected.style.background = '#ecfdf5';
+            
+            // Show/hide patron code field
+            const patronCodeGroup = document.getElementById('patron-code-group');
+            if (role === 'TAXISTA') {
+                patronCodeGroup.style.display = 'block';
+            } else {
+                patronCodeGroup.style.display = 'none';
+            }
+            
+            window.mobileUI.hapticFeedback('light');
+        }
+
+        // Form handlers
+        document.getElementById('login-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            window.mobileUI.showLoading('Iniciando sesión...');
+            setTimeout(() => {
+                window.mobileUI.hideLoading();
+                window.mobileUI.showToast('¡Bienvenido!', 1500);
+                showDashboard();
+            }, 1500);
+        });
+
+        document.getElementById('register-form').addEventListener('submit', (e) => {
+            e.preventDefault();
+            if (!selectedRole) {
+                window.mobileUI.showToast('Por favor selecciona un rol', 2000);
+                return;
+            }
+            window.mobileUI.showLoading('Creando cuenta...');
+            setTimeout(() => {
+                window.mobileUI.hideLoading();
+                window.mobileUI.showToast('¡Cuenta creada exitosamente!', 1500);
+                showDashboard();
+            }, 1500);
+        });
+
+        // Menu button
+        document.getElementById('mobile-menu-btn').addEventListener('click', () => {
+            showMainMenu();
+        });
+
+        // Main menu function
+        function showMainMenu() {
+            window.mobileUI.showActionSheet([
+                {
+                    icon: '👤',
+                    label: 'Mi Perfil',
+                    action: 'profile',
+                    handler: () => window.mobileUI.showToast('Abriendo perfil...', 2000)
+                },
+                {
+                    icon: '⚙️',
+                    label: 'Configuración',
+                    action: 'settings',
+                    handler: () => window.mobileUI.showToast('Abriendo configuración...', 2000)
+                },
+                {
+                    icon: '🔒',
+                    label: 'Privacidad (RGPD)',
+                    action: 'privacy',
+                    handler: () => window.open('politica-privacidad.html', '_blank')
+                },
+                {
+                    icon: '🚪',
+                    label: 'Cerrar Sesión',
+                    action: 'logout',
+                    handler: () => {
+                        window.mobileUI.showToast('Cerrando sesión...', 1500);
+                        setTimeout(showWelcome, 1000);
+                    }
+                }
+            ]);
+        }
+
+        // Profile menu function
+        function showProfileMenu() {
+            window.mobileUI.showActionSheet([
+                {
+                    icon: '👤',
+                    label: 'Ver Perfil',
+                    action: 'view-profile',
+                    handler: () => window.open('profile.html', '_blank')
+                },
+                {
+                    icon: '🔒',
+                    label: 'Cambiar Contraseña',
+                    action: 'change-password',
+                    handler: () => window.mobileUI.showToast('Abriendo cambio de contraseña...', 2000)
+                },
+                {
+                    icon: '🔐',
+                    label: 'Privacidad (RGPD)',
+                    action: 'privacy',
+                    handler: () => window.open('politica-privacidad.html', '_blank')
+                },
+                {
+                    icon: '🚪',
+                    label: 'Cerrar Sesión',
+                    action: 'logout',
+                    handler: () => {
+                        window.mobileUI.showToast('Cerrando sesión...', 1500);
+                        setTimeout(showWelcome, 1000);
+                    }
+                }
+            ]);
+        }
+
+        // Set active tab
+        function setActiveTab(element) {
+            document.querySelectorAll('.mobile-nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            element.classList.add('active');
+            if (window.mobileUI) {
+                window.mobileUI.hapticFeedback('light');
+            }
+        }
+
+        // Make functions global
+        window.setActiveTab = setActiveTab;
+        window.showWelcome = showWelcome;
+        window.showLogin = showLogin;
+        window.showRegister = showRegister;
+        window.showDashboard = showDashboard;
+        window.selectRole = selectRole;
+        window.showNewServiceSheet = showNewServiceSheet;
+        window.showMainMenu = showMainMenu;
+        window.showProfileMenu = showProfileMenu;
+
+        // FAB action
+        function showNewServiceSheet() {
+            window.mobileUI.showActionSheet([
+                {
+                    icon: '🚕',
+                    label: 'Nuevo Servicio',
+                    action: 'service',
+                    handler: () => window.mobileUI.showToast('Registrando servicio...')
+                },
+                {
+                    icon: '💸',
+                    label: 'Nuevo Gasto',
+                    action: 'expense',
+                    handler: () => window.mobileUI.showToast('Registrando gasto...')
+                },
+                {
+                    icon: '📊',
+                    label: 'Ver Reportes',
+                    action: 'reports',
+                    handler: () => window.mobileUI.showToast('Abriendo reportes...')
+                }
+            ]);
+        }
+
+        // Role selector styles
+        const style = document.createElement('style');
+        style.textContent = `
+            .role-selector {
+                padding: 16px;
+                border: 2px solid #e5e7eb;
+                border-radius: 12px;
+                background: white;
+                cursor: pointer;
+                transition: all 0.2s;
+                text-align: center;
+            }
+            .role-selector:active {
+                transform: scale(0.95);
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>

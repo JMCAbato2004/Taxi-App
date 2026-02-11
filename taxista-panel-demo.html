@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Panel Personal de Taxista</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+        }
+        
+        .demo-header {
+            background: linear-gradient(135deg, #059669, #047857);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .demo-header h1 {
+            margin: 0;
+            font-size: 2em;
+        }
+        
+        .demo-header p {
+            margin: 10px 0 0 0;
+            opacity: 0.9;
+        }
+        
+        .demo-controls {
+            background: white;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        
+        .demo-btn {
+            background: #059669;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            margin: 5px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.2s;
+        }
+        
+        .demo-btn:hover {
+            background: #047857;
+        }
+        
+        .demo-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .demo-status {
+            margin: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid #e5e5e5;
+        }
+        
+        .status-item:last-child {
+            border-bottom: none;
+        }
+        
+        .status-label {
+            font-weight: 500;
+            color: #374151;
+        }
+        
+        .status-value {
+            color: #059669;
+            font-weight: 600;
+        }
+        
+        .status-value.error {
+            color: #ef4444;
+        }
+        
+        .console-output {
+            margin: 20px;
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+        
+        #taxista-panel-container {
+            margin: 20px;
+            min-height: 600px;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+        
+        .loading::after {
+            content: '';
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #e5e5e5;
+            border-top: 2px solid #059669;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .feature-highlight {
+            background: #f0f9ff;
+            border-left: 4px solid #059669;
+            padding: 15px;
+            margin: 20px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .feature-highlight h3 {
+            margin: 0 0 10px 0;
+            color: #047857;
+        }
+        
+        .feature-highlight ul {
+            margin: 0;
+            padding-left: 20px;
+        }
+        
+        .feature-highlight li {
+            margin: 5px 0;
+            color: #374151;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-header">
+        <h1>🚖 Panel Personal de Taxista</h1>
+        <p>Demostración del dashboard personal para taxistas con acceso independiente a datos y historial</p>
+    </div>
+
+    <div class="feature-highlight">
+        <h3>Funcionalidades Implementadas</h3>
+        <ul>
+            <li><strong>Acceso a Datos Personales:</strong> Información del taxista y número visible</li>
+            <li><strong>Historial Personal:</strong> Servicios y gastos con filtrado avanzado</li>
+            <li><strong>Acceso Independiente:</strong> Funcionalidad completa durante asociaciones</li>
+            <li><strong>Gestión de Servicios:</strong> Registro y visualización de servicios realizados</li>
+            <li><strong>Control de Gastos:</strong> Registro y categorización de gastos operativos</li>
+            <li><strong>Estadísticas Personales:</strong> Análisis de rendimiento y actividad</li>
+            <li><strong>Exportación de Datos:</strong> Descarga completa de información personal</li>
+        </ul>
+    </div>
+
+    <div class="demo-controls">
+        <button id="initDemo" class="demo-btn">🚀 Inicializar Demo</button>
+        <button id="showPersonalData" class="demo-btn" disabled>📊 Mostrar Datos Personales</button>
+        <button id="showHistory" class="demo-btn" disabled>📋 Mostrar Historial</button>
+        <button id="testIndependentAccess" class="demo-btn" disabled>🆓 Probar Acceso Independiente</button>
+        <button id="exportData" class="demo-btn" disabled>📥 Exportar Datos</button>
+        <button id="resetDemo" class="demo-btn" disabled>🔄 Reiniciar Demo</button>
+    </div>
+
+    <div class="demo-status">
+        <div class="status-item">
+            <span class="status-label">Estado del Demo:</span>
+            <span id="demoStatus" class="status-value">No iniciado</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Usuario Actual:</span>
+            <span id="currentUser" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Número de Taxista:</span>
+            <span id="taxistaNumber" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Servicios Registrados:</span>
+            <span id="servicesCount" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Gastos Registrados:</span>
+            <span id="expensesCount" class="status-value">-</span>
+        </div>
+        <div class="status-item">
+            <span class="status-label">Acceso Independiente:</span>
+            <span id="independentAccess" class="status-value">-</span>
+        </div>
+    </div>
+
+    <div id="taxista-panel-container">
+        <div class="loading">Esperando inicialización del demo...</div>
+    </div>
+
+    <div class="console-output" id="consoleOutput">
+=== CONSOLA DE DEMO ===
+Esperando inicialización...
+    </div>
+
+    <!-- Include the compiled TypeScript files -->
+    <script type="module">
+        // Mock console to capture output
+        const originalConsole = {
+            log: console.log,
+            error: console.error,
+            warn: console.warn
+        };
+
+        const consoleOutput = document.getElementById('consoleOutput');
+        
+        function addToConsole(message, type = 'log') {
+            const timestamp = new Date().toLocaleTimeString();
+            const prefix = type === 'error' ? '❌' : type === 'warn' ? '⚠️' : 'ℹ️';
+            consoleOutput.textContent += `\n[${timestamp}] ${prefix} ${message}`;
+            consoleOutput.scrollTop = consoleOutput.scrollHeight;
+        }
+
+        console.log = (...args) => {
+            originalConsole.log(...args);
+            addToConsole(args.join(' '), 'log');
+        };
+
+        console.error = (...args) => {
+            originalConsole.error(...args);
+            addToConsole(args.join(' '), 'error');
+        };
+
+        console.warn = (...args) => {
+            originalConsole.warn(...args);
+            addToConsole(args.join(' '), 'warn');
+        };
+
+        // Demo state
+        let demoInstance = null;
+        let isInitialized = false;
+
+        // Status update functions
+        function updateStatus(key, value, isError = false) {
+            const element = document.getElementById(key);
+            if (element) {
+                element.textContent = value;
+                element.className = isError ? 'status-value error' : 'status-value';
+            }
+        }
+
+        function enableButtons(enabled) {
+            const buttons = ['showPersonalData', 'showHistory', 'testIndependentAccess', 'exportData', 'resetDemo'];
+            buttons.forEach(id => {
+                const btn = document.getElementById(id);
+                if (btn) btn.disabled = !enabled;
+            });
+        }
+
+        // Demo functions
+        async function initializeDemo() {
+            try {
+                updateStatus('demoStatus', 'Inicializando...');
+                addToConsole('Iniciando demo del panel de taxista...');
+
+                // Import and initialize demo
+                const { default: TaxistaPanelDemo } = await import('./src/auth/examples/taxista-panel-demo.js');
+                demoInstance = new TaxistaPanelDemo();
+                
+                await demoInstance.initializeDemo();
+                
+                // Initialize UI
+                demoInstance.initializeTaxistaPanelUI('taxista-panel-container');
+                
+                // Update status
+                const panel = demoInstance.getTaxistaPanel();
+                const currentUser = panel?.getCurrentUser();
+                
+                updateStatus('demoStatus', 'Inicializado');
+                updateStatus('currentUser', currentUser?.nombre || 'Error');
+                updateStatus('taxistaNumber', currentUser?.numeroTaxista || 'Error');
+                
+                isInitialized = true;
+                enableButtons(true);
+                document.getElementById('initDemo').disabled = true;
+                
+                addToConsole('✅ Demo inicializado correctamente');
+                
+            } catch (error) {
+                updateStatus('demoStatus', 'Error', true);
+                addToConsole(`Error inicializando demo: ${error.message}`);
+                console.error('Error:', error);
+            }
+        }
+
+        async function showPersonalData() {
+            if (!demoInstance || !isInitialized) return;
+            
+            try {
+                await demoInstance.demonstratePersonalDataAccess();
+                
+                const panel = demoInstance.getTaxistaPanel();
+                const stats = panel?.getPersonalStats();
+                
+                updateStatus('servicesCount', stats?.totalServices || 0);
+                updateStatus('expensesCount', stats?.totalExpenses || 0);
+                
+            } catch (error) {
+                addToConsole(`Error mostrando datos personales: ${error.message}`);
+            }
+        }
+
+        async function showHistory() {
+            if (!demoInstance || !isInitialized) return;
+            
+            try {
+                await demoInstance.demonstratePersonalHistoryAccess();
+            } catch (error) {
+                addToConsole(`Error mostrando historial: ${error.message}`);
+            }
+        }
+
+        async function testIndependentAccess() {
+            if (!demoInstance || !isInitialized) return;
+            
+            try {
+                await demoInstance.demonstrateIndependentAccess();
+                
+                const panel = demoInstance.getTaxistaPanel();
+                const hasAccess = panel?.hasIndependentAccess();
+                
+                updateStatus('independentAccess', hasAccess ? 'SÍ' : 'NO');
+                
+            } catch (error) {
+                addToConsole(`Error probando acceso independiente: ${error.message}`);
+            }
+        }
+
+        function exportData() {
+            if (!demoInstance || !isInitialized) return;
+            
+            try {
+                demoInstance.demonstrateDataExport();
+            } catch (error) {
+                addToConsole(`Error exportando datos: ${error.message}`);
+            }
+        }
+
+        function resetDemo() {
+            if (demoInstance) {
+                demoInstance.cleanup();
+            }
+            
+            demoInstance = null;
+            isInitialized = false;
+            
+            updateStatus('demoStatus', 'No iniciado');
+            updateStatus('currentUser', '-');
+            updateStatus('taxistaNumber', '-');
+            updateStatus('servicesCount', '-');
+            updateStatus('expensesCount', '-');
+            updateStatus('independentAccess', '-');
+            
+            enableButtons(false);
+            document.getElementById('initDemo').disabled = false;
+            
+            document.getElementById('taxista-panel-container').innerHTML = 
+                '<div class="loading">Esperando inicialización del demo...</div>';
+            
+            addToConsole('🔄 Demo reiniciado');
+        }
+
+        // Event listeners
+        document.getElementById('initDemo').addEventListener('click', initializeDemo);
+        document.getElementById('showPersonalData').addEventListener('click', showPersonalData);
+        document.getElementById('showHistory').addEventListener('click', showHistory);
+        document.getElementById('testIndependentAccess').addEventListener('click', testIndependentAccess);
+        document.getElementById('exportData').addEventListener('click', exportData);
+        document.getElementById('resetDemo').addEventListener('click', resetDemo);
+
+        // Initial console message
+        addToConsole('Demo del Panel de Taxista cargado');
+        addToConsole('Haz clic en "Inicializar Demo" para comenzar');
+    </script>
+</body>
+</html>

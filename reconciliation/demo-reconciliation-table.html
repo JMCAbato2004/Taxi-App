@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - ReconciliationTable</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+    </style>
+</head>
+<body class="bg-gray-100 p-4">
+    <div class="max-w-7xl mx-auto">
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-800 mb-2">🧪 Demo - ReconciliationTable</h1>
+            <p class="text-gray-600">Demostración del componente de tabla de conciliación</p>
+        </div>
+        
+        <div id="demo-container"></div>
+        
+        <div class="mt-8 p-4 bg-white rounded-lg border">
+            <h3 class="font-semibold mb-2">📋 Estado de la demostración:</h3>
+            <div id="demo-status" class="text-gray-600">Cargando...</div>
+        </div>
+    </div>
+
+    <!-- Cargar componentes -->
+    <script src="types.js"></script>
+    <script src="reconciliation-table.js"></script>
+
+    <script>
+        // Configuración del tema
+        const theme = {
+            card: 'bg-white',
+            border: 'border-gray-200',
+            textSecondary: 'text-gray-600',
+            input: 'bg-white'
+        };
+
+        // Datos de prueba para la demostración
+        const mockReconciliation = {
+            id: 'demo-reconciliation',
+            period: {
+                startDate: '2024-01-15',
+                endDate: '2024-01-17'
+            },
+            dailyTotals: [
+                {
+                    date: '2024-01-15',
+                    serviceStart: 8,
+                    totalService: 320,
+                    articulated: 80,
+                    cardPayment: 120,
+                    appPayment: 100,
+                    cashPayment: 100,
+                    expenses: 45,
+                    freenowTotal: 100,
+                    freenowCommission: 15,
+                    freenowNet: 85,
+                    distribution60: 165,
+                    distribution40: 110,
+                    netCash: 55,
+                    netFreenow: 85
+                },
+                {
+                    date: '2024-01-16',
+                    serviceStart: 6,
+                    totalService: 240,
+                    articulated: 60,
+                    cardPayment: 90,
+                    appPayment: 80,
+                    cashPayment: 70,
+                    expenses: 30,
+                    freenowTotal: 80,
+                    freenowCommission: 12,
+                    freenowNet: 68,
+                    distribution60: 126,
+                    distribution40: 84,
+                    netCash: 40,
+                    netFreenow: 68
+                },
+                {
+                    date: '2024-01-17',
+                    serviceStart: 10,
+                    totalService: 400,
+                    articulated: 100,
+                    cardPayment: 150,
+                    appPayment: 120,
+                    cashPayment: 130,
+                    expenses: 50,
+                    freenowTotal: 120,
+                    freenowCommission: 18,
+                    freenowNet: 102,
+                    distribution60: 210,
+                    distribution40: 140,
+                    netCash: 80,
+                    netFreenow: 102
+                }
+            ],
+            summary: {
+                totalServices: 24,
+                totalArticulated: 240,
+                totalCard: 360,
+                totalApp: 300,
+                totalCash: 300,
+                totalExpenses: 125,
+                totalFreenow: 300,
+                totalCommission: 45,
+                netIncome: 835,
+                distribution60: 501,
+                distribution40: 334
+            },
+            finalSettlement: {
+                driverAmount: 334,
+                ownerAmount: 501,
+                externalBalance: 15,
+                freenowExtras: 25
+            },
+            cashBreakdown: {
+                bills: {
+                    fifty: 4,      // 200€
+                    twenty: 3,     // 60€
+                    ten: 2,        // 20€
+                    five: 2,       // 10€
+                    two: 5,        // 10€
+                    one: 0         // 0€
+                },
+                total: 300,
+                difference: 0
+            }
+        };
+
+        // Función para actualizar el estado
+        function updateStatus(message, isError = false) {
+            const statusDiv = document.getElementById('demo-status');
+            statusDiv.innerHTML = `<span class="${isError ? 'text-red-600' : 'text-green-600'}">${message}</span>`;
+        }
+
+        // Callbacks de demostración
+        function handleSave() {
+            updateStatus('💾 Conciliación guardada (simulado)');
+            setTimeout(() => updateStatus('✅ Demo funcionando correctamente'), 2000);
+        }
+
+        function handleExport() {
+            updateStatus('📄 Exportando conciliación (simulado)');
+            setTimeout(() => updateStatus('✅ Demo funcionando correctamente'), 2000);
+        }
+
+        // Renderizar la demostración
+        function renderDemo() {
+            try {
+                // Verificar que ReconciliationTable esté disponible
+                if (typeof ReconciliationTable !== 'function') {
+                    throw new Error('ReconciliationTable no está disponible');
+                }
+
+                // Crear el elemento React
+                const reconciliationTableElement = React.createElement(ReconciliationTable, {
+                    theme: theme,
+                    reconciliation: mockReconciliation,
+                    onSave: handleSave,
+                    onExport: handleExport
+                });
+
+                // Renderizar en el contenedor
+                const container = document.getElementById('demo-container');
+                const root = ReactDOM.createRoot(container);
+                root.render(reconciliationTableElement);
+
+                updateStatus('✅ ReconciliationTable cargada exitosamente');
+
+            } catch (error) {
+                console.error('Error en la demostración:', error);
+                updateStatus(`❌ Error: ${error.message}`, true);
+                
+                // Mostrar información de fallback
+                document.getElementById('demo-container').innerHTML = `
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-6">
+                        <h3 class="text-red-800 font-semibold mb-2">⚠️ Error en la demostración</h3>
+                        <p class="text-red-700 mb-4">No se pudo cargar ReconciliationTable:</p>
+                        <code class="bg-red-100 p-2 rounded text-sm">${error.message}</code>
+                        <div class="mt-4 text-sm text-red-600">
+                            <p><strong>Posibles causas:</strong></p>
+                            <ul class="list-disc list-inside mt-2">
+                                <li>El archivo reconciliation-table.js no se cargó correctamente</li>
+                                <li>Hay errores de sintaxis en el componente</li>
+                                <li>Faltan dependencias de React</li>
+                            </ul>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
+        // Ejecutar cuando la página esté lista
+        window.addEventListener('load', function() {
+            setTimeout(renderDemo, 100); // Pequeño delay para asegurar que todo esté cargado
+        });
+
+        // Información adicional para debugging
+        console.log('🔧 Información de debugging:');
+        console.log('- React disponible:', typeof React !== 'undefined');
+        console.log('- ReactDOM disponible:', typeof ReactDOM !== 'undefined');
+        console.log('- ReconciliationTable disponible:', typeof ReconciliationTable !== 'undefined');
+        console.log('- Datos de prueba:', mockReconciliation);
+    </script>
+</body>
+</html>

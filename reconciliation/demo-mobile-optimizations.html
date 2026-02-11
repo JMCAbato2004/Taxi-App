@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo - Optimizaciones Móviles | Conciliación de Taxista</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Estilos adicionales para la demo */
+        .loading-spinner {
+            border: 2px solid #f3f4f6;
+            border-top: 2px solid #3b82f6;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Animaciones para gestos */
+        .swipe-indicator {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .swipe-indicator.show {
+            opacity: 1;
+        }
+
+        /* Estilos para diferentes tamaños de pantalla */
+        @media (max-width: 768px) {
+            .mobile-optimized {
+                padding-bottom: 80px; /* Espacio para navegación inferior */
+            }
+        }
+
+        /* Indicador de tamaño de pantalla */
+        .screen-size-indicator {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: #3b82f6;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            z-index: 1000;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Indicador de tamaño de pantalla -->
+    <div id="screenSizeIndicator" class="screen-size-indicator"></div>
+
+    <!-- Indicador de gestos -->
+    <div id="swipeIndicator" class="swipe-indicator"></div>
+
+    <!-- Contenedor principal -->
+    <div id="app"></div>
+
+    <!-- Scripts -->
+    <script src="mobile-optimizations.js"></script>
+    
+    <script>
+        const { createElement: e, useState, useEffect } = React;
+
+        // Tema por defecto
+        const defaultTheme = {
+            bg: 'bg-gray-50',
+            text: 'text-gray-900',
+            textSecondary: 'text-gray-600',
+            card: 'bg-white',
+            border: 'border-gray-200',
+            input: 'bg-white'
+        };
+
+        // Componente principal de la demo
+        function MobileOptimizationsDemo() {
+            const [currentDemo, setCurrentDemo] = useState('navigation');
+            const [screenSize, setScreenSize] = useState('desktop');
+
+            // Hook de detección móvil
+            const { isMobile, screenSize: detectedSize } = window.MobileOptimizations?.useMobileDetection() || { 
+                isMobile: false, 
+                screenSize: 'desktop' 
+            };
+
+            // Actualizar indicador de tamaño de pantalla
+            useEffect(() => {
+                const indicator = document.getElementById('screenSizeIndicator');
+                if (indicator) {
+                    indicator.textContent = `${detectedSize} (${window.innerWidth}px)`;
+                }
+                setScreenSize(detectedSize);
+            }, [detectedSize]);
+
+            // Gestos para cambiar demos
+            const demos = ['navigation', 'table', 'form', 'stats'];
+            const currentIndex = demos.indexOf(currentDemo);
+
+            const { handleTouchStart, handleTouchEnd } = window.MobileOptimizations?.useTouchGestures(
+                () => {
+                    // Swipe left - siguiente demo
+                    if (currentIndex < demos.length - 1) {
+                        setCurrentDemo(demos[currentIndex + 1]);
+                        showSwipeIndicator('Siguiente demo →');
+                    }
+                },
+                () => {
+                    // Swipe right - demo anterior
+                    if (currentIndex > 0) {
+                        setCurrentDemo(demos[currentIndex - 1]);
+                        showSwipeIndicator('← Demo anterior');
+                    }
+                }
+            ) || { handleTouchStart: () => {}, handleTouchEnd: () => {} };
+
+            // Función para mostrar indicador de swipe
+            const showSwipeIndicator = (text) => {
+                const indicator = document.getElementById('swipeIndicator');
+                if (indicator) {
+                    indicator.textContent = text;
+                    indicator.classList.add('show');
+                    setTimeout(() => {
+                        indicator.classList.remove('show');
+                    }, 1500);
+                }
+            };
+
+            return e('div', {
+                className: `min-h-screen ${defaultTheme.bg} mobile-optimized`,
+                onTouchStart: handleTouchStart,
+                onTouchEnd: handleTouchEnd
+            },
+                // Header
+                e(DemoHeader, { 
+                    currentDemo, 
+                    onDemoChange: setCurrentDemo, 
+                    isMobile, 
+                    screenSize: detectedSize 
+                }),
+
+                // Contenido principal
+                e('div', { className: 'container mx-auto p-4' },
+                    currentDemo === 'navigation' && e(NavigationDemo, { theme: defaultTheme, isMobile }),
+                    currentDemo === 'table' && e(TableDemo, { theme: defaultTheme, isMobile }),
+                    currentDemo === 'form' && e(FormDemo, { theme: defaultTheme, isMobile }),
+                    currentDemo === 'stats' && e(StatsDemo, { theme: defaultTheme, isMobile })
+                ),
+
+                // Navegación móvil (solo en móvil)
+                isMobile && e(window.MobileOptimizations.MobileNavigation, {
+                    activeTab: currentDemo,
+                    onTabChange: setCurrentDemo,
+                    theme: defaultTheme,
+                    counts: { navigation: 3, table: 5, form: 2, stats: 4 }
+                })
+            );
+        }
+
+        // Header de la demo
+        function DemoHeader({ currentDemo, onDemoChange, isMobile, screenSize }) {
+            const demoTitles = {
+                navigation: 'Navegación Móvil',
+                table: 'Tablas Responsivas',
+                form: 'Formularios Optimizados',
+                stats: 'Estadísticas Adaptativas'
+            };
+
+            if (isMobile) {
+                return e(window.MobileOptimizations.MobileHeader, {
+                    title: demoTitles[currentDemo],
+                    actions: [
+                        {
+                            icon: '📱',
+                            onClick: () => alert(`Pantalla: ${screenSize}`),
+                            className: 'hover:bg-gray-100'
+                        }
+                    ],
+                    theme: defaultTheme
+                });
+            }
+
+            return e('div', { className: 'bg-white border-b border-gray-200 p-4 sticky top-0 z-10' },
+                e('div', { className: 'flex justify-between items-center' },
+                    e('h1', { className: 'text-2xl font-bold text-gray-900' }, 
+                        '📱 Demo - Optimizaciones Móviles'
+                    ),
+                    e('div', { className: 'flex gap-2' },
+                        Object.keys(demoTitles).map(demo =>
+                            e('button', {
+                                key: demo,
+                                onClick: () => onDemoChange(demo),
+                                className: `px-4 py-2 rounded-lg font-medium ${
+                                    currentDemo === demo 
+                                        ? 'bg-blue-600 text-white' 
+                                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                }`
+                            }, demoTitles[demo])
+                        )
+                    )
+                )
+            );
+        }
+
+        // Demo de navegación
+        function NavigationDemo({ theme, isMobile }) {
+            const [activeTab, setActiveTab] = useState('services');
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: `${theme.card} rounded-xl p-6 border ${theme.border}` },
+                    e('h2', { className: 'text-xl font-bold mb-4' }, '🧭 Navegación Adaptativa'),
+                    e('p', { className: theme.textSecondary }, 
+                        isMobile 
+                            ? 'En móvil, la navegación se muestra en la parte inferior con iconos grandes para facilitar el uso táctil.'
+                            : 'En escritorio, la navegación se muestra como pestañas horizontales en la parte superior.'
+                    ),
+                    
+                    // Ejemplo de navegación desktop (siempre visible para comparación)
+                    !isMobile && e('div', { className: 'mt-4 p-4 bg-gray-50 rounded-lg' },
+                        e('h3', { className: 'font-semibold mb-3' }, 'Navegación Desktop:'),
+                        e('div', { className: 'flex gap-2' },
+                            ['services', 'expenses', 'reconciliation', 'history'].map(tab =>
+                                e('button', {
+                                    key: tab,
+                                    onClick: () => setActiveTab(tab),
+                                    className: `px-4 py-2 rounded-lg font-medium capitalize ${
+                                        activeTab === tab 
+                                            ? 'bg-blue-600 text-white' 
+                                            : 'bg-white text-gray-700 hover:bg-gray-100'
+                                    }`
+                                }, tab)
+                            )
+                        )
+                    ),
+
+                    // Información sobre gestos
+                    isMobile && e('div', { className: 'mt-4 p-4 bg-blue-50 rounded-lg' },
+                        e('h3', { className: 'font-semibold mb-2 text-blue-800' }, '👆 Gestos Táctiles:'),
+                        e('ul', { className: 'text-sm text-blue-700 space-y-1' },
+                            e('li', null, '• Desliza hacia la izquierda para avanzar'),
+                            e('li', null, '• Desliza hacia la derecha para retroceder'),
+                            e('li', null, '• Toca los iconos inferiores para navegar')
+                        )
+                    )
+                )
+            );
+        }
+
+        // Demo de tabla responsiva
+        function TableDemo({ theme, isMobile }) {
+            const sampleData = [
+                { id: 1, date: '2024-01-15', service: 'Freenow', amount: 25.50, payment: 'Tarjeta', status: 'Completado' },
+                { id: 2, date: '2024-01-15', service: 'Efectivo', amount: 18.00, payment: 'Efectivo', status: 'Completado' },
+                { id: 3, date: '2024-01-16', service: 'App', amount: 32.75, payment: 'App', status: 'Pendiente' },
+                { id: 4, date: '2024-01-16', service: 'Freenow', amount: 41.20, payment: 'Tarjeta', status: 'Completado' },
+                { id: 5, date: '2024-01-17', service: 'Efectivo', amount: 15.80, payment: 'Efectivo', status: 'Completado' }
+            ];
+
+            const columns = [
+                { key: 'date', label: 'Fecha', primary: true, format: (val) => new Date(val).toLocaleDateString('es-ES') },
+                { key: 'service', label: 'Servicio', primary: true },
+                { key: 'amount', label: 'Monto', format: (val) => `${val.toFixed(2)}€` },
+                { key: 'payment', label: 'Pago' },
+                { key: 'status', label: 'Estado' }
+            ];
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: `${theme.card} rounded-xl p-6 border ${theme.border}` },
+                    e('h2', { className: 'text-xl font-bold mb-4' }, '📊 Tablas Responsivas'),
+                    e('p', { className: `${theme.textSecondary} mb-4` }, 
+                        isMobile 
+                            ? 'En móvil, las tablas se convierten en tarjetas fáciles de leer y navegar.'
+                            : 'En escritorio, las tablas mantienen su formato tradicional con todas las columnas visibles.'
+                    ),
+                    
+                    e(window.MobileOptimizations.MobileResponsiveTable, {
+                        columns: columns,
+                        data: sampleData,
+                        theme: theme,
+                        onRowClick: (row) => alert(`Seleccionado: ${row.service} - ${row.amount}€`)
+                    })
+                )
+            );
+        }
+
+        // Demo de formulario optimizado
+        function FormDemo({ theme, isMobile }) {
+            const [formValues, setFormValues] = useState({
+                date: '',
+                service: '',
+                amount: '',
+                payment: '',
+                description: ''
+            });
+
+            const formFields = [
+                { key: 'date', label: 'Fecha', type: 'date', placeholder: 'Seleccionar fecha' },
+                { key: 'service', label: 'Tipo de Servicio', type: 'select', options: [
+                    { value: 'freenow', label: 'Freenow' },
+                    { value: 'efectivo', label: 'Efectivo' },
+                    { value: 'app', label: 'App' }
+                ]},
+                { key: 'amount', label: 'Monto', type: 'number', placeholder: '0.00' },
+                { key: 'payment', label: 'Método de Pago', type: 'select', options: [
+                    { value: 'efectivo', label: 'Efectivo' },
+                    { value: 'tarjeta', label: 'Tarjeta' },
+                    { value: 'app', label: 'App' }
+                ]},
+                { key: 'description', label: 'Descripción', type: 'textarea', placeholder: 'Detalles adicionales...' }
+            ];
+
+            const handleChange = (key, value) => {
+                setFormValues(prev => ({ ...prev, [key]: value }));
+            };
+
+            const handleSubmit = (values) => {
+                alert(`Formulario enviado:\n${JSON.stringify(values, null, 2)}`);
+            };
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: `${theme.card} rounded-xl p-6 border ${theme.border}` },
+                    e('h2', { className: 'text-xl font-bold mb-4' }, '📝 Formularios Optimizados'),
+                    e('p', { className: `${theme.textSecondary} mb-4` }, 
+                        isMobile 
+                            ? 'En móvil, los formularios se dividen en pasos para facilitar la entrada de datos.'
+                            : 'En escritorio, todos los campos se muestran en una cuadrícula organizada.'
+                    ),
+                    
+                    e(window.MobileOptimizations.MobileOptimizedForm, {
+                        fields: formFields,
+                        values: formValues,
+                        onChange: handleChange,
+                        onSubmit: handleSubmit,
+                        theme: theme,
+                        title: 'Nuevo Servicio'
+                    })
+                )
+            );
+        }
+
+        // Demo de estadísticas
+        function StatsDemo({ theme, isMobile }) {
+            const statsData = [
+                { key: 'services', icon: '🚕', value: 24, label: 'Servicios Hoy' },
+                { key: 'income', icon: '💰', value: '485.50€', label: 'Ingresos' },
+                { key: 'expenses', icon: '💸', value: '125.00€', label: 'Gastos' },
+                { key: 'net', icon: '📈', value: '360.50€', label: 'Neto' },
+                { key: 'cash', icon: '💵', value: '180.00€', label: 'Efectivo' },
+                { key: 'card', icon: '💳', value: '205.50€', label: 'Tarjeta' },
+                { key: 'app', icon: '📱', value: '100.00€', label: 'App' },
+                { key: 'freenow', icon: '🟢', value: '150.00€', label: 'Freenow' }
+            ];
+
+            return e('div', { className: 'space-y-6' },
+                e('div', { className: `${theme.card} rounded-xl p-6 border ${theme.border}` },
+                    e('h2', { className: 'text-xl font-bold mb-4' }, '📈 Estadísticas Adaptativas'),
+                    e('p', { className: `${theme.textSecondary} mb-4` }, 
+                        isMobile 
+                            ? 'En móvil, las estadísticas se muestran en una cuadrícula de 2 columnas para facilitar la lectura.'
+                            : 'En escritorio, las estadísticas se distribuyen en 4 columnas para aprovechar el espacio disponible.'
+                    ),
+                    
+                    e(window.MobileOptimizations.MobileStats, {
+                        stats: statsData,
+                        theme: theme
+                    })
+                ),
+
+                // Información adicional
+                e('div', { className: `${theme.card} rounded-xl p-6 border ${theme.border}` },
+                    e('h3', { className: 'text-lg font-bold mb-3' }, '🔧 Características Implementadas'),
+                    e('div', { className: 'grid grid-cols-1 md:grid-cols-2 gap-4' },
+                        e('div', null,
+                            e('h4', { className: 'font-semibold mb-2' }, '📱 Optimizaciones Móviles:'),
+                            e('ul', { className: 'text-sm text-gray-600 space-y-1' },
+                                e('li', null, '• Navegación inferior fija'),
+                                e('li', null, '• Tablas convertidas a tarjetas'),
+                                e('li', null, '• Formularios por pasos'),
+                                e('li', null, '• Gestos de swipe'),
+                                e('li', null, '• Campos táctiles grandes')
+                            )
+                        ),
+                        e('div', null,
+                            e('h4', { className: 'font-semibold mb-2' }, '🖥️ Características Desktop:'),
+                            e('ul', { className: 'text-sm text-gray-600 space-y-1' },
+                                e('li', null, '• Navegación por pestañas'),
+                                e('li', null, '• Tablas completas'),
+                                e('li', null, '• Formularios en cuadrícula'),
+                                e('li', null, '• Aprovechamiento del espacio'),
+                                e('li', null, '• Atajos de teclado')
+                            )
+                        )
+                    )
+                )
+            );
+        }
+
+        // Renderizar la aplicación
+        ReactDOM.render(e(MobileOptimizationsDemo), document.getElementById('app'));
+
+        // Actualizar indicador de tamaño en tiempo real
+        window.addEventListener('resize', () => {
+            const indicator = document.getElementById('screenSizeIndicator');
+            if (indicator) {
+                const width = window.innerWidth;
+                const size = width < 768 ? 'mobile' : width < 1024 ? 'tablet' : 'desktop';
+                indicator.textContent = `${size} (${width}px)`;
+            }
+        });
+
+        // Mostrar información inicial
+        console.log('📱 Demo de Optimizaciones Móviles cargada');
+        console.log('👆 Usa gestos de swipe en móvil para navegar entre demos');
+        console.log('🔄 Cambia el tamaño de la ventana para ver las adaptaciones');
+    </script>
+</body>
+</html>

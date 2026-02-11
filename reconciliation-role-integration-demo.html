@@ -1,0 +1,550 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Demo: Reconciliación con Roles</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .demo-section { 
+            border: 2px solid #e5e7eb; 
+            border-radius: 8px; 
+            padding: 1rem; 
+            margin: 1rem 0; 
+            background: #f9fafb;
+        }
+        .role-patron { border-color: #3b82f6; background: #eff6ff; }
+        .role-taxista { border-color: #10b981; background: #ecfdf5; }
+        .code-block {
+            background: #1f2937;
+            color: #f3f4f6;
+            padding: 1rem;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <div class="max-w-6xl mx-auto">
+            <!-- Header -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold text-gray-900 mb-4">
+                    🚕 Demo: Reconciliación con Roles
+                </h1>
+                <p class="text-lg text-gray-600">
+                    Demostración de la integración del sistema de autenticación con roles 
+                    en el módulo de reconciliación existente
+                </p>
+                <div class="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p class="text-sm text-blue-800">
+                        <strong>Requisitos implementados:</strong> 5.2 (Datos agregados para patrones), 5.4 (Filtrado por rol)
+                    </p>
+                </div>
+            </div>
+
+            <!-- Demo Controls -->
+            <div class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">🎮 Controles de Demo</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button id="loginPatron" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                        👤 Iniciar como Patrón
+                    </button>
+                    <button id="loginTaxista" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                        🚕 Iniciar como Taxista
+                    </button>
+                    <button id="logout" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700">
+                        🚪 Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+
+            <!-- Current User Status -->
+            <div id="userStatus" class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">👤 Estado del Usuario</h2>
+                <div id="userInfo" class="text-gray-600">
+                    No hay usuario autenticado
+                </div>
+            </div>
+
+            <!-- Role-Based Data Display -->
+            <div id="dataDisplay" class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">📊 Datos Filtrados por Rol</h2>
+                <div id="dataContent" class="text-gray-600">
+                    Inicia sesión para ver los datos
+                </div>
+            </div>
+
+            <!-- Aggregated Data (Patrones only) -->
+            <div id="aggregatedData" class="demo-section role-patron" style="display: none;">
+                <h2 class="text-2xl font-semibold mb-4">📈 Datos Agregados (Solo Patrones)</h2>
+                <div id="aggregatedContent"></div>
+            </div>
+
+            <!-- Integration Code Examples -->
+            <div class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">💻 Ejemplos de Integración</h2>
+                
+                <h3 class="text-lg font-semibold mb-2">1. Inicialización del Sistema</h3>
+                <div class="code-block mb-4">
+// Inicializar servicios de autenticación
+const authService = new AuthService(jwtUtils, cryptoUtils);
+const roleService = new RoleService(() => authService.getCurrentUser());
+
+// Crear bridge de integración
+const bridge = new ReconciliationBridge();
+await bridge.initialize(authService, roleService);
+
+// Mejorar módulo de reconciliación existente
+const EnhancedReconciliationModule = createRoleAwareReconciliationModule(
+    ReconciliationModule
+);
+                </div>
+
+                <h3 class="text-lg font-semibold mb-2">2. Filtrado de Datos por Rol</h3>
+                <div class="code-block mb-4">
+// Los datos se filtran automáticamente según el rol del usuario
+const services = bridge.filterServices(allServices);
+const expenses = bridge.filterExpenses(allExpenses);
+
+// Patrones ven datos de taxistas asociados
+// Taxistas ven solo sus propios datos
+                </div>
+
+                <h3 class="text-lg font-semibold mb-2">3. Datos Agregados para Patrones</h3>
+                <div class="code-block mb-4">
+// Solo disponible para usuarios con rol de patrón
+const aggregatedSummary = bridge.getAggregatedSummary(services, 'totalAmount');
+
+if (aggregatedSummary) {
+    console.log(`Total de taxistas: ${aggregatedSummary.associatedTaxistas}`);
+    console.log(`Ingresos totales: €${aggregatedSummary.totalAmount}`);
+    console.log('Desglose por taxista:', aggregatedSummary.byTaxista);
+}
+                </div>
+            </div>
+
+            <!-- Features Implemented -->
+            <div class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">✅ Características Implementadas</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-blue-600">Para Patrones:</h3>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li>Ver datos agregados de taxistas asociados</li>
+                            <li>Resumen consolidado de servicios y gastos</li>
+                            <li>Estadísticas por taxista individual</li>
+                            <li>Generación de reconciliaciones con datos agregados</li>
+                            <li>Control de acceso a datos de taxistas asociados únicamente</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2 text-green-600">Para Taxistas:</h3>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li>Acceso solo a sus propios datos</li>
+                            <li>Introducción de servicios y gastos</li>
+                            <li>Generación de reconciliaciones personales</li>
+                            <li>Historial personal de operaciones</li>
+                            <li>Identificación automática por número de taxista</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Technical Implementation -->
+            <div class="demo-section">
+                <h2 class="text-2xl font-semibold mb-4">🔧 Implementación Técnica</h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Componentes Creados:</h3>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li><code>ReconciliationIntegrationService</code> - Servicio principal de integración</li>
+                            <li><code>RoleAwareReconciliationModule</code> - Módulo mejorado con roles</li>
+                            <li><code>ReconciliationBridge</code> - Puente JavaScript/TypeScript</li>
+                            <li>Wrappers para StorageManager existente</li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">Funcionalidades:</h3>
+                        <ul class="list-disc list-inside space-y-1 text-sm">
+                            <li>Filtrado automático de datos por rol</li>
+                            <li>Enriquecimiento de datos con contexto de usuario</li>
+                            <li>Validación de permisos en operaciones CRUD</li>
+                            <li>Agregación de datos para patrones</li>
+                            <li>Configuración de UI específica por rol</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Demo JavaScript -->
+    <script>
+        // Mock data for demonstration
+        const mockServices = [
+            {
+                id: 'service_1',
+                userId: 'patron_1',
+                createdBy: 'taxista_1',
+                numeroTaxista: 'TX001',
+                date: new Date('2024-01-15'),
+                startTime: '09:00',
+                totalAmount: 25.50,
+                paymentType: 'cash',
+                isArticulated: false
+            },
+            {
+                id: 'service_2',
+                userId: 'patron_1',
+                createdBy: 'taxista_2',
+                numeroTaxista: 'TX002',
+                date: new Date('2024-01-15'),
+                startTime: '10:30',
+                totalAmount: 18.75,
+                paymentType: 'card',
+                isArticulated: true
+            },
+            {
+                id: 'service_3',
+                userId: 'taxista_1',
+                createdBy: 'taxista_1',
+                numeroTaxista: 'TX001',
+                date: new Date('2024-01-16'),
+                startTime: '14:15',
+                totalAmount: 32.00,
+                paymentType: 'app',
+                isArticulated: false
+            }
+        ];
+
+        const mockExpenses = [
+            {
+                id: 'expense_1',
+                userId: 'taxista_1',
+                createdBy: 'taxista_1',
+                numeroTaxista: 'TX001',
+                date: new Date('2024-01-15'),
+                concept: 'Combustible',
+                amount: 45.00,
+                category: 'fuel'
+            },
+            {
+                id: 'expense_2',
+                userId: 'taxista_2',
+                createdBy: 'taxista_2',
+                numeroTaxista: 'TX002',
+                date: new Date('2024-01-15'),
+                concept: 'Mantenimiento',
+                amount: 120.00,
+                category: 'maintenance'
+            }
+        ];
+
+        // Mock users
+        const mockPatron = {
+            id: 'patron_1',
+            email: 'patron@example.com',
+            nombre: 'Juan Patrón',
+            rol: 'patron',
+            activo: true,
+            fechaCreacion: new Date(),
+            fechaActualizacion: new Date()
+        };
+
+        const mockTaxista = {
+            id: 'taxista_1',
+            email: 'taxista@example.com',
+            nombre: 'Carlos Taxista',
+            rol: 'taxista',
+            numeroTaxista: 'TX001',
+            activo: true,
+            fechaCreacion: new Date(),
+            fechaActualizacion: new Date()
+        };
+
+        // Current user state
+        let currentUser = null;
+
+        // Mock role service functions
+        function filterDataByRole(data, userRole, userId) {
+            if (userRole === 'patron') {
+                // Patron sees data from associated taxistas
+                return data.filter(item => 
+                    item.createdBy === 'taxista_1' || 
+                    item.createdBy === 'taxista_2'
+                );
+            } else if (userRole === 'taxista') {
+                // Taxista sees only own data
+                return data.filter(item => 
+                    item.createdBy === userId || 
+                    item.userId === userId
+                );
+            }
+            return [];
+        }
+
+        function getAggregatedSummary(data, field = 'totalAmount') {
+            if (!currentUser || currentUser.rol !== 'patron') return null;
+
+            const filteredData = filterDataByRole(data, currentUser.rol, currentUser.id);
+            
+            const totalAmount = filteredData.reduce((sum, item) => sum + (item[field] || 0), 0);
+            
+            // Group by taxista
+            const byTaxista = {};
+            filteredData.forEach(item => {
+                const taxistaId = item.createdBy;
+                if (taxistaId && taxistaId !== currentUser.id) {
+                    if (!byTaxista[taxistaId]) {
+                        byTaxista[taxistaId] = {
+                            nombre: taxistaId === 'taxista_1' ? 'Carlos Taxista' : 'Ana Taxista',
+                            numeroTaxista: taxistaId === 'taxista_1' ? 'TX001' : 'TX002',
+                            totalAmount: 0,
+                            recordCount: 0
+                        };
+                    }
+                    byTaxista[taxistaId].totalAmount += item[field] || 0;
+                    byTaxista[taxistaId].recordCount += 1;
+                }
+            });
+
+            return {
+                totalRecords: filteredData.length,
+                totalAmount,
+                averageAmount: filteredData.length > 0 ? totalAmount / filteredData.length : 0,
+                associatedTaxistas: Object.keys(byTaxista).length,
+                byTaxista
+            };
+        }
+
+        // UI Update functions
+        function updateUserStatus() {
+            const userInfo = document.getElementById('userInfo');
+            const aggregatedSection = document.getElementById('aggregatedData');
+            
+            if (currentUser) {
+                const roleClass = currentUser.rol === 'patron' ? 'role-patron' : 'role-taxista';
+                const roleIcon = currentUser.rol === 'patron' ? '👤' : '🚕';
+                const roleText = currentUser.rol === 'patron' ? 'Patrón' : 'Taxista';
+                
+                userInfo.innerHTML = `
+                    <div class="p-4 rounded-lg ${roleClass}">
+                        <div class="flex items-center space-x-3">
+                            <span class="text-2xl">${roleIcon}</span>
+                            <div>
+                                <div class="font-semibold">${currentUser.nombre}</div>
+                                <div class="text-sm opacity-75">Rol: ${roleText}</div>
+                                ${currentUser.numeroTaxista ? `<div class="text-sm opacity-75">Número: ${currentUser.numeroTaxista}</div>` : ''}
+                                <div class="text-sm opacity-75">Email: ${currentUser.email}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                // Show aggregated data section for patrones
+                if (currentUser.rol === 'patron') {
+                    aggregatedSection.style.display = 'block';
+                    updateAggregatedData();
+                } else {
+                    aggregatedSection.style.display = 'none';
+                }
+            } else {
+                userInfo.innerHTML = '<div class="text-gray-600">No hay usuario autenticado</div>';
+                aggregatedSection.style.display = 'none';
+            }
+        }
+
+        function updateDataDisplay() {
+            const dataContent = document.getElementById('dataContent');
+            
+            if (!currentUser) {
+                dataContent.innerHTML = '<div class="text-gray-600">Inicia sesión para ver los datos</div>';
+                return;
+            }
+
+            const filteredServices = filterDataByRole(mockServices, currentUser.rol, currentUser.id);
+            const filteredExpenses = filterDataByRole(mockExpenses, currentUser.rol, currentUser.id);
+
+            const totalServiceAmount = filteredServices.reduce((sum, s) => sum + s.totalAmount, 0);
+            const totalExpenseAmount = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+
+            dataContent.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-lg mb-3 flex items-center">
+                            <span class="mr-2">🚕</span> Servicios
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Total servicios:</span>
+                                <span class="font-semibold">${filteredServices.length}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Importe total:</span>
+                                <span class="font-semibold">€${totalServiceAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2">
+                            ${filteredServices.map(s => `
+                                <div class="text-sm p-2 bg-gray-50 rounded">
+                                    <div class="flex justify-between">
+                                        <span>${s.numeroTaxista} - ${s.paymentType}</span>
+                                        <span class="font-semibold">€${s.totalAmount}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600">${s.date.toLocaleDateString()} ${s.startTime}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-lg mb-3 flex items-center">
+                            <span class="mr-2">🧾</span> Gastos
+                        </h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Total gastos:</span>
+                                <span class="font-semibold">${filteredExpenses.length}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Importe total:</span>
+                                <span class="font-semibold">€${totalExpenseAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="mt-4 space-y-2">
+                            ${filteredExpenses.map(e => `
+                                <div class="text-sm p-2 bg-gray-50 rounded">
+                                    <div class="flex justify-between">
+                                        <span>${e.concept}</span>
+                                        <span class="font-semibold">€${e.amount}</span>
+                                    </div>
+                                    <div class="text-xs text-gray-600">${e.date.toLocaleDateString()} - ${e.category}</div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function updateAggregatedData() {
+            const aggregatedContent = document.getElementById('aggregatedContent');
+            
+            if (!currentUser || currentUser.rol !== 'patron') {
+                return;
+            }
+
+            const servicesSummary = getAggregatedSummary(mockServices, 'totalAmount');
+            const expensesSummary = getAggregatedSummary(mockExpenses, 'amount');
+
+            if (!servicesSummary) {
+                aggregatedContent.innerHTML = '<div class="text-gray-600">No hay datos agregados disponibles</div>';
+                return;
+            }
+
+            aggregatedContent.innerHTML = `
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-lg mb-3">📊 Resumen de Servicios</h3>
+                        <div class="space-y-2">
+                            <div class="flex justify-between">
+                                <span>Taxistas asociados:</span>
+                                <span class="font-semibold">${servicesSummary.associatedTaxistas}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Total servicios:</span>
+                                <span class="font-semibold">${servicesSummary.totalRecords}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Ingresos totales:</span>
+                                <span class="font-semibold">€${servicesSummary.totalAmount.toFixed(2)}</span>
+                            </div>
+                            <div class="flex justify-between">
+                                <span>Promedio por servicio:</span>
+                                <span class="font-semibold">€${servicesSummary.averageAmount.toFixed(2)}</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-white p-4 rounded-lg border">
+                        <h3 class="font-semibold text-lg mb-3">👥 Por Taxista</h3>
+                        <div class="space-y-3">
+                            ${Object.entries(servicesSummary.byTaxista).map(([id, data]) => `
+                                <div class="p-3 bg-blue-50 rounded-lg">
+                                    <div class="font-semibold">${data.nombre}</div>
+                                    <div class="text-sm text-gray-600">Número: ${data.numeroTaxista}</div>
+                                    <div class="flex justify-between mt-2">
+                                        <span class="text-sm">Servicios: ${data.recordCount}</span>
+                                        <span class="text-sm font-semibold">€${data.totalAmount.toFixed(2)}</span>
+                                    </div>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        // Event listeners
+        document.getElementById('loginPatron').addEventListener('click', () => {
+            currentUser = mockPatron;
+            updateUserStatus();
+            updateDataDisplay();
+            console.log('✅ Logged in as Patron');
+        });
+
+        document.getElementById('loginTaxista').addEventListener('click', () => {
+            currentUser = mockTaxista;
+            updateUserStatus();
+            updateDataDisplay();
+            console.log('✅ Logged in as Taxista');
+        });
+
+        document.getElementById('logout').addEventListener('click', () => {
+            currentUser = null;
+            updateUserStatus();
+            updateDataDisplay();
+            console.log('✅ Logged out');
+        });
+
+        // Initialize display
+        updateUserStatus();
+        updateDataDisplay();
+
+        // Console demo functions
+        window.demoFilterServices = () => {
+            if (!currentUser) {
+                console.log('❌ No user logged in');
+                return;
+            }
+            
+            const filtered = filterDataByRole(mockServices, currentUser.rol, currentUser.id);
+            console.log(`🔍 Filtered services for ${currentUser.rol}:`, filtered);
+            return filtered;
+        };
+
+        window.demoAggregatedData = () => {
+            if (!currentUser || currentUser.rol !== 'patron') {
+                console.log('❌ Only available for patron users');
+                return;
+            }
+            
+            const summary = getAggregatedSummary(mockServices, 'totalAmount');
+            console.log('📊 Aggregated summary:', summary);
+            return summary;
+        };
+
+        console.log('🎯 Demo loaded! Try:');
+        console.log('- Click the login buttons above');
+        console.log('- demoFilterServices() - See filtered data');
+        console.log('- demoAggregatedData() - See aggregated data (patron only)');
+    </script>
+</body>
+</html>

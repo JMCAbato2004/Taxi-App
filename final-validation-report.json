@@ -1,0 +1,27 @@
+{
+  "timestamp": "2026-01-19T11:26:02.305Z",
+  "validation": {
+    "total": 32,
+    "passed": 30,
+    "failed": 2,
+    "successRate": "93.8"
+  },
+  "status": "PARTIAL",
+  "features": {
+    "pwa": true,
+    "offline": true,
+    "serviceManagement": true,
+    "expenseTracking": true,
+    "reports": true,
+    "csvExport": true,
+    "darkMode": true,
+    "responsive": true,
+    "testing": true
+  },
+  "files": {
+    "main": 6,
+    "icons": 8,
+    "tests": 9,
+    "specs": 3
+  }
+}

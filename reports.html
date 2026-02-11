@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reportes y Estadísticas - Control de Taxi</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#059669">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-900">📊 Reportes y Estadísticas</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="goBackToMain()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        ← Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Resumen General -->
+        <div class="bg-white rounded-lg shadow-md p-6 mb-6">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Resumen General</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div class="bg-blue-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-blue-800">Total Servicios</h3>
+                    <p id="total-services" class="text-3xl font-bold text-blue-600"></p>
+                    <p id="services-change" class="text-sm text-blue-600"></p>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-green-800">Ingresos Totales</h3>
+                    <p id="total-earnings" class="text-3xl font-bold text-green-600"></p>
+                    <p id="earnings-change" class="text-sm text-green-600"></p>
+                </div>
+                <div class="bg-purple-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-purple-800">Promedio/Servicio</h3>
+                    <p id="average-service" class="text-3xl font-bold text-purple-600"></p>
+                    <p id="average-change" class="text-sm text-purple-600"></p>
+                </div>
+                <div class="bg-orange-50 p-4 rounded-lg">
+                    <h3 class="font-semibold text-orange-800">Taxistas Activos</h3>
+                    <p id="active-taxistas" class="text-3xl font-bold text-orange-600"></p>
+                    <p id="taxistas-change" class="text-sm text-orange-600"></p>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            <!-- Gráfico de Servicios por Día -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Servicios por Día (Última Semana)</h3>
+                <canvas id="servicesChart" width="400" height="200"></canvas>
+            </div>
+
+            <!-- Gráfico de Ingresos por Taxista -->
+            <div class="bg-white rounded-lg shadow-md p-6">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Ingresos por Taxista (Este Mes)</h3>
+                <canvas id="earningsChart" width="400" height="200"></canvas>
+            </div>
+        </div>
+
+        <!-- Tabla Detallada -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-semibold text-gray-900">Detalle por Taxista</h3>
+                <div class="flex space-x-2">
+                    <select class="px-3 py-2 border border-gray-300 rounded-lg text-sm">
+                        <option>Última semana</option>
+                        <option>Último mes</option>
+                        <option>Últimos 3 meses</option>
+                    </select>
+                    <button onclick="exportReport()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm">
+                        📄 Exportar PDF
+                    </button>
+                </div>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Taxista</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Servicios</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Ingresos</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Promedio</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Gastos</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Neto</th>
+                        </tr>
+                    </thead>
+                    <tbody id="taxistas-table" class="bg-white divide-y divide-gray-200">
+                        <!-- Los datos se cargarán dinámicamente -->
+                    </tbody>
+                </table>
+                
+                <!-- Estado vacío -->
+                <div id="empty-table-state" class="p-12 text-center text-gray-500 hidden">
+                    <div class="text-6xl mb-4">📊</div>
+                    <h3 class="text-lg font-semibold mb-2">No hay datos para mostrar</h3>
+                    <p class="mb-4">Debes iniciar sesión y tener servicios registrados para ver los reportes</p>
+                    <button onclick="window.location.href='index.html'" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors">
+                        Ir al Panel Principal
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        let currentUser = null;
+        let allServices = [];
+        let allUsers = [];
+
+        // Inicializar la aplicación
+        document.addEventListener('DOMContentLoaded', function() {
+            currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || '{}');
+            
+            // Verificar si hay un usuario logueado
+            if (!currentUser || !currentUser.id || !currentUser.rol) {
+                // No hay usuario logueado, mostrar estado vacío
+                showEmptyState();
+                return;
+            }
+            
+            loadData();
+        });
+
+        function showEmptyState() {
+            // Mostrar valores vacíos para todas las estadísticas
+            document.getElementById('total-services').textContent = '';
+            document.getElementById('total-earnings').textContent = '';
+            document.getElementById('average-service').textContent = '';
+            document.getElementById('active-taxistas').textContent = '';
+            
+            // Mostrar mensajes de estado vacío
+            document.getElementById('services-change').textContent = 'Inicia sesión para ver datos';
+            document.getElementById('earnings-change').textContent = 'Inicia sesión para ver datos';
+            document.getElementById('average-change').textContent = 'Inicia sesión para ver datos';
+            document.getElementById('taxistas-change').textContent = 'Inicia sesión para ver datos';
+            
+            // Mostrar estado vacío en la tabla
+            const tableBody = document.getElementById('taxistas-table');
+            const emptyState = document.getElementById('empty-table-state');
+            tableBody.innerHTML = '';
+            emptyState.classList.remove('hidden');
+            
+            // Mostrar gráficos vacíos
+            showEmptyCharts();
+        }
+
+        function showEmptyCharts() {
+            // Gráfico de servicios vacío
+            const servicesCtx = document.getElementById('servicesChart').getContext('2d');
+            new Chart(servicesCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'],
+                    datasets: [{
+                        label: 'Servicios',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: 'rgb(229, 231, 235)',
+                        backgroundColor: 'rgba(229, 231, 235, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Gráfico de ingresos vacío
+            const earningsCtx = document.getElementById('earningsChart').getContext('2d');
+            new Chart(earningsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Sin datos'],
+                    datasets: [{
+                        data: [1],
+                        backgroundColor: ['#e5e7eb'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    }
+                }
+            });
+        }
+
+        function loadData() {
+            // Verificar nuevamente que tenemos un usuario válido
+            if (!currentUser || !currentUser.id || !currentUser.rol) {
+                showEmptyState();
+                return;
+            }
+            
+            allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+            allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+            
+            updateSummaryStats();
+            updateCharts();
+            updateTaxistasTable();
+            
+            // Animación de entrada
+            const elements = document.querySelectorAll('.bg-white');
+            elements.forEach((el, index) => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateY(20px)';
+                
+                setTimeout(() => {
+                    el.style.transition = 'all 0.5s ease';
+                    el.style.opacity = '1';
+                    el.style.transform = 'translateY(0)';
+                }, index * 100);
+            });
+        }
+
+        function updateSummaryStats() {
+            // Verificar que tenemos un usuario válido
+            if (!currentUser || !currentUser.id || !currentUser.rol) {
+                showEmptyState();
+                return;
+            }
+
+            // Filtrar servicios según el rol del usuario
+            let relevantServices = [];
+            let relevantTaxistas = [];
+            
+            if (currentUser.rol === 'PATRON') {
+                // Obtener taxistas asociados al patrón
+                relevantTaxistas = allUsers.filter(u => 
+                    u.rol === 'TAXISTA' && 
+                    u.estado === 'asociado' && 
+                    u.patronId === currentUser.id
+                );
+                
+                // Obtener servicios de los taxistas asociados
+                relevantServices = allServices.filter(s => 
+                    relevantTaxistas.some(t => t.id === s.taxistaId)
+                );
+            } else if (currentUser.rol === 'TAXISTA') {
+                // Solo servicios del taxista actual
+                relevantServices = allServices.filter(s => s.taxistaId === currentUser.id);
+                relevantTaxistas = [currentUser];
+            }
+
+            const totalServices = relevantServices.length;
+            const totalEarnings = relevantServices.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+            const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
+            const activeTaxistas = relevantTaxistas.length;
+
+            // Actualizar los valores en la interfaz
+            document.getElementById('total-services').textContent = totalServices.toString();
+            document.getElementById('total-earnings').textContent = `€${totalEarnings.toFixed(2)}`;
+            document.getElementById('average-service').textContent = `€${averageService.toFixed(2)}`;
+            document.getElementById('active-taxistas').textContent = activeTaxistas.toString();
+
+            // Actualizar mensajes de cambio
+            document.getElementById('services-change').textContent = totalServices === 0 ? 'No hay servicios registrados' : 'Datos actualizados';
+            document.getElementById('earnings-change').textContent = totalEarnings === 0 ? 'No hay ingresos registrados' : 'Datos actualizados';
+            document.getElementById('average-change').textContent = averageService === 0 ? 'No hay promedio disponible' : 'Datos actualizados';
+            document.getElementById('taxistas-change').textContent = activeTaxistas === 0 ? 'No hay taxistas activos' : 'Datos actualizados';
+        }
+
+        function updateCharts() {
+            updateServicesChart();
+            updateEarningsChart();
+        }
+
+        function updateServicesChart() {
+            // Obtener servicios de la última semana
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            
+            let relevantServices = [];
+            if (currentUser.rol === 'PATRON') {
+                const relevantTaxistas = allUsers.filter(u => 
+                    u.rol === 'TAXISTA' && 
+                    u.estado === 'asociado' && 
+                    u.patronId === currentUser.id
+                );
+                relevantServices = allServices.filter(s => 
+                    relevantTaxistas.some(t => t.id === s.taxistaId) &&
+                    new Date(s.datetime) >= weekAgo
+                );
+            } else {
+                relevantServices = allServices.filter(s => 
+                    s.taxistaId === currentUser.id &&
+                    new Date(s.datetime) >= weekAgo
+                );
+            }
+
+            // Agrupar por día
+            const dailyServices = {};
+            const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+            
+            // Inicializar con 0
+            for (let i = 0; i < 7; i++) {
+                const date = new Date();
+                date.setDate(date.getDate() - (6 - i));
+                const dayName = days[date.getDay()];
+                dailyServices[dayName] = 0;
+            }
+            
+            // Contar servicios por día
+            relevantServices.forEach(service => {
+                const serviceDate = new Date(service.datetime);
+                const dayName = days[serviceDate.getDay()];
+                if (dailyServices.hasOwnProperty(dayName)) {
+                    dailyServices[dayName]++;
+                }
+            });
+
+            const servicesCtx = document.getElementById('servicesChart').getContext('2d');
+            new Chart(servicesCtx, {
+                type: 'line',
+                data: {
+                    labels: Object.keys(dailyServices),
+                    datasets: [{
+                        label: 'Servicios',
+                        data: Object.values(dailyServices),
+                        borderColor: 'rgb(59, 130, 246)',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: {
+                                color: 'rgba(0, 0, 0, 0.1)'
+                            }
+                        },
+                        x: {
+                            grid: {
+                                display: false
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateEarningsChart() {
+            let relevantTaxistas = [];
+            
+            if (currentUser.rol === 'PATRON') {
+                relevantTaxistas = allUsers.filter(u => 
+                    u.rol === 'TAXISTA' && 
+                    u.estado === 'asociado' && 
+                    u.patronId === currentUser.id
+                );
+            } else {
+                relevantTaxistas = [currentUser];
+            }
+
+            if (relevantTaxistas.length === 0) {
+                // Mostrar gráfico vacío
+                const earningsCtx = document.getElementById('earningsChart').getContext('2d');
+                new Chart(earningsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Sin datos'],
+                        datasets: [{
+                            data: [1],
+                            backgroundColor: ['#e5e7eb'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            // Calcular ingresos por taxista
+            const taxistaEarnings = relevantTaxistas.map(taxista => {
+                const taxistaServices = allServices.filter(s => s.taxistaId === taxista.id);
+                const earnings = taxistaServices.reduce((sum, s) => sum + (s.netAmount || 0), 0);
+                return {
+                    name: taxista.nombre,
+                    earnings: earnings
+                };
+            }).filter(t => t.earnings > 0);
+
+            if (taxistaEarnings.length === 0) {
+                // Mostrar gráfico vacío
+                const earningsCtx = document.getElementById('earningsChart').getContext('2d');
+                new Chart(earningsCtx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Sin ingresos'],
+                        datasets: [{
+                            data: [1],
+                            backgroundColor: ['#e5e7eb'],
+                            borderWidth: 0
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                display: false
+                            }
+                        }
+                    }
+                });
+                return;
+            }
+
+            const earningsCtx = document.getElementById('earningsChart').getContext('2d');
+            new Chart(earningsCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: taxistaEarnings.map(t => t.name),
+                    datasets: [{
+                        data: taxistaEarnings.map(t => t.earnings),
+                        backgroundColor: [
+                            'rgb(34, 197, 94)',
+                            'rgb(59, 130, 246)',
+                            'rgb(168, 85, 247)',
+                            'rgb(245, 158, 11)',
+                            'rgb(239, 68, 68)'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function updateTaxistasTable() {
+            const tableBody = document.getElementById('taxistas-table');
+            const emptyState = document.getElementById('empty-table-state');
+            
+            let relevantTaxistas = [];
+            
+            if (currentUser.rol === 'PATRON') {
+                relevantTaxistas = allUsers.filter(u => 
+                    u.rol === 'TAXISTA' && 
+                    u.estado === 'asociado' && 
+                    u.patronId === currentUser.id
+                );
+            } else {
+                relevantTaxistas = [currentUser];
+            }
+
+            if (relevantTaxistas.length === 0) {
+                tableBody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+
+            // Calcular estadísticas por taxista
+            const taxistaStats = relevantTaxistas.map(taxista => {
+                const taxistaServices = allServices.filter(s => s.taxistaId === taxista.id);
+                const totalServices = taxistaServices.length;
+                const totalEarnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
+                const totalCommissions = taxistaServices.reduce((sum, s) => sum + (s.commission || 0), 0);
+                const totalTips = taxistaServices.reduce((sum, s) => sum + (s.tip || 0), 0);
+                const netEarnings = totalEarnings - totalCommissions + totalTips;
+                const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
+
+                return {
+                    taxista,
+                    totalServices,
+                    totalEarnings,
+                    totalCommissions,
+                    netEarnings,
+                    averageService
+                };
+            });
+
+            tableBody.innerHTML = taxistaStats.map((stats, index) => `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center mr-3">
+                                <span class="text-green-600 font-bold text-sm">${stats.taxista.numeroTaxista?.slice(-2) || (index + 1).toString().padStart(2, '0')}</span>
+                            </div>
+                            <div>
+                                <div class="text-sm font-medium text-gray-900">${stats.taxista.nombre}</div>
+                                <div class="text-sm text-gray-500">${stats.taxista.numeroTaxista || 'Sin número'}</div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${stats.totalServices}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">€${stats.totalEarnings.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">€${stats.averageService.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-red-600">€${stats.totalCommissions.toFixed(2)}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-blue-600">€${stats.netEarnings.toFixed(2)}</td>
+                </tr>
+            `).join('');
+        }
+
+        // Función para exportar reporte
+        function exportReport() {
+            // Simulación de exportación
+            const notification = document.createElement('div');
+            notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50';
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <span class="mr-2">✅</span>
+                    <span>Reporte exportado exitosamente</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // Función para volver a la página principal
+        function goBackToMain() {
+            // Intentar cerrar la ventana primero (si fue abierta como popup)
+            if (window.opener) {
+                window.opener.location.reload();
+                window.close();
+            } else {
+                // Si no es un popup, redirigir a la página principal
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registrar Nuevo Servicio - Control de Taxi</title>
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#059669">
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-xl font-bold text-gray-900">➕ Registrar Nuevo Servicio</h1>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <button onclick="goBackToMain()" class="bg-gray-600 text-white px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors">
+                        ← Volver
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-2xl mx-auto px-4 py-8">
+        <div class="bg-white rounded-lg shadow-md p-8">
+            <form id="serviceForm" class="space-y-6">
+                <!-- Información del Servicio -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Información del Servicio</h2>
+                    
+                    <div class="mb-4">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Fecha y Hora</label>
+                        <input type="datetime-local" id="datetime" required
+                               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Origen (Opcional)</label>
+                            <input type="text" id="origin" placeholder="Dirección de origen"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Destino (Opcional)</label>
+                            <input type="text" id="destination" placeholder="Dirección de destino"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Origen del Servicio</label>
+                        <select id="serviceSource" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <option value="">Selecciona el origen</option>
+                            <option value="emisora">📻 Emisora</option>
+                            <option value="calle">🚶 Calle</option>
+                            <option value="uber">🚗 Uber</option>
+                            <option value="freenow">🚕 FreeNow</option>
+                            <option value="otro">📋 Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Importe del Servicio</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500">€</span>
+                                <input type="number" id="amount" step="0.01" min="0" required placeholder="0.00"
+                                       class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Comisión (Opcional)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500">€</span>
+                                <input type="number" id="commission" step="0.01" min="0" placeholder="0.00"
+                                       class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Comisión de la plataforma</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Propina (Opcional)</label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-2 text-gray-500">€</span>
+                                <input type="number" id="tip" step="0.01" min="0" placeholder="0.00"
+                                       class="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            </div>
+                            <p class="text-xs text-gray-500 mt-1">Propina del cliente</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Información del Cliente -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Información del Cliente (Opcional)</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Nombre del Cliente</label>
+                            <input type="text" id="clientName" placeholder="Juan Pérez"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Teléfono</label>
+                            <input type="tel" id="clientPhone" placeholder="+34 666 123 456"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Método de Pago -->
+                <div>
+                    <h2 class="text-lg font-semibold text-gray-900 mb-4">Método de Pago</h2>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="paymentMethod" value="efectivo" class="mr-2" checked>
+                            <span class="text-sm">💵 Efectivo</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="paymentMethod" value="tarjeta" class="mr-2">
+                            <span class="text-sm">💳 Tarjeta</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="paymentMethod" value="transferencia" class="mr-2">
+                            <span class="text-sm">🏦 Transfer.</span>
+                        </label>
+                        <label class="flex items-center p-3 border border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50">
+                            <input type="radio" name="paymentMethod" value="app" class="mr-2">
+                            <span class="text-sm">📱 App</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Notas Adicionales -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Notas Adicionales</label>
+                    <textarea id="notes" rows="3" placeholder="Información adicional sobre el servicio..."
+                              class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+                </div>
+
+                <!-- Botones -->
+                <div class="flex space-x-4 pt-6">
+                    <button type="submit" class="flex-1 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold">
+                        ✅ Registrar Servicio
+                    </button>
+                    <button type="button" onclick="goBackToMain()" class="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Establecer fecha y hora actual por defecto
+        document.addEventListener('DOMContentLoaded', function() {
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            document.getElementById('datetime').value = now.toISOString().slice(0, 16);
+        });
+
+        // Manejar envío del formulario
+        document.getElementById('serviceForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Recopilar datos del formulario
+            const formData = {
+                datetime: document.getElementById('datetime').value,
+                origin: document.getElementById('origin').value || 'No especificado',
+                destination: document.getElementById('destination').value || 'No especificado',
+                serviceSource: document.getElementById('serviceSource').value,
+                amount: parseFloat(document.getElementById('amount').value) || 0,
+                commission: parseFloat(document.getElementById('commission').value) || 0,
+                tip: parseFloat(document.getElementById('tip').value) || 0,
+                clientName: document.getElementById('clientName').value,
+                clientPhone: document.getElementById('clientPhone').value,
+                paymentMethod: document.querySelector('input[name="paymentMethod"]:checked').value,
+                notes: document.getElementById('notes').value,
+                id: Date.now(), // ID único basado en timestamp
+                taxistaId: getCurrentTaxistaId(),
+                status: 'completado'
+            };
+
+            // Calcular total neto (importe + propina - comisión)
+            formData.netAmount = formData.amount + formData.tip - formData.commission;
+
+            // Guardar en localStorage
+            saveService(formData);
+
+            // Simular guardado
+            const button = e.target.querySelector('button[type="submit"]');
+            const originalText = button.innerHTML;
+            
+            button.innerHTML = '⏳ Guardando...';
+            button.disabled = true;
+            
+            setTimeout(() => {
+                // Mostrar mensaje de éxito
+                const notification = document.createElement('div');
+                notification.className = 'fixed top-4 right-4 bg-green-500 text-white p-4 rounded-lg shadow-lg z-50';
+                notification.innerHTML = `
+                    <div class="flex items-center">
+                        <span class="mr-2">✅</span>
+                        <div>
+                            <div>Servicio registrado exitosamente</div>
+                            <div class="text-sm opacity-90">Total neto: €${formData.netAmount.toFixed(2)}</div>
+                        </div>
+                    </div>
+                `;
+                
+                document.body.appendChild(notification);
+                
+                // Resetear formulario
+                document.getElementById('serviceForm').reset();
+                const now = new Date();
+                now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                document.getElementById('datetime').value = now.toISOString().slice(0, 16);
+                
+                button.innerHTML = originalText;
+                button.disabled = false;
+                
+                setTimeout(() => {
+                    notification.remove();
+                }, 4000);
+                
+            }, 1500);
+        });
+
+        // Funciones auxiliares
+        function getCurrentTaxistaId() {
+            const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || '{}');
+            return currentUser.id || 1;
+        }
+
+        function saveService(serviceData) {
+            const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+            services.push(serviceData);
+            localStorage.setItem('taxi_services', JSON.stringify(services));
+        }
+
+        // Función para volver a la página principal
+        function goBackToMain() {
+            // Intentar cerrar la ventana primero (si fue abierta como popup)
+            if (window.opener) {
+                window.opener.location.reload();
+                window.close();
+            } else {
+                // Si no es un popup, redirigir a la página principal
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>
