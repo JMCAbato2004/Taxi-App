@@ -292,25 +292,30 @@ function updateRecentActivity(services) {
   const container = document.getElementById('recent-activity');
   
   if (services.length === 0) {
-    container.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium);">No hay actividad reciente</p>';
+    const html = '<p style="text-align: center; color: var(--ion-color-medium);">No hay actividad reciente</p>';
+    sanitizer.setInnerHTML(container, html);
     return;
   }
   
-  container.innerHTML = services.map(service => {
+  const activityItems = services.map(service => {
     const paymentIcon = getPaymentIcon(service.paymentType);
     const timeAgo = getTimeAgo(service.createdAt);
+    const safeId = sanitizer.escapeHTML(service.id.slice(-4));
+    const safeAmount = sanitizer.sanitizeNumber(service.totalAmount, { min: 0, max: 999999, decimals: 2 });
     
     return `
       <div class="activity-item">
         <div class="activity-icon" style="background: #d1fae5;">${paymentIcon}</div>
         <div class="activity-content">
-          <div class="activity-title">Servicio #${service.id.slice(-4)}</div>
-          <div class="activity-subtitle">${timeAgo} • €${service.totalAmount}</div>
+          <div class="activity-title">Servicio #${safeId}</div>
+          <div class="activity-subtitle">${timeAgo} • €${safeAmount}</div>
         </div>
         <ion-badge color="success">Completado</ion-badge>
       </div>
     `;
   }).join('');
+  
+  sanitizer.setInnerHTML(container, activityItems);
 }
 
 /**
@@ -566,22 +571,26 @@ async function handleLogout() {
         // Clear service and expense lists
         const servicesContent = document.getElementById('services-content');
         if (servicesContent) {
-          servicesContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
+          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
+          sanitizer.setInnerHTML(servicesContent, html);
         }
         
         const expensesContent = document.getElementById('expenses-content');
         if (expensesContent) {
-          expensesContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
+          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
+          sanitizer.setInnerHTML(expensesContent, html);
         }
         
         const reconciliationContent = document.getElementById('reconciliation-content');
         if (reconciliationContent) {
-          reconciliationContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
+          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
+          sanitizer.setInnerHTML(reconciliationContent, html);
         }
         
         const historyContent = document.getElementById('reconciliation-history-content');
         if (historyContent) {
-          historyContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
+          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
+          sanitizer.setInnerHTML(historyContent, html);
         }
         
         // Switch to home tab
