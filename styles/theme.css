@@ -859,6 +859,22 @@ body.dark ion-action-sheet .action-sheet-button {
 /* ===== USER INFO CONTRAST IMPROVEMENTS ===== */
 
 /* Improve contrast for user name and role in dark mode */
+body.dark #user-role-badge {
+  background: var(--ion-color-dark) !important;
+}
+
+body.dark #user-role-badge > div {
+  color: #f9fafb !important;
+}
+
+body.dark #user-role-badge div[style*="font-size: 18px"] {
+  color: #f9fafb !important;
+}
+
+body.dark #user-role-badge div[style*="font-size: 14px"] {
+  color: #d1d5db !important;
+}
+
 body.dark #user-name {
   color: #f9fafb !important;
   font-weight: 600;
