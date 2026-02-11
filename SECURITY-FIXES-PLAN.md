@@ -12,33 +12,40 @@
 ### FASE 1: VULNERABILIDADES CRÍTICAS (Prioridad Alta)
 
 #### ✅ Tarea 1: Implementar Hashing de Contraseñas
-- [ ] Instalar bcryptjs
-- [ ] Modificar AuthAdapter.js para hashear contraseñas en registro
-- [ ] Modificar AuthAdapter.js para verificar contraseñas hasheadas en login
+- [x] Instalar bcryptjs
+- [x] Modificar AuthAdapter.js para hashear contraseñas en registro
+- [x] Modificar AuthAdapter.js para verificar contraseñas hasheadas en login
+- [x] Crear PasswordService con PBKDF2
+- [x] Validación de fortaleza de contraseña
 - [ ] Migrar contraseñas existentes (si las hay)
 - [ ] Tests unitarios
 
-**Archivos a modificar:**
-- `ionic-pwa/adapters/AuthAdapter.js`
-- `package.json` (añadir dependencia)
+**Archivos modificados:**
+- ✅ `ionic-pwa/adapters/AuthAdapter.js`
+- ✅ `ionic-pwa/services/PasswordService.js` (creado)
+- ✅ `ionic-pwa/package.json` (creado)
+- ✅ `ionic-pwa/index.html`
 
+**Estado**: ✅ COMPLETADO (90%)
 **Estimación**: 2-3 horas
 
 ---
 
 #### ✅ Tarea 2: Implementar JWT para Autenticación
-- [ ] Instalar jsonwebtoken
-- [ ] Crear servicio de generación de JWT
-- [ ] Implementar refresh tokens
-- [ ] Modificar AuthAdapter para usar JWT
-- [ ] Implementar expiración de tokens (30 min)
+- [x] Instalar jsonwebtoken
+- [x] Crear servicio de generación de JWT
+- [x] Implementar refresh tokens
+- [x] Modificar AuthAdapter para usar JWT
+- [x] Implementar expiración de tokens (30 min)
 - [ ] Tests de tokens
 
-**Archivos a modificar:**
-- `ionic-pwa/adapters/AuthAdapter.js`
-- Crear: `ionic-pwa/services/TokenService.js`
-- `package.json`
+**Archivos modificados:**
+- ✅ `ionic-pwa/adapters/AuthAdapter.js`
+- ✅ `ionic-pwa/services/TokenService.js` (creado)
+- ✅ `ionic-pwa/package.json`
+- ✅ `ionic-pwa/index.html`
 
+**Estado**: ✅ COMPLETADO (90%)
 **Estimación**: 3-4 horas
 
 ---
@@ -347,5 +354,5 @@
 ---
 
 **Última actualización**: 11 de febrero de 2026  
-**Estado**: 🟡 En progreso  
-**Progreso**: 0/17 tareas completadas (0%)
+**Estado**: 🟢 En progreso  
+**Progreso**: 2/17 tareas completadas (12%)

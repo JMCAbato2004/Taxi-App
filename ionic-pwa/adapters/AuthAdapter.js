@@ -18,6 +18,10 @@ class AuthAdapter {
     this.currentUser = null;
     this.currentToken = null;
     
+    // Initialize security services
+    this.passwordService = new PasswordService();
+    this.tokenService = new TokenService();
+    
     // Storage keys for fallback localStorage
     this.STORAGE_KEY_USER = 'taxi_auth_current_user';
     this.STORAGE_KEY_TOKEN = 'taxi_auth_current_token';
@@ -124,15 +128,32 @@ class AuthAdapter {
         throw new Error('Usuario no encontrado');
       }
 
-      // In a real app, we would verify the password here
-      // For now, we'll accept any password for demo purposes
+      // Verify password using PasswordService
+      if (user.passwordHash) {
+        const isValid = await this.passwordService.verifyPassword(
+          credentials.password,
+          user.passwordHash
+        );
+        
+        if (!isValid) {
+          throw new Error('Contraseña incorrecta');
+        }
+      } else {
+        // Legacy user without hashed password - for migration only
+        console.warn('User has no password hash - migration needed');
+        // In production, force password reset
+      }
       
       // Update last login
       user.lastLogin = new Date().toISOString();
       localStorage.setItem('taxi_users', JSON.stringify(users));
 
       this.currentUser = user;
-      this.currentToken = 'token-' + user.id + '-' + Date.now();
+      
+      // Generate JWT tokens
+      const accessToken = this.tokenService.generateAccessToken(user);
+      const refreshToken = this.tokenService.generateRefreshToken(user);
+      this.currentToken = accessToken;
       
       // Determine permissions based on role
       const permissions = user.rol === 'PATRON' 
@@ -140,12 +161,13 @@ class AuthAdapter {
         : ['VIEW_OWN_DATA', 'INPUT_OPERATIONAL_DATA', 'EDIT_OWN_PROFILE'];
       
       // Store in localStorage
-      this.storeInLocalStorage(user, this.currentToken, permissions);
+      this.storeInLocalStorage(user, accessToken, permissions);
       
       return {
         success: true,
         user: user,
-        token: this.currentToken,
+        token: accessToken,
+        refreshToken: refreshToken,
         permissions: permissions
       };
     } catch (error) {
@@ -162,10 +184,22 @@ class AuthAdapter {
    */
   async register(userData) {
     try {
+      // Validate password strength
+      const strength = this.passwordService.checkPasswordStrength(userData.password);
+      if (strength.score < 3) {
+        throw new Error('La contraseña es demasiado débil. ' + strength.feedback.join(', '));
+      }
+
       // If authService is available, use it
       if (this.authService) {
+        // Hash password before sending
+        const passwordHash = await this.passwordService.hashPassword(userData.password);
+        
         // Register the user
-        const user = await this.authService.register(userData);
+        const user = await this.authService.register({
+          ...userData,
+          passwordHash
+        });
         
         // Auto-login after registration
         const loginResult = await this.login({
@@ -177,6 +211,9 @@ class AuthAdapter {
       }
       
       // Fallback: simulate registration for development
+      // Hash the password
+      const passwordHash = await this.passwordService.hashPassword(userData.password);
+      
       const user = {
         id: 'user-' + Date.now(),
         email: userData.email,
@@ -187,6 +224,7 @@ class AuthAdapter {
         codigoInvitacion: userData.rol === 'PATRON' ? this.generateInvitationCode() : null,
         estado: 'independiente',
         activo: true,
+        passwordHash: passwordHash, // Store hashed password
         fechaCreacion: new Date().toISOString()
       };
 
@@ -196,12 +234,12 @@ class AuthAdapter {
       localStorage.setItem('taxi_users', JSON.stringify(users));
 
       // Auto-login after registration
-      this.currentUser = user;
-      this.currentToken = 'demo-token-' + Date.now();
-      
-      this.storeInLocalStorage(user, this.currentToken, ['VIEW_OWN_DATA']);
+      const loginResult = await this.login({
+        email: userData.email,
+        password: userData.password
+      });
 
-      return user;
+      return loginResult.user;
     } catch (error) {
       console.error('Registration error:', error);
       throw new Error('Error al registrarse: ' + (error.message || 'Error desconocido'));
