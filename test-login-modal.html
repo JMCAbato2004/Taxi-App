@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test LoginModal Component</title>
+    
+    <!-- Ionic Framework CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"/>
+    
+    <!-- Custom Theme CSS -->
+    <link rel="stylesheet" href="./styles/theme.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        .test-container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .test-result.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        .test-result.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+    </style>
+</head>
+<body>
+    <ion-app>
+        <div class="test-container">
+            <h1>LoginModal Component Test</h1>
+            
+            <div class="test-section">
+                <h2>Test 1: Display Modal</h2>
+                <p>Click the button to show the login modal.</p>
+                <ion-button id="test-show-modal" color="primary">Show Login Modal</ion-button>
+                <div id="test1-result" class="test-result" style="display: none;"></div>
+            </div>
+            
+            <div class="test-section">
+                <h2>Test 2: Form Validation</h2>
+                <p>The modal should validate:</p>
+                <ul>
+                    <li>Email is required</li>
+                    <li>Email format is valid</li>
+                    <li>Password is required</li>
+                </ul>
+                <p>Try submitting with empty fields or invalid email.</p>
+            </div>
+            
+            <div class="test-section">
+                <h2>Test 3: Login Success</h2>
+                <p>Enter any email and password to test successful login.</p>
+                <p>Expected behavior:</p>
+                <ul>
+                    <li>Loading indicator appears</li>
+                    <li>Success toast is shown</li>
+                    <li>Modal closes</li>
+                    <li>Login success event is fired</li>
+                </ul>
+                <div id="test3-result" class="test-result" style="display: none;"></div>
+            </div>
+            
+            <div class="test-section">
+                <h2>Test 4: Error Handling</h2>
+                <p>Current implementation uses demo auth, so all logins succeed.</p>
+                <p>Error handling will be tested when integrated with real auth service.</p>
+            </div>
+            
+            <div class="test-section">
+                <h2>Event Log</h2>
+                <div id="event-log" style="background: #f3f4f6; padding: 10px; border-radius: 4px; max-height: 200px; overflow-y: auto;">
+                    <p style="color: #6b7280; margin: 0;">Events will appear here...</p>
+                </div>
+            </div>
+        </div>
+    </ion-app>
+    
+    <!-- Ionic Framework JS -->
+    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
+    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+    
+    <!-- Utility Managers -->
+    <script src="./utils/ToastManager.js"></script>
+    <script src="./utils/LoadingManager.js"></script>
+    
+    <!-- Adapters -->
+    <script src="./adapters/AuthAdapter.js"></script>
+    
+    <!-- Components -->
+    <script src="./components/LoginModal.js"></script>
+    
+    <!-- Test Script -->
+    <script>
+        // Event logging
+        function logEvent(message, type = 'info') {
+            const log = document.getElementById('event-log');
+            const timestamp = new Date().toLocaleTimeString();
+            const color = type === 'success' ? '#059669' : type === 'error' ? '#dc2626' : '#6b7280';
+            
+            const entry = document.createElement('div');
+            entry.style.marginBottom = '5px';
+            entry.innerHTML = `<span style="color: ${color};">[${timestamp}]</span> ${message}`;
+            
+            log.appendChild(entry);
+            log.scrollTop = log.scrollHeight;
+        }
+        
+        // Wait for Ionic to be ready
+        customElements.whenDefined('ion-modal').then(() => {
+            logEvent('Ionic components ready', 'success');
+            
+            // Initialize AuthAdapter
+            const authAdapter = new AuthAdapter();
+            logEvent('AuthAdapter initialized');
+            
+            // Test 1: Show modal
+            document.getElementById('test-show-modal').addEventListener('click', async () => {
+                logEvent('Test 1: Showing login modal...');
+                try {
+                    const loginModal = new LoginModal(authAdapter);
+                    await loginModal.show();
+                    
+                    const result = document.getElementById('test1-result');
+                    result.className = 'test-result success';
+                    result.textContent = '✓ Modal displayed successfully';
+                    result.style.display = 'block';
+                    
+                    logEvent('Modal displayed successfully', 'success');
+                } catch (error) {
+                    const result = document.getElementById('test1-result');
+                    result.className = 'test-result error';
+                    result.textContent = '✗ Error: ' + error.message;
+                    result.style.display = 'block';
+                    
+                    logEvent('Error displaying modal: ' + error.message, 'error');
+                }
+            });
+            
+            // Listen for login success event
+            window.addEventListener('login-success', (event) => {
+                logEvent('Login success event received', 'success');
+                logEvent('User: ' + JSON.stringify(event.detail.user));
+                
+                const result = document.getElementById('test3-result');
+                result.className = 'test-result success';
+                result.textContent = '✓ Login successful! User: ' + event.detail.user.email;
+                result.style.display = 'block';
+            });
+            
+            // Log toast events
+            const originalShowSuccess = ToastManager.showSuccess;
+            ToastManager.showSuccess = async function(message) {
+                logEvent('Toast (success): ' + message, 'success');
+                return originalShowSuccess.call(this, message);
+            };
+            
+            const originalShowError = ToastManager.showError;
+            ToastManager.showError = async function(message) {
+                logEvent('Toast (error): ' + message, 'error');
+                return originalShowError.call(this, message);
+            };
+            
+            // Log loading events
+            const originalShowLoading = LoadingManager.show;
+            LoadingManager.show = async function(message) {
+                logEvent('Loading: ' + message);
+                return originalShowLoading.call(this, message);
+            };
+            
+            const originalHideLoading = LoadingManager.hide;
+            LoadingManager.hide = async function() {
+                logEvent('Loading hidden');
+                return originalHideLoading.call(this);
+            };
+        });
+    </script>
+</body>
+</html>
