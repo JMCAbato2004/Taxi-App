@@ -899,8 +899,15 @@ window.app = {
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     
-    const request = requests.find(r => r.id === requestId);
-    if (!request) return;
+    // Convert requestId to number if it's a string
+    const id = typeof requestId === 'string' ? parseInt(requestId, 10) : requestId;
+    
+    const request = requests.find(r => r.id === id);
+    if (!request) {
+      console.error('Request not found:', id);
+      ToastManager.showError('Solicitud no encontrada');
+      return;
+    }
     
     // Update request status
     request.estado = 'aprobada';
@@ -931,8 +938,15 @@ window.app = {
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     
-    const request = requests.find(r => r.id === requestId);
-    if (!request) return;
+    // Convert requestId to number if it's a string
+    const id = typeof requestId === 'string' ? parseInt(requestId, 10) : requestId;
+    
+    const request = requests.find(r => r.id === id);
+    if (!request) {
+      console.error('Request not found:', id);
+      ToastManager.showError('Solicitud no encontrada');
+      return;
+    }
     
     // Update request status
     request.estado = 'rechazada';

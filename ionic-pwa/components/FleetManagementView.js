@@ -420,45 +420,58 @@ class FleetManagementView {
     if (!container) return;
     
     if (requests.length === 0) {
-      container.innerHTML = `
+      const html = `
         <div style="text-align: center; padding: 40px 20px;">
           <ion-icon name="mail-open" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
           <h2>No hay solicitudes pendientes</h2>
           <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
         </div>
       `;
+      sanitizer.setInnerHTML(container, html);
       return;
     }
     
-    container.innerHTML = `
-      <ion-list>
-        ${requests.map(request => `
-          <ion-item>
-            <ion-avatar slot="start">
-              <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
-                ${request.taxista?.numeroTaxista?.slice(-2) || '??'}
-              </div>
-            </ion-avatar>
-            <ion-label>
-              <h2>${request.taxista?.nombre || 'Usuario desconocido'}</h2>
-              <p>${request.taxista?.email || ''}</p>
-              <p style="font-size: 11px;">Número: ${request.taxista?.numeroTaxista || 'N/A'}</p>
-              <p style="font-size: 11px; color: var(--ion-color-medium);">
-                Solicitado: ${new Date(request.fechaSolicitud).toLocaleDateString()}
-              </p>
-            </ion-label>
-            <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
-              <ion-button size="small" color="success" onclick="window.app.approveRequest(${request.id})">
-                <ion-icon name="checkmark" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button size="small" color="danger" onclick="window.app.rejectRequest(${request.id})">
-                <ion-icon name="close" slot="icon-only"></ion-icon>
-              </ion-button>
+    const requestItems = requests.map(request => {
+      const safeName = sanitizer.escapeHTML(request.taxista?.nombre || 'Usuario desconocido');
+      const safeEmail = sanitizer.escapeHTML(request.taxista?.email || '');
+      const safeNumero = sanitizer.escapeHTML(request.taxista?.numeroTaxista || 'N/A');
+      const safeId = sanitizer.escapeHTML(request.id);
+      const safeDate = new Date(request.fechaSolicitud).toLocaleDateString();
+      
+      return `
+        <ion-item>
+          <ion-avatar slot="start">
+            <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
+              ${safeNumero.slice(-2) || '??'}
             </div>
-          </ion-item>
-        `).join('')}
+          </ion-avatar>
+          <ion-label>
+            <h2>${safeName}</h2>
+            <p>${safeEmail}</p>
+            <p style="font-size: 11px;">Número: ${safeNumero}</p>
+            <p style="font-size: 11px; color: var(--ion-color-medium);">
+              Solicitado: ${safeDate}
+            </p>
+          </ion-label>
+          <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
+            <ion-button size="small" color="success" onclick="window.app.approveRequest('${safeId}')">
+              <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button size="small" color="danger" onclick="window.app.rejectRequest('${safeId}')">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      `;
+    }).join('');
+    
+    const html = `
+      <ion-list>
+        ${requestItems}
       </ion-list>
     `;
+    
+    sanitizer.setInnerHTML(container, html);
   }
 }
 
