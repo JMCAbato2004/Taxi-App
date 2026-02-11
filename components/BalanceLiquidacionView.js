@@ -77,6 +77,18 @@ class BalanceLiquidacionView {
       await this.loadBalance(user, e.detail.value);
     });
 
+    // Listen for balance settings updates
+    const settingsUpdateHandler = async () => {
+      console.log('Balance settings updated, reloading balance...');
+      await this.loadBalance(user, this.currentPeriod);
+    };
+    window.addEventListener('balance-settings-updated', settingsUpdateHandler);
+
+    // Clean up listener when modal is dismissed
+    modal.addEventListener('ionModalDidDismiss', () => {
+      window.removeEventListener('balance-settings-updated', settingsUpdateHandler);
+    });
+
     // Load initial data
     await this.loadBalance(user, 'month');
 
