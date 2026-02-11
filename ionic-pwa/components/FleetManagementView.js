@@ -337,7 +337,8 @@ class FleetManagementView {
     if (!container) return;
     
     if (taxistas.length === 0) {
-      container.innerHTML = `
+      const safeCode = sanitizer.escapeHTML(user.codigoInvitacion || 'No disponible');
+      const html = `
         <div style="text-align: center; padding: 40px 20px;">
           <ion-icon name="people" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
           <h2>No tienes taxistas en tu flota</h2>
@@ -346,16 +347,56 @@ class FleetManagementView {
             <ion-card-content style="text-align: center;">
               <p style="font-size: 12px; color: var(--ion-color-medium); margin-bottom: 8px;">Tu código de invitación:</p>
               <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
-                ${user.codigoInvitacion || 'No disponible'}
+                ${safeCode}
               </div>
             </ion-card-content>
           </ion-card>
         </div>
       `;
+      sanitizer.setInnerHTML(container, html);
       return;
     }
     
-    container.innerHTML = `
+    const safeCode = sanitizer.escapeHTML(user.codigoInvitacion || 'No disponible');
+    const taxistaItems = taxistas.map(taxista => {
+      const safeName = sanitizer.escapeHTML(taxista.nombre);
+      const safeNumero = sanitizer.escapeHTML(taxista.numeroTaxista || 'Sin número');
+      const safeEmail = sanitizer.escapeHTML(taxista.email);
+      const safeId = sanitizer.escapeHTML(taxista.id);
+      
+      return `
+        <ion-item>
+          <ion-avatar slot="start">
+            <div style="background: var(--ion-color-success); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
+              ${safeNumero.slice(-2) || '??'}
+            </div>
+          </ion-avatar>
+          <ion-label>
+            <h2>${safeName}</h2>
+            <p>${safeNumero} • ${safeEmail}</p>
+            <p style="font-size: 11px;">
+              Total: ${taxista.totalServices} servicios • €${taxista.totalIncome.toFixed(2)}
+            </p>
+            <p style="font-size: 11px; color: var(--ion-color-success);">
+              Hoy: ${taxista.todayServices} servicios • €${taxista.todayIncome.toFixed(2)}
+            </p>
+          </ion-label>
+          <div slot="end" style="display: flex; gap: 4px;">
+            <ion-button fill="clear" onclick="window.app.viewTaxistaDetails('${safeId}')">
+              <ion-icon name="eye"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" color="primary" onclick="window.app.editTaxista('${safeId}')">
+              <ion-icon name="create"></ion-icon>
+            </ion-button>
+            <ion-button fill="clear" color="danger" onclick="window.app.removeTaxista('${safeId}')">
+              <ion-icon name="trash"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      `;
+    }).join('');
+    
+    const html = `
       <!-- Invitation Code -->
       <ion-card>
         <ion-card-header>
@@ -363,7 +404,7 @@ class FleetManagementView {
         </ion-card-header>
         <ion-card-content style="text-align: center;">
           <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
-            ${user.codigoInvitacion || 'No disponible'}
+            ${safeCode}
           </div>
           <p style="font-size: 12px; color: var(--ion-color-medium); margin-top: 8px;">
             Comparte este código con nuevos taxistas
@@ -373,38 +414,11 @@ class FleetManagementView {
       
       <!-- Fleet List -->
       <ion-list>
-        ${taxistas.map(taxista => `
-          <ion-item>
-            <ion-avatar slot="start">
-              <div style="background: var(--ion-color-success); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
-                ${taxista.numeroTaxista?.slice(-2) || '??'}
-              </div>
-            </ion-avatar>
-            <ion-label>
-              <h2>${taxista.nombre}</h2>
-              <p>${taxista.numeroTaxista || 'Sin número'} • ${taxista.email}</p>
-              <p style="font-size: 11px;">
-                Total: ${taxista.totalServices} servicios • €${taxista.totalIncome.toFixed(2)}
-              </p>
-              <p style="font-size: 11px; color: var(--ion-color-success);">
-                Hoy: ${taxista.todayServices} servicios • €${taxista.todayIncome.toFixed(2)}
-              </p>
-            </ion-label>
-            <div slot="end" style="display: flex; gap: 4px;">
-              <ion-button fill="clear" onclick="window.app.viewTaxistaDetails(${taxista.id})">
-                <ion-icon name="eye"></ion-icon>
-              </ion-button>
-              <ion-button fill="clear" color="primary" onclick="window.app.editTaxista(${taxista.id})">
-                <ion-icon name="create"></ion-icon>
-              </ion-button>
-              <ion-button fill="clear" color="danger" onclick="window.app.removeTaxista(${taxista.id})">
-                <ion-icon name="trash"></ion-icon>
-              </ion-button>
-            </div>
-          </ion-item>
-        `).join('')}
+        ${taxistaItems}
       </ion-list>
     `;
+    
+    sanitizer.setInnerHTML(container, html);
   }
 
   /**
@@ -415,45 +429,58 @@ class FleetManagementView {
     if (!container) return;
     
     if (requests.length === 0) {
-      container.innerHTML = `
+      const html = `
         <div style="text-align: center; padding: 40px 20px;">
           <ion-icon name="mail-open" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
           <h2>No hay solicitudes pendientes</h2>
           <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
         </div>
       `;
+      sanitizer.setInnerHTML(container, html);
       return;
     }
     
-    container.innerHTML = `
-      <ion-list>
-        ${requests.map(request => `
-          <ion-item>
-            <ion-avatar slot="start">
-              <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
-                ${request.taxista?.numeroTaxista?.slice(-2) || '??'}
-              </div>
-            </ion-avatar>
-            <ion-label>
-              <h2>${request.taxista?.nombre || 'Usuario desconocido'}</h2>
-              <p>${request.taxista?.email || ''}</p>
-              <p style="font-size: 11px;">Número: ${request.taxista?.numeroTaxista || 'N/A'}</p>
-              <p style="font-size: 11px; color: var(--ion-color-medium);">
-                Solicitado: ${new Date(request.fechaSolicitud).toLocaleDateString()}
-              </p>
-            </ion-label>
-            <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
-              <ion-button size="small" color="success" onclick="window.app.approveRequest(${request.id})">
-                <ion-icon name="checkmark" slot="icon-only"></ion-icon>
-              </ion-button>
-              <ion-button size="small" color="danger" onclick="window.app.rejectRequest(${request.id})">
-                <ion-icon name="close" slot="icon-only"></ion-icon>
-              </ion-button>
+    const requestItems = requests.map(request => {
+      const safeName = sanitizer.escapeHTML(request.taxista?.nombre || 'Usuario desconocido');
+      const safeEmail = sanitizer.escapeHTML(request.taxista?.email || '');
+      const safeNumero = sanitizer.escapeHTML(request.taxista?.numeroTaxista || 'N/A');
+      const safeId = sanitizer.escapeHTML(request.id);
+      const safeDate = new Date(request.fechaSolicitud).toLocaleDateString();
+      
+      return `
+        <ion-item>
+          <ion-avatar slot="start">
+            <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
+              ${safeNumero.slice(-2) || '??'}
             </div>
-          </ion-item>
-        `).join('')}
+          </ion-avatar>
+          <ion-label>
+            <h2>${safeName}</h2>
+            <p>${safeEmail}</p>
+            <p style="font-size: 11px;">Número: ${safeNumero}</p>
+            <p style="font-size: 11px; color: var(--ion-color-medium);">
+              Solicitado: ${safeDate}
+            </p>
+          </ion-label>
+          <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
+            <ion-button size="small" color="success" onclick="window.app.approveRequest('${safeId}')">
+              <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+            </ion-button>
+            <ion-button size="small" color="danger" onclick="window.app.rejectRequest('${safeId}')">
+              <ion-icon name="close" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+        </ion-item>
+      `;
+    }).join('');
+    
+    const html = `
+      <ion-list>
+        ${requestItems}
       </ion-list>
     `;
+    
+    sanitizer.setInnerHTML(container, html);
   }
 }
 
