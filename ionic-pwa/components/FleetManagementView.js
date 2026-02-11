@@ -78,7 +78,13 @@ class FleetManagementView {
     `;
 
     document.body.appendChild(modal);
-    await modal.componentOnReady();
+    
+    // Wait for modal to be ready
+    try {
+      await modal.componentOnReady();
+    } catch (e) {
+      console.log('componentOnReady not available, continuing...');
+    }
 
     // Set up segment change handler
     const segment = modal.querySelector('#fleet-segment');
@@ -124,7 +130,6 @@ class FleetManagementView {
 
     // Load fleet data
     await this.loadFleet(user);
-    await this.loadRequests(user);
     await this.loadRequests(user);
 
     return modal;
