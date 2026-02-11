@@ -159,9 +159,137 @@ function checkAuthStatus() {
   const user = authAdapter.getCurrentUser();
   
   if (user) {
+    // Start session monitoring
+    startSessionMonitoring();
     showDashboard();
   } else {
+    // Stop session monitoring if active
+    if (window.sessionService && window.sessionService.isActive()) {
+      window.sessionService.stop();
+    }
     showWelcome();
+  }
+}
+
+/**
+ * Start session monitoring with automatic timeout
+ */
+function startSessionMonitoring() {
+  if (!window.sessionService) {
+    console.warn('SessionService not available');
+    return;
+  }
+  
+  // Stop any existing session
+  if (window.sessionService.isActive()) {
+    window.sessionService.stop();
+  }
+  
+  // Start new session with callbacks
+  window.sessionService.start({
+    onTimeout: async () => {
+      // Session timed out - logout user
+      console.log('Session timeout - logging out user');
+      
+      ToastManager.showWarning('Tu sesión ha expirado por inactividad');
+      
+      // Perform logout
+      try {
+        await authAdapter.logout();
+        
+        // Clear session data
+        window.sessionService.clearSession();
+        
+        // Return to welcome screen
+        showWelcome();
+        
+        // Clear all views
+        clearAllViews();
+        
+        // Switch to home tab
+        const tabs = document.querySelector('ion-tabs');
+        if (tabs) {
+          tabs.select('home');
+        }
+      } catch (error) {
+        console.error('Error during session timeout logout:', error);
+      }
+    },
+    
+    onWarning: async (remainingTime) => {
+      // Show warning before timeout
+      const minutes = Math.ceil(remainingTime / 60000);
+      
+      console.log(`Session timeout warning - ${minutes} minutes remaining`);
+      
+      // Show alert to user
+      const alert = document.createElement('ion-alert');
+      alert.header = 'Sesión por Expirar';
+      alert.message = `Tu sesión expirará en ${minutes} minuto${minutes > 1 ? 's' : ''} por inactividad. ¿Deseas continuar?`;
+      alert.buttons = [
+        {
+          text: 'Cerrar Sesión',
+          role: 'destructive',
+          handler: async () => {
+            await handleLogout();
+          }
+        },
+        {
+          text: 'Continuar',
+          handler: () => {
+            // Extend session
+            window.sessionService.extendSession();
+            ToastManager.showSuccess('Sesión extendida');
+          }
+        }
+      ];
+      
+      document.body.appendChild(alert);
+      await alert.present();
+    },
+    
+    onActivity: (remainingTime) => {
+      // Optional: Log activity (only in development)
+      if (window.logger && window.logger.isDevelopment) {
+        const minutes = Math.ceil(remainingTime / 60000);
+        window.logger.debug(`User activity detected - ${minutes} minutes remaining`);
+      }
+    }
+  });
+  
+  console.log('Session monitoring started');
+}
+
+/**
+ * Clear all views on logout
+ */
+function clearAllViews() {
+  // Clear service list
+  const servicesContent = document.getElementById('services-content');
+  if (servicesContent) {
+    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
+    sanitizer.setInnerHTML(servicesContent, html);
+  }
+  
+  // Clear expense list
+  const expensesContent = document.getElementById('expenses-content');
+  if (expensesContent) {
+    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
+    sanitizer.setInnerHTML(expensesContent, html);
+  }
+  
+  // Clear reconciliation
+  const reconciliationContent = document.getElementById('reconciliation-content');
+  if (reconciliationContent) {
+    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
+    sanitizer.setInnerHTML(reconciliationContent, html);
+  }
+  
+  // Clear history
+  const historyContent = document.getElementById('reconciliation-history-content');
+  if (historyContent) {
+    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
+    sanitizer.setInnerHTML(historyContent, html);
   }
 }
 
@@ -558,7 +686,20 @@ async function handleLogout() {
     async () => {
       try {
         await LoadingManager.show('Cerrando sesión...');
+        
+        // Stop session monitoring
+        if (window.sessionService && window.sessionService.isActive()) {
+          window.sessionService.stop();
+        }
+        
+        // Logout from auth adapter
         await authAdapter.logout();
+        
+        // Clear session data
+        if (window.sessionService) {
+          window.sessionService.clearSession();
+        }
+        
         await LoadingManager.hide();
         
         ToastManager.showSuccess('Sesión cerrada');
@@ -568,30 +709,8 @@ async function handleLogout() {
           dashboardView.renderWelcome();
         }
         
-        // Clear service and expense lists
-        const servicesContent = document.getElementById('services-content');
-        if (servicesContent) {
-          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
-          sanitizer.setInnerHTML(servicesContent, html);
-        }
-        
-        const expensesContent = document.getElementById('expenses-content');
-        if (expensesContent) {
-          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
-          sanitizer.setInnerHTML(expensesContent, html);
-        }
-        
-        const reconciliationContent = document.getElementById('reconciliation-content');
-        if (reconciliationContent) {
-          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
-          sanitizer.setInnerHTML(reconciliationContent, html);
-        }
-        
-        const historyContent = document.getElementById('reconciliation-history-content');
-        if (historyContent) {
-          const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
-          sanitizer.setInnerHTML(historyContent, html);
-        }
+        // Clear all views
+        clearAllViews();
         
         // Switch to home tab
         const tabs = document.querySelector('ion-tabs');

@@ -568,16 +568,22 @@ class AuthAdapter {
   }
   
   /**
-   * Generate a unique invitation code for patrons
+   * Generate a cryptographically secure invitation code for patrons
    * @private
    * @returns {string} 6-character invitation code
    */
   generateInvitationCode() {
+    // Use crypto.getRandomValues() for cryptographic security
+    const array = new Uint8Array(6);
+    crypto.getRandomValues(array);
+    
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude similar looking characters
     let code = '';
-    for (let i = 0; i < 6; i++) {
-      code += chars.charAt(Math.floor(Math.random() * chars.length));
+    
+    for (let i = 0; i < array.length; i++) {
+      code += chars.charAt(array[i] % chars.length);
     }
+    
     return code;
   }
   
