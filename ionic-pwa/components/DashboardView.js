@@ -253,12 +253,13 @@ class DashboardView {
     container.innerHTML = this.stats.recentServices.map(service => {
       const paymentIcon = this.getPaymentIcon(service.paymentType);
       const timeAgo = this.getTimeAgo(service.createdAt);
+      const serviceId = service.id ? String(service.id).slice(-4) : 'N/A';
       
       return `
         <div class="activity-item">
           <div class="activity-icon" style="background: var(--ion-color-success-tint);">${paymentIcon}</div>
           <div class="activity-content">
-            <div class="activity-title">Servicio #${service.id ? service.id.slice(-4) : 'N/A'}</div>
+            <div class="activity-title">Servicio #${serviceId}</div>
             <div class="activity-subtitle">${timeAgo} • €${service.totalAmount}</div>
           </div>
           <ion-badge color="success">Completado</ion-badge>
