@@ -1,0 +1,881 @@
+/**
+ * Theme CSS - Custom properties for light and dark mode
+ * Provides consistent theming across the Ionic PWA application
+ */
+
+/* ===== ROOT VARIABLES (Light Mode Default) ===== */
+:root {
+  /* Primary Color - Green */
+  --ion-color-primary: #059669;
+  --ion-color-primary-rgb: 5, 150, 105;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #04845c;
+  --ion-color-primary-tint: #1ea078;
+
+  /* Secondary Color - Teal */
+  --ion-color-secondary: #0d9488;
+  --ion-color-secondary-rgb: 13, 148, 136;
+  --ion-color-secondary-contrast: #ffffff;
+  --ion-color-secondary-contrast-rgb: 255, 255, 255;
+  --ion-color-secondary-shade: #0b8278;
+  --ion-color-secondary-tint: #25a094;
+
+  /* Tertiary Color - Blue */
+  --ion-color-tertiary: #3b82f6;
+  --ion-color-tertiary-rgb: 59, 130, 246;
+  --ion-color-tertiary-contrast: #ffffff;
+  --ion-color-tertiary-contrast-rgb: 255, 255, 255;
+  --ion-color-tertiary-shade: #3472d8;
+  --ion-color-tertiary-tint: #4f8ef7;
+
+  /* Success Color */
+  --ion-color-success: #10b981;
+  --ion-color-success-rgb: 16, 185, 129;
+  --ion-color-success-contrast: #ffffff;
+  --ion-color-success-contrast-rgb: 255, 255, 255;
+  --ion-color-success-shade: #0ea372;
+  --ion-color-success-tint: #28c194;
+
+  /* Warning Color */
+  --ion-color-warning: #f59e0b;
+  --ion-color-warning-rgb: 245, 158, 11;
+  --ion-color-warning-contrast: #000000;
+  --ion-color-warning-contrast-rgb: 0, 0, 0;
+  --ion-color-warning-shade: #d88b0a;
+  --ion-color-warning-tint: #f6a823;
+
+  /* Danger Color */
+  --ion-color-danger: #ef4444;
+  --ion-color-danger-rgb: 239, 68, 68;
+  --ion-color-danger-contrast: #ffffff;
+  --ion-color-danger-contrast-rgb: 255, 255, 255;
+  --ion-color-danger-shade: #d23c3c;
+  --ion-color-danger-tint: #f15757;
+
+  /* Light Color */
+  --ion-color-light: #f3f4f6;
+  --ion-color-light-rgb: 243, 244, 246;
+  --ion-color-light-contrast: #000000;
+  --ion-color-light-contrast-rgb: 0, 0, 0;
+  --ion-color-light-shade: #d6d7d8;
+  --ion-color-light-tint: #f4f5f7;
+
+  /* Medium Color */
+  --ion-color-medium: #6b7280;
+  --ion-color-medium-rgb: 107, 114, 128;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-medium-contrast-rgb: 255, 255, 255;
+  --ion-color-medium-shade: #5e6471;
+  --ion-color-medium-tint: #7a808d;
+
+  /* Dark Color */
+  --ion-color-dark: #1f2937;
+  --ion-color-dark-rgb: 31, 41, 55;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-dark-contrast-rgb: 255, 255, 255;
+  --ion-color-dark-shade: #1b2430;
+  --ion-color-dark-tint: #353e4b;
+
+  /* Background Colors */
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+
+  /* Text Colors */
+  --ion-text-color: #1f2937;
+  --ion-text-color-rgb: 31, 41, 55;
+
+  /* Border Colors */
+  --ion-border-color: #e5e7eb;
+
+  /* Custom App Variables */
+  --app-gradient-start: #059669;
+  --app-gradient-end: #047857;
+  --app-card-background: rgba(255, 255, 255, 0.9);
+  --app-card-border: rgba(255, 255, 255, 0.2);
+  --app-stat-card-background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(4, 120, 87, 0.1) 100%);
+  --app-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+/* ===== DARK MODE VARIABLES ===== */
+body.dark {
+  /* Primary Color - Adjusted for dark mode */
+  --ion-color-primary: #10b981;
+  --ion-color-primary-rgb: 16, 185, 129;
+  --ion-color-primary-contrast: #000000;
+  --ion-color-primary-contrast-rgb: 0, 0, 0;
+  --ion-color-primary-shade: #0ea372;
+  --ion-color-primary-tint: #28c194;
+
+  /* Background Colors */
+  --ion-background-color: #111827;
+  --ion-background-color-rgb: 17, 24, 39;
+
+  /* Text Colors */
+  --ion-text-color: #f9fafb;
+  --ion-text-color-rgb: 249, 250, 251;
+
+  /* Border Colors */
+  --ion-border-color: #374151;
+
+  /* Toolbar */
+  --ion-toolbar-background: #1f2937;
+  --ion-toolbar-border-color: #374151;
+
+  /* Item */
+  --ion-item-background: #1f2937;
+  --ion-item-border-color: #374151;
+
+  /* Card */
+  --ion-card-background: #1f2937;
+
+  /* Tab Bar */
+  --ion-tab-bar-background: #1f2937;
+  --ion-tab-bar-border-color: #374151;
+
+  /* Custom App Variables for Dark Mode */
+  --app-gradient-start: #10b981;
+  --app-gradient-end: #059669;
+  --app-card-background: rgba(31, 41, 55, 0.9);
+  --app-card-border: rgba(55, 65, 81, 0.5);
+  --app-stat-card-background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%);
+  --app-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+}
+
+/* ===== CUSTOM COMPONENT STYLES ===== */
+
+/* Gradient Background */
+.gradient-bg {
+  background: linear-gradient(135deg, var(--app-gradient-start) 0%, var(--app-gradient-end) 100%);
+}
+
+/* Glass Card Effect */
+.glass-card {
+  background: var(--app-card-background);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid var(--app-card-border);
+  box-shadow: var(--app-shadow);
+}
+
+/* Stat Card */
+.stat-card {
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--app-stat-card-background);
+  box-shadow: var(--app-shadow);
+}
+
+.stat-value {
+  font-size: 28px;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Role Selector */
+.role-selector {
+  border: 2px solid var(--ion-border-color);
+  border-radius: 16px;
+  padding: 20px;
+  text-align: center;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  background: var(--ion-background-color);
+}
+
+.role-selector:active {
+  transform: scale(0.95);
+}
+
+.role-selector.selected {
+  border-color: var(--ion-color-primary);
+  background: var(--app-stat-card-background);
+}
+
+.role-icon {
+  font-size: 48px;
+  margin-bottom: 12px;
+}
+
+/* Activity Item */
+.activity-item {
+  display: flex;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--ion-border-color);
+}
+
+.activity-item:last-child {
+  border-bottom: none;
+}
+
+.activity-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-right: 12px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: var(--ion-text-color);
+  margin-bottom: 2px;
+}
+
+.activity-subtitle {
+  font-size: 13px;
+  color: var(--ion-color-medium);
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes slideInUp {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Theme Transition */
+body {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+@media (max-width: 768px) {
+  .stat-value {
+    font-size: 24px;
+  }
+
+  .role-selector {
+    padding: 16px;
+  }
+
+  .role-icon {
+    font-size: 40px;
+  }
+}
+
+/* ===== SAFE AREA INSETS ===== */
+
+ion-tab-bar {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+ion-header {
+  padding-top: env(safe-area-inset-top);
+}
+
+/* ===== STATS CARD COMPONENT STYLES ===== */
+
+.stats-card {
+  margin: 8px 0;
+  box-shadow: var(--app-shadow);
+}
+
+.stats-card ion-card-content {
+  padding: 16px;
+}
+
+.stats-card-header {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.stats-card-header ion-icon {
+  font-size: 32px;
+}
+
+.stats-card-body {
+  text-align: center;
+}
+
+.stats-card-value {
+  font-size: 28px;
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.stats-card-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Stats Card Themes */
+.stats-card-primary .stats-card-value {
+  color: var(--ion-color-primary);
+}
+
+.stats-card-success .stats-card-value {
+  color: var(--ion-color-success);
+}
+
+.stats-card-warning .stats-card-value {
+  color: var(--ion-color-warning);
+}
+
+.stats-card-danger .stats-card-value {
+  color: var(--ion-color-danger);
+}
+
+.stats-card-secondary .stats-card-value {
+  color: var(--ion-color-secondary);
+}
+
+/* Simple Stat Card (for grid layouts) */
+.stat-card {
+  text-align: center;
+  padding: 16px;
+  border-radius: 12px;
+  background: var(--app-stat-card-background);
+  box-shadow: var(--app-shadow);
+  transition: transform 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  margin-bottom: 8px;
+}
+
+.stat-icon ion-icon {
+  font-size: 28px;
+}
+
+/* ===== TAB NAVIGATION STYLES ===== */
+
+ion-tab-button {
+  transition: all 0.3s ease;
+}
+
+ion-tab-button.tab-selected {
+  --color-selected: var(--ion-color-primary);
+}
+
+/* Smooth tab transitions */
+ion-tabs {
+  transition: all 0.3s ease;
+}
+
+/* ===== FAB BUTTON STYLES ===== */
+
+ion-fab {
+  transition: all 0.3s ease;
+}
+
+ion-fab-button {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+ion-fab-button:hover {
+  transform: scale(1.05);
+}
+
+ion-fab-button:active {
+  transform: scale(0.95);
+}
+
+/* ===== PULL TO REFRESH STYLES ===== */
+
+ion-refresher {
+  z-index: 1;
+}
+
+ion-refresher-content {
+  color: var(--ion-color-primary);
+}
+
+/* ===== DASHBOARD SPECIFIC STYLES ===== */
+
+#dashboard-section {
+  animation: fadeIn 0.3s ease-out;
+}
+
+#welcome-section {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Stats Grid */
+ion-grid ion-row {
+  margin: 0 -4px;
+}
+
+ion-grid ion-col {
+  padding: 4px;
+}
+
+/* Recent Activity Card */
+#recent-activity {
+  max-height: none; /* Remove height restriction to allow natural scrolling */
+  overflow-y: visible; /* Let ion-content handle the scroll */
+}
+
+/* ===== SWIPE GESTURE FEEDBACK ===== */
+
+/* Ensure ion-content can scroll properly */
+ion-content {
+  --overflow: auto;
+}
+
+/* Enable smooth scrolling on iOS */
+ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Ensure proper scrolling in modals */
+ion-modal ion-content {
+  --overflow: auto;
+}
+
+/* Add subtle feedback for swipe gestures */
+@keyframes swipeLeft {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(-10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+@keyframes swipeRight {
+  0% {
+    transform: translateX(0);
+  }
+  50% {
+    transform: translateX(10px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+.swipe-feedback-left {
+  animation: swipeLeft 0.3s ease;
+}
+
+.swipe-feedback-right {
+  animation: swipeRight 0.3s ease;
+}
+
+/* ===== KEYBOARD SHORTCUT INDICATOR ===== */
+
+.keyboard-shortcut {
+  display: inline-block;
+  padding: 2px 6px;
+  background: var(--ion-color-light);
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ion-color-medium);
+  margin-left: 8px;
+}
+
+body.dark .keyboard-shortcut {
+  background: var(--ion-color-dark);
+}
+
+/* ===== LOADING STATES ===== */
+
+.skeleton-text {
+  background: linear-gradient(90deg, var(--ion-color-light) 25%, var(--ion-color-light-shade) 50%, var(--ion-color-light) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+  border-radius: 4px;
+  height: 1em;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+body.dark .skeleton-text {
+  background: linear-gradient(90deg, var(--ion-color-dark) 25%, var(--ion-color-dark-shade) 50%, var(--ion-color-dark) 75%);
+  background-size: 200% 100%;
+}
+
+/* ===== ACCESSIBILITY ===== */
+
+/* Focus indicators */
+*:focus {
+  outline: 2px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .stat-card,
+  .stats-card,
+  .glass-card {
+    border: 2px solid var(--ion-color-primary);
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+
+/* Service and Expense List Styles */
+.search-filter-bar {
+  margin-bottom: 16px;
+}
+
+.filter-controls {
+  margin-top: 12px;
+}
+
+.sort-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: center;
+}
+
+.stats-summary {
+  margin-bottom: 16px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 8px;
+}
+
+.stat-item .stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+.stat-item .stat-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-top: 4px;
+}
+
+.service-item,
+.expense-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  margin-bottom: 8px;
+}
+
+.service-icon,
+.expense-icon {
+  font-size: 32px;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  margin-right: 12px;
+}
+
+.service-actions,
+.expense-actions {
+  display: flex;
+  gap: 4px;
+}
+
+.category-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--ion-color-light);
+}
+
+.category-item:last-child {
+  border-bottom: none;
+}
+
+.category-amount {
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+/* Form Error Messages */
+.error-message {
+  display: none;
+  color: var(--ion-color-danger);
+  font-size: 12px;
+  padding: 4px 16px;
+  margin-top: -8px;
+  margin-bottom: 8px;
+}
+
+/* Dark Mode Adjustments */
+body.dark .service-icon,
+body.dark .expense-icon {
+  background: var(--ion-color-dark);
+}
+
+body.dark .category-item {
+  border-bottom-color: var(--ion-color-dark);
+}
+
+
+/* Reconciliation Styles */
+.reconciliation-summary {
+  margin-bottom: 16px;
+}
+
+.summary-item {
+  text-align: center;
+  padding: 12px;
+  background: var(--ion-color-light);
+  border-radius: 8px;
+  margin: 4px;
+}
+
+.summary-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+}
+
+.summary-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+.reconciliation-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  margin-bottom: 8px;
+}
+
+.reconciliation-icon {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ion-color-light);
+  border-radius: 12px;
+  margin-right: 12px;
+}
+
+/* Password Strength Indicator */
+#password-strength {
+  transition: opacity 0.3s ease;
+}
+
+#strength-label {
+  font-weight: bold;
+}
+
+/* Dark Mode Adjustments */
+body.dark .summary-item {
+  background: var(--ion-color-dark);
+}
+
+body.dark .reconciliation-icon {
+  background: var(--ion-color-dark);
+}
+
+/* ===== SCROLL FIXES ===== */
+
+/* Ensure proper scrolling in all ion-content elements */
+ion-content {
+  --overflow: auto !important;
+  overflow: auto;
+}
+
+/* Fix for iOS momentum scrolling */
+ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Ensure lists can scroll */
+ion-list {
+  overflow: visible;
+}
+
+/* Fix for nested scrollable areas */
+.scrollable-content {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: 100%;
+}
+
+/* Ensure modals can scroll properly */
+ion-modal ion-content {
+  --overflow: auto !important;
+}
+
+ion-modal ion-content::part(scroll) {
+  -webkit-overflow-scrolling: touch;
+  overflow-y: auto;
+}
+
+/* Fix for tab content scrolling */
+ion-tab {
+  overflow: visible;
+}
+
+/* Ensure proper height for scrollable containers */
+ion-content::part(background) {
+  height: 100%;
+}
+
+/* Fix for pull-to-refresh interfering with scroll */
+ion-refresher {
+  position: relative;
+  z-index: 1;
+}
+
+/* Prevent body scroll when modal is open */
+body.modal-open {
+  overflow: hidden;
+}
+
+/* Ensure proper scrolling on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  ion-content {
+    --overflow: auto !important;
+    touch-action: pan-y;
+  }
+  
+  ion-content::part(scroll) {
+    -webkit-overflow-scrolling: touch;
+    overflow-y: auto;
+  }
+}
+
+/* ===== ACTION SHEET IMPROVEMENTS ===== */
+
+/* Improve contrast in action sheets */
+ion-action-sheet {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
+ion-action-sheet .action-sheet-button {
+  color: var(--ion-text-color) !important;
+  font-weight: 500;
+}
+
+ion-action-sheet .action-sheet-destructive {
+  color: var(--ion-color-danger) !important;
+  font-weight: 600;
+}
+
+ion-action-sheet .action-sheet-cancel {
+  color: var(--ion-color-medium) !important;
+  font-weight: 600;
+}
+
+ion-action-sheet .action-sheet-title {
+  color: var(--ion-text-color) !important;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* Dark mode adjustments for action sheets */
+body.dark ion-action-sheet {
+  --background: var(--ion-color-dark);
+}
+
+body.dark ion-action-sheet .action-sheet-button {
+  color: var(--ion-color-light) !important;
+}
+
+/* ===== ALERT IMPROVEMENTS ===== */
+
+/* Improve contrast in alerts */
+ion-alert {
+  --background: var(--ion-background-color);
+  --color: var(--ion-text-color);
+}
+
+ion-alert .alert-title {
+  color: var(--ion-text-color) !important;
+  font-weight: 700;
+}
+
+ion-alert .alert-message {
+  color: var(--ion-text-color) !important;
+}
+
+ion-alert .alert-button {
+  color: var(--ion-color-primary) !important;
+  font-weight: 600;
+}
+
+ion-alert .alert-button.alert-button-role-cancel {
+  color: var(--ion-color-medium) !important;
+}
+
+/* Dark mode adjustments for alerts */
+body.dark ion-alert {
+  --background: var(--ion-color-dark);
+}
+
+body.dark ion-alert .alert-title,
+body.dark ion-alert .alert-message {
+  color: var(--ion-color-light) !important;
+}
