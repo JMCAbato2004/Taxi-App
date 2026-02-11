@@ -875,6 +875,18 @@ body.dark #user-role-badge div[style*="font-size: 14px"] {
   color: #d1d5db !important;
 }
 
+/* Ensure ion-chip is visible in dark mode */
+body.dark #user-role-badge ion-chip {
+  display: inline-flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+body.dark #user-role-badge ion-chip ion-label {
+  color: var(--ion-color-primary-contrast) !important;
+  font-weight: bold !important;
+}
+
 body.dark #user-name {
   color: #f9fafb !important;
   font-weight: 600;
