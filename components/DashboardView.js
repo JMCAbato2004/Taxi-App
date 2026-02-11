@@ -90,18 +90,18 @@ class DashboardView {
     
     const roleIcon = user.rol === 'PATRON' ? '👔' : '🚗';
     const roleText = user.rol === 'PATRON' ? 'PATRÓN' : 'TAXISTA';
-    const roleColor = user.rol === 'PATRON' ? 'primary' : 'success';
+    const roleColor = user.rol === 'PATRON' ? 'var(--ion-color-primary)' : 'var(--ion-color-success)';
     
     // Sanitize user name
     const safeName = sanitizer.escapeHTML(user.nombre);
     const safeNumero = user.numeroTaxista ? sanitizer.escapeHTML(user.numeroTaxista) : '';
     
     const html = `
-      <ion-chip color="${roleColor}" style="font-size: 14px; font-weight: bold;">
-        <ion-label>${roleIcon} ${roleText}</ion-label>
-      </ion-chip>
-      <div style="font-size: 18px; font-weight: bold; margin-top: 4px;">${safeName}</div>
-      ${safeNumero ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${safeNumero}</div>` : ''}
+      <div class="role-chip" style="display: inline-block; padding: 8px 16px; background: ${roleColor}; color: white; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 12px;">
+        ${roleIcon} ${roleText}
+      </div>
+      <div class="user-name" style="font-size: 18px; font-weight: bold; margin-top: 8px; color: var(--ion-text-color);">${safeName}</div>
+      ${safeNumero ? `<div class="user-number" style="font-size: 14px; color: var(--ion-color-medium); margin-top: 4px;">Nº ${safeNumero}</div>` : ''}
     `;
     
     sanitizer.setInnerHTML(container, html);
