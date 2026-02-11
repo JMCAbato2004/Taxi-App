@@ -92,13 +92,19 @@ class DashboardView {
     const roleText = user.rol === 'PATRON' ? 'PATRÓN' : 'TAXISTA';
     const roleColor = user.rol === 'PATRON' ? 'primary' : 'success';
     
-    container.innerHTML = `
+    // Sanitize user name
+    const safeName = sanitizer.escapeHTML(user.nombre);
+    const safeNumero = user.numeroTaxista ? sanitizer.escapeHTML(user.numeroTaxista) : '';
+    
+    const html = `
       <ion-chip color="${roleColor}" style="font-size: 14px; font-weight: bold;">
         <ion-label>${roleIcon} ${roleText}</ion-label>
       </ion-chip>
-      <div style="font-size: 18px; font-weight: bold; margin-top: 4px;">${user.nombre}</div>
-      ${user.numeroTaxista ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${user.numeroTaxista}</div>` : ''}
+      <div style="font-size: 18px; font-weight: bold; margin-top: 4px;">${safeName}</div>
+      ${safeNumero ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${safeNumero}</div>` : ''}
     `;
+    
+    sanitizer.setInnerHTML(container, html);
   }
 
   /**
