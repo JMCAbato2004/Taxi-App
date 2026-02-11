@@ -91,14 +91,37 @@ class AuthAdapter {
   /**
    * Login with credentials
    * Requirements: 1.3, 1.8, 1.9
-   * @param {Object} credentials - { email, password }
+   * @param {Object} credentials - { email, password, csrf_token }
    * @returns {Promise<Object>} AuthResult with user data
    */
   async login(credentials) {
     try {
+      // Validate CSRF token if CSRFService is available
+      if (window.csrfService && credentials.csrf_token) {
+        const { valid, data } = window.csrfService.validateAndRemoveToken(credentials);
+        if (!valid) {
+          throw new Error('Token de seguridad inválido. Por favor, recarga la página.');
+        }
+        credentials = data; // Use cleaned data without CSRF token
+      }
+      
+      // Check rate limiting BEFORE attempting login
+      if (window.rateLimitService) {
+        const lockoutStatus = window.rateLimitService.isLockedOut(credentials.email);
+        if (lockoutStatus.locked) {
+          const minutes = Math.ceil(lockoutStatus.remainingTime / 60000);
+          throw new Error(`Cuenta bloqueada temporalmente. Intenta de nuevo en ${minutes} minutos.`);
+        }
+      }
+      
       // If authService is available, use it
       if (this.authService) {
         const authResult = await this.authService.login(credentials);
+        
+        // Clear rate limit attempts on successful login
+        if (window.rateLimitService) {
+          window.rateLimitService.clearAttempts(credentials.email);
+        }
         
         // Store user and token
         this.currentUser = authResult.user;
@@ -125,6 +148,10 @@ class AuthAdapter {
       const user = users.find(u => u.email === credentials.email);
 
       if (!user) {
+        // Record failed attempt for rate limiting
+        if (window.rateLimitService) {
+          window.rateLimitService.recordAttempt(credentials.email);
+        }
         throw new Error('Usuario no encontrado');
       }
 
@@ -136,12 +163,21 @@ class AuthAdapter {
         );
         
         if (!isValid) {
+          // Record failed attempt for rate limiting
+          if (window.rateLimitService) {
+            window.rateLimitService.recordAttempt(credentials.email);
+          }
           throw new Error('Contraseña incorrecta');
         }
       } else {
         // Legacy user without hashed password - for migration only
         console.warn('User has no password hash - migration needed');
         // In production, force password reset
+      }
+      
+      // Clear rate limit attempts on successful login
+      if (window.rateLimitService) {
+        window.rateLimitService.clearAttempts(credentials.email);
       }
       
       // Update last login
@@ -179,11 +215,20 @@ class AuthAdapter {
   /**
    * Register a new user
    * Requirements: 1.6, 1.8, 1.9
-   * @param {Object} userData - { nombre, email, telefono, password, rol }
+   * @param {Object} userData - { nombre, email, telefono, password, rol, csrf_token }
    * @returns {Promise<Object>} User object
    */
   async register(userData) {
     try {
+      // Validate CSRF token if CSRFService is available
+      if (window.csrfService && userData.csrf_token) {
+        const { valid, data } = window.csrfService.validateAndRemoveToken(userData);
+        if (!valid) {
+          throw new Error('Token de seguridad inválido. Por favor, recarga la página.');
+        }
+        userData = data; // Use cleaned data without CSRF token
+      }
+      
       // Validate password strength
       const strength = this.passwordService.checkPasswordStrength(userData.password);
       if (strength.score < 3) {

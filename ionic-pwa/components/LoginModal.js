@@ -108,22 +108,29 @@ class LoginModal {
   }
 
   /**
-   * Validate the login form
+   * Validate the login form using ValidationSchemas
    * @returns {Object} Validation errors object
    */
   validateForm() {
+    // Use ValidationSchemas for comprehensive validation
+    if (window.validationSchemas) {
+      const validation = window.validationSchemas.validateLogin(this.formData);
+      return validation.errors;
+    }
+    
+    // Fallback validation if ValidationSchemas not loaded
     const errors = {};
     
     // Email validation
     if (!this.formData.email) {
-      errors.email = 'El email es obligatorio';
+      errors.email = ['El email es obligatorio'];
     } else if (!this.isValidEmail(this.formData.email)) {
-      errors.email = 'El formato del email no es válido';
+      errors.email = ['El formato del email no es válido'];
     }
     
     // Password validation
     if (!this.formData.password) {
-      errors.password = 'La contraseña es obligatoria';
+      errors.password = ['La contraseña es obligatoria'];
     }
     
     return errors;
@@ -147,14 +154,16 @@ class LoginModal {
     // Clear all previous errors
     this.clearAllErrors();
     
-    // Show email error
+    // Show email error (handle both array and string formats)
     if (errors.email) {
-      this.showFieldError('email', errors.email);
+      const emailError = Array.isArray(errors.email) ? errors.email[0] : errors.email;
+      this.showFieldError('email', emailError);
     }
     
-    // Show password error
+    // Show password error (handle both array and string formats)
     if (errors.password) {
-      this.showFieldError('password', errors.password);
+      const passwordError = Array.isArray(errors.password) ? errors.password[0] : errors.password;
+      this.showFieldError('password', passwordError);
     }
   }
 
@@ -203,7 +212,7 @@ class LoginModal {
   }
 
   /**
-   * Handle form submission
+   * Handle form submission with CSRF protection and rate limiting
    */
   async handleSubmit() {
     // Validate form
@@ -214,20 +223,42 @@ class LoginModal {
       return;
     }
     
+    // Check rate limiting BEFORE attempting login
+    if (window.rateLimitService) {
+      const lockoutStatus = window.rateLimitService.isLockedOut(this.formData.email);
+      if (lockoutStatus.locked) {
+        const minutes = Math.ceil(lockoutStatus.remainingTime / 60000);
+        ToastManager.showError(`Cuenta bloqueada temporalmente. Intenta de nuevo en ${minutes} minutos.`);
+        return;
+      }
+    }
+    
     // Show loading indicator
     await LoadingManager.show('Iniciando sesión...');
     
     try {
-      // Attempt login via AuthAdapter
-      const result = await this.authAdapter.login({
+      // Add CSRF token to login data
+      let loginData = {
         email: this.formData.email,
         password: this.formData.password
-      });
+      };
+      
+      if (window.csrfService) {
+        loginData = window.csrfService.addTokenToData(loginData);
+      }
+      
+      // Attempt login via AuthAdapter
+      const result = await this.authAdapter.login(loginData);
       
       // Hide loading
       await LoadingManager.hide();
       
       if (result.success) {
+        // Clear rate limit attempts on successful login
+        if (window.rateLimitService) {
+          window.rateLimitService.clearAttempts(this.formData.email);
+        }
+        
         // Show success message
         ToastManager.showSuccess('¡Bienvenido!');
         
@@ -237,12 +268,34 @@ class LoginModal {
         // Trigger login success event
         this.onLoginSuccess(result.user);
       } else {
+        // Record failed attempt for rate limiting
+        if (window.rateLimitService) {
+          const attemptResult = window.rateLimitService.recordAttempt(this.formData.email);
+          if (!attemptResult.allowed) {
+            ToastManager.showError(attemptResult.message);
+            return;
+          } else if (attemptResult.attemptsLeft <= 2) {
+            ToastManager.showWarning(attemptResult.message);
+          }
+        }
+        
         // Show error message
         ToastManager.showError(result.message || 'Error al iniciar sesión');
       }
     } catch (error) {
       // Hide loading
       await LoadingManager.hide();
+      
+      // Record failed attempt for rate limiting
+      if (window.rateLimitService) {
+        const attemptResult = window.rateLimitService.recordAttempt(this.formData.email);
+        if (!attemptResult.allowed) {
+          ToastManager.showError(attemptResult.message);
+          return;
+        } else if (attemptResult.attemptsLeft <= 2) {
+          ToastManager.showWarning(attemptResult.message);
+        }
+      }
       
       // Show error message
       const errorMessage = error.message || 'Error al iniciar sesión. Por favor, inténtalo de nuevo.';

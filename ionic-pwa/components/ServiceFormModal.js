@@ -340,11 +340,40 @@ class ServiceFormModal {
   }
 
   /**
-   * Validate form
+   * Validate form using ValidationSchemas
    */
   validateForm() {
     let isValid = true;
 
+    // Use ValidationSchemas if available
+    if (window.validationSchemas) {
+      const amount = parseFloat(document.getElementById('service-amount').value);
+      const commission = parseFloat(document.getElementById('service-commission').value) || 0;
+      const tip = parseFloat(document.getElementById('service-tip').value) || 0;
+      
+      const validation = window.validationSchemas.validateService({
+        date: document.getElementById('service-date').value,
+        amount: amount,
+        commission: commission,
+        tip: tip
+      });
+      
+      if (!validation.valid) {
+        // Show errors
+        if (validation.errors.date) {
+          this.showError('date-error', validation.errors.date[0]);
+          isValid = false;
+        }
+        if (validation.errors.amount) {
+          this.showError('amount-error', validation.errors.amount[0]);
+          isValid = false;
+        }
+      }
+      
+      return isValid;
+    }
+
+    // Fallback validation
     // Validate date
     const date = document.getElementById('service-date').value;
     if (!date) {
@@ -385,7 +414,7 @@ class ServiceFormModal {
   }
 
   /**
-   * Handle form submission
+   * Handle form submission with CSRF protection
    */
   async handleSubmit() {
     // Validate form
@@ -400,7 +429,7 @@ class ServiceFormModal {
     const tip = parseFloat(document.getElementById('service-tip').value) || 0;
     const netAmount = amount + tip - commission;
 
-    const serviceData = {
+    let serviceData = {
       date: document.getElementById('service-date').value,
       time: document.getElementById('service-time').value,
       origin: document.getElementById('service-origin').value || 'No especificado',
@@ -417,6 +446,11 @@ class ServiceFormModal {
       notes: document.getElementById('service-notes').value,
       status: 'completado'
     };
+
+    // Add CSRF token
+    if (window.csrfService) {
+      serviceData = window.csrfService.addTokenToData(serviceData);
+    }
 
     try {
       await LoadingManager.show(this.isEditMode ? 'Guardando cambios...' : 'Creando servicio...');

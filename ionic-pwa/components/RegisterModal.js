@@ -269,64 +269,95 @@ class RegisterModal {
   }
 
   /**
-   * Validate the registration form
+   * Validate the registration form using ValidationSchemas
    * @returns {Object} Validation errors object
    */
   validateForm() {
+    // Use ValidationSchemas for comprehensive validation
+    if (window.validationSchemas) {
+      const validation = window.validationSchemas.validateRegistration({
+        nombre: this.formData.nombre,
+        email: this.formData.email,
+        telefono: this.formData.telefono,
+        password: this.formData.password,
+        confirmPassword: this.formData.confirmPassword,
+        rol: this.selectedRole
+      });
+      
+      // Add custom validation for invitation code if TAXISTA
+      if (this.selectedRole === 'TAXISTA') {
+        if (!this.formData.codigoInvitacion || this.formData.codigoInvitacion.trim().length === 0) {
+          validation.errors.codigoInvitacion = ['El código de invitación es obligatorio para taxistas'];
+        } else if (this.formData.codigoInvitacion.trim().length !== 6) {
+          validation.errors.codigoInvitacion = ['El código debe tener 6 caracteres'];
+        } else {
+          // Validate that the code exists
+          const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+          const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === this.formData.codigoInvitacion.trim().toUpperCase());
+          if (!patron) {
+            validation.errors.codigoInvitacion = ['Código de invitación inválido'];
+          }
+        }
+      }
+      
+      return validation.errors;
+    }
+    
+    // Fallback validation if ValidationSchemas not loaded
     const errors = {};
     
     // Role validation
     if (!this.selectedRole) {
-      errors.role = 'Debes seleccionar un rol';
+      errors.role = ['Debes seleccionar un rol'];
     }
     
     // Name validation
     if (!this.formData.nombre || this.formData.nombre.trim().length === 0) {
-      errors.nombre = 'El nombre es obligatorio';
+      errors.nombre = ['El nombre es obligatorio'];
     } else if (this.formData.nombre.trim().length < 3) {
-      errors.nombre = 'El nombre debe tener al menos 3 caracteres';
+      errors.nombre = ['El nombre debe tener al menos 3 caracteres'];
     }
     
     // Email validation
     if (!this.formData.email) {
-      errors.email = 'El email es obligatorio';
+      errors.email = ['El email es obligatorio'];
     } else if (!this.isValidEmail(this.formData.email)) {
-      errors.email = 'El formato del email no es válido';
+      errors.email = ['El formato del email no es válido'];
     }
     
     // Phone validation (optional but if provided, must be valid)
     if (this.formData.telefono && !this.isValidPhone(this.formData.telefono)) {
-      errors.telefono = 'El formato del teléfono no es válido';
+      errors.telefono = ['El formato del teléfono no es válido'];
     }
     
     // Invitation code validation (REQUIRED for TAXISTA)
     if (this.selectedRole === 'TAXISTA') {
       if (!this.formData.codigoInvitacion || this.formData.codigoInvitacion.trim().length === 0) {
-        errors.codigoInvitacion = 'El código de invitación es obligatorio para taxistas';
+        errors.codigoInvitacion = ['El código de invitación es obligatorio para taxistas'];
       } else if (this.formData.codigoInvitacion.trim().length !== 6) {
-        errors.codigoInvitacion = 'El código debe tener 6 caracteres';
+        errors.codigoInvitacion = ['El código debe tener 6 caracteres'];
       } else {
         // Validate that the code exists
         const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
         const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === this.formData.codigoInvitacion.trim().toUpperCase());
         if (!patron) {
-          errors.codigoInvitacion = 'Código de invitación inválido';
+          errors.codigoInvitacion = ['Código de invitación inválido'];
         }
       }
     }
     
     // Password validation
     if (!this.formData.password) {
-      errors.password = 'La contraseña es obligatoria';
+      errors.password = ['La contraseña es obligatoria'];
     } else if (this.formData.password.length < 8) {
-      errors.password = 'La contraseña debe tener al menos 8 caracteres';
+      errors.password = ['La contraseña debe tener al menos 8 caracteres'];
     }
     
     // Confirm password validation
     if (!this.formData.confirmPassword) {
-      errors.confirmPassword = 'Debes confirmar la contraseña';
+      errors.confirmPassword = ['Debes confirmar la contraseña'];
     } else if (this.formData.password !== this.formData.confirmPassword) {
-      errors.confirmPassword = 'Las contraseñas no coinciden';
+      errors.confirmPassword = ['Las contraseñas no coinciden'];
     }
     
     return errors;
@@ -361,15 +392,17 @@ class RegisterModal {
     // Clear all previous errors
     this.clearAllErrors();
     
-    // Show role error
+    // Show role error (handle both array and string formats)
     if (errors.role) {
-      this.showFieldError('role', errors.role);
+      const roleError = Array.isArray(errors.role) ? errors.role[0] : errors.role;
+      this.showFieldError('role', roleError);
     }
     
-    // Show field errors
+    // Show field errors (handle both array and string formats)
     Object.keys(errors).forEach(field => {
       if (field !== 'role') {
-        this.showFieldError(field, errors[field]);
+        const errorMessage = Array.isArray(errors[field]) ? errors[field][0] : errors[field];
+        this.showFieldError(field, errorMessage);
       }
     });
   }
@@ -419,7 +452,7 @@ class RegisterModal {
   }
 
   /**
-   * Handle form submission
+   * Handle form submission with CSRF protection
    */
   async handleSubmit() {
     // Validate form
@@ -435,13 +468,18 @@ class RegisterModal {
     
     try {
       // Prepare user data
-      const userData = {
+      let userData = {
         nombre: this.formData.nombre.trim(),
         email: this.formData.email.trim(),
         telefono: this.formData.telefono.trim(),
         password: this.formData.password,
         rol: this.selectedRole
       };
+      
+      // Add CSRF token
+      if (window.csrfService) {
+        userData = window.csrfService.addTokenToData(userData);
+      }
       
       // Add invitation code for taxistas (already validated)
       if (this.selectedRole === 'TAXISTA') {
