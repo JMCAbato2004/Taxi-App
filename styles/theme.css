@@ -115,16 +115,22 @@ body.dark {
   --ion-text-color: #f9fafb;
   --ion-text-color-rgb: 249, 250, 251;
 
+  /* Medium color with better contrast for dark mode */
+  --ion-color-medium: #9ca3af;
+  --ion-color-medium-rgb: 156, 163, 175;
+
   /* Border Colors */
   --ion-border-color: #374151;
 
   /* Toolbar */
   --ion-toolbar-background: #1f2937;
   --ion-toolbar-border-color: #374151;
+  --ion-toolbar-color: #f9fafb;
 
   /* Item */
   --ion-item-background: #1f2937;
   --ion-item-border-color: #374151;
+  --ion-item-color: #f9fafb;
 
   /* Card */
   --ion-card-background: #1f2937;
@@ -132,6 +138,12 @@ body.dark {
   /* Tab Bar */
   --ion-tab-bar-background: #1f2937;
   --ion-tab-bar-border-color: #374151;
+  --ion-tab-bar-color: #9ca3af;
+  --ion-tab-bar-color-selected: #10b981;
+
+  /* Menu */
+  --ion-menu-background: #1f2937;
+  --ion-menu-color: #f9fafb;
 
   /* Custom App Variables for Dark Mode */
   --app-gradient-start: #10b981;
@@ -842,6 +854,52 @@ body.dark ion-action-sheet {
 
 body.dark ion-action-sheet .action-sheet-button {
   color: var(--ion-color-light) !important;
+}
+
+/* ===== USER INFO CONTRAST IMPROVEMENTS ===== */
+
+/* Improve contrast for user name and role in dark mode */
+body.dark #user-name {
+  color: #f9fafb !important;
+  font-weight: 600;
+}
+
+body.dark #user-role {
+  color: #d1d5db !important;
+  font-weight: 500;
+}
+
+/* Menu items contrast in dark mode */
+body.dark ion-menu ion-item {
+  --color: #f9fafb;
+}
+
+body.dark ion-menu ion-label {
+  color: #f9fafb !important;
+}
+
+body.dark ion-menu ion-icon {
+  color: #9ca3af !important;
+}
+
+/* Improve header contrast in dark mode */
+body.dark ion-header ion-toolbar {
+  --color: #f9fafb;
+}
+
+body.dark ion-header ion-title {
+  color: #f9fafb !important;
+  font-weight: 600;
+}
+
+/* Tab bar labels in dark mode */
+body.dark ion-tab-button ion-label {
+  color: #9ca3af;
+}
+
+body.dark ion-tab-button.tab-selected ion-label {
+  color: #10b981 !important;
+  font-weight: 600;
 }
 
 /* ===== ALERT IMPROVEMENTS ===== */
