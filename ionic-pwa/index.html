@@ -9,9 +9,32 @@
     <meta name="description" content="Sistema completo de gestión de flotas de taxi con autenticación segura, reportes detallados y capacidades offline">
     <meta name="theme-color" content="#059669">
     
+    <!-- Security Headers -->
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta name="referrer" content="strict-origin-when-cross-origin">
+    
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+        style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net;
+        img-src 'self' data: https: blob:;
+        font-src 'self' data:;
+        connect-src 'self' https://api.github.com;
+        media-src 'self';
+        object-src 'none';
+        frame-src 'none';
+        base-uri 'self';
+        form-action 'self';
+        frame-ancestors 'none';
+        upgrade-insecure-requests;
+    ">
+    
     <title>Control de Taxi - Gestión Profesional</title>
     
-    <!-- Version: 28.0 - Remove demo users on startup + add clear all data option -->
+    <!-- Version: 29.0 - Security hardening: CSP, XSS prevention, secure auth -->
     
     <!-- PWA Manifest -->
     <link rel="manifest" href="../manifest.json">
@@ -347,6 +370,7 @@
     <!-- Security Services (Load before Adapters) -->
     <script src="./services/PasswordService.js"></script>
     <script src="./services/TokenService.js"></script>
+    <script src="./services/SecureStorageService.js"></script>
     
     <!-- Adapters -->
     <script src="./adapters/AuthAdapter.js"></script>
