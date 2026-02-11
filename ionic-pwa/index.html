@@ -44,10 +44,15 @@
     <link rel="apple-touch-icon" sizes="180x180" href="../icons/apple-touch-icon.png">
     
     <!-- Ionic Framework CSS -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"/>
+    <link rel="stylesheet" 
+          href="https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css"
+          integrity="sha384-FBkSB07rL99r9vbpRekA/DY5XftHFPOpJBFU4HGLHBqdTrA+QiscnnnNZnFLf2Xb"
+          crossorigin="anonymous"/>
     
     <!-- Chart.js for advanced reports -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"
+            integrity="sha384-e6nUZLBkQ86NJ6TVVKAeSaK8jWa3NhkYWZFomE39AvDbQWeie9PlQqM3pmYW5d1g"
+            crossorigin="anonymous"></script>
     
     <!-- Custom Theme CSS -->
     <link rel="stylesheet" href="./styles/theme.css">
@@ -286,6 +291,13 @@
                             <ion-icon name="key" slot="start"></ion-icon>
                             <ion-label>Cambiar Contraseña</ion-label>
                         </ion-item>
+                        <ion-item button id="security-monitoring-btn" style="display: none;">
+                            <ion-icon name="shield-checkmark" slot="start" color="primary"></ion-icon>
+                            <ion-label>
+                                <h2>Monitoreo de Seguridad</h2>
+                                <p>Panel de control de seguridad</p>
+                            </ion-label>
+                        </ion-item>
                         <ion-item button id="privacy-btn">
                             <ion-icon name="shield-checkmark" slot="start"></ion-icon>
                             <ion-label>Privacidad (RGPD)</ion-label>
@@ -331,8 +343,14 @@
     </ion-app>
     
     <!-- Ionic Framework JS -->
-    <script type="module" src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"></script>
-    <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
+    <script type="module" 
+            src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js"
+            integrity="sha384-S6rNhDIWZUjrO+c6Nyn3t7zS0ItR6PcANwS54AknRVSHkHgduqsnFExmA8LsXdGQ"
+            crossorigin="anonymous"></script>
+    <script nomodule 
+            src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"
+            integrity="sha384-cKR+HNp+v8KPgmx0mmnO8VbcrOU03GFq1b8OjCePQ+I5iIKKT+Os3PhlEg+zH5gf"
+            crossorigin="anonymous"></script>
     
     <!-- Utility Managers -->
     <script src="./utils/ToastManager.js"></script>
@@ -364,6 +382,7 @@
     <script src="./components/FleetManagementView.js"></script>
     <script src="./components/TaxistaDetailsModal.js"></script>
     <script src="./components/EditTaxistaModal.js"></script>
+    <script src="./components/SecurityMonitoringView.js"></script>
     <script src="./components/DataSyncView.js"></script>
     <script src="./components/OfflineModeManager.js"></script>
     <script src="./components/PushNotificationManager.js"></script>

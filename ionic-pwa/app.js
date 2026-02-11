@@ -365,6 +365,13 @@ async function showDashboard() {
     await loadDashboardData();
   }
 
+  // Show security monitoring button only for patrons
+  const user = authAdapter.getCurrentUser();
+  const securityBtn = document.getElementById('security-monitoring-btn');
+  if (securityBtn) {
+    securityBtn.style.display = (user && user.rol === 'PATRON') ? 'block' : 'none';
+  }
+
   // Render service and expense lists
   if (serviceListView) {
     await serviceListView.render();
@@ -563,6 +570,10 @@ customElements.whenDefined('ion-modal').then(() => {
   
   document.getElementById('change-password-btn')?.addEventListener('click', () => {
     showChangePasswordModal();
+  });
+  
+  document.getElementById('security-monitoring-btn')?.addEventListener('click', async () => {
+    await showSecurityMonitoringModal();
   });
   
   document.getElementById('privacy-btn')?.addEventListener('click', () => {
@@ -885,6 +896,45 @@ async function showProfileDetailModal() {
 async function showChangePasswordModal() {
   const modal = new ChangePasswordModal(authAdapter);
   await modal.show();
+}
+
+/**
+ * Show security monitoring modal
+ */
+async function showSecurityMonitoringModal() {
+  const modal = document.createElement('ion-modal');
+  modal.innerHTML = `
+    <ion-header>
+      <ion-toolbar color="primary">
+        <ion-title>🔒 Monitoreo de Seguridad</ion-title>
+        <ion-buttons slot="end">
+          <ion-button id="close-security-monitoring-modal">
+            <ion-icon name="close"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding" id="security-monitoring-content">
+      <div style="text-align: center; padding: 40px;">
+        <ion-spinner name="circles"></ion-spinner>
+        <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando dashboard...</p>
+      </div>
+    </ion-content>
+  `;
+  
+  document.body.appendChild(modal);
+  await modal.componentOnReady();
+  await modal.present();
+  
+  // Close button
+  document.getElementById('close-security-monitoring-modal')?.addEventListener('click', async () => {
+    await modal.dismiss();
+    modal.remove();
+  });
+  
+  // Render security monitoring view
+  const securityMonitoringView = new SecurityMonitoringView();
+  await securityMonitoringView.render();
 }
 
 /**
