@@ -319,10 +319,24 @@
     <script src="./utils/ToastManager.js"></script>
     <script src="./utils/LoadingManager.js"></script>
     <script src="./utils/ActionSheetManager.js"></script>
+    <script src="./utils/Sanitizer.js"></script>
+    <script src="./utils/Logger.js"></script>
+    
+    <!-- Environment Configuration (load first) -->
+    <script src="./config/environment.js"></script>
+    
+    <!-- Services -->
+    <script src="./services/CryptoService.js"></script>
+    <script src="./services/SecureStorageService.js"></script>
+    <script src="./services/CSRFProtectionService.js"></script>
+    <script src="./services/LoginAttemptService.js"></script>
+    <script src="./services/TokenService.js"></script>
+    <script src="./services/EmailVerificationService.js"></script>
     
     <!-- Components -->
     <script src="./components/LoginModal.js"></script>
     <script src="./components/RegisterModal.js"></script>
+    <script src="./components/EmailVerificationModal.js"></script>
     <script src="./components/TabNavigation.js"></script>
     <script src="./components/DashboardView.js"></script>
     <script src="./components/StatsCard.js"></script>

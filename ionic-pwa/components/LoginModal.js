@@ -214,6 +214,21 @@ class LoginModal {
       return;
     }
     
+    // Check login attempts before proceeding
+    if (window.loginAttemptService) {
+      const attemptCheck = window.loginAttemptService.canAttemptLogin(this.formData.email);
+      
+      if (!attemptCheck.allowed) {
+        ToastManager.showError(attemptCheck.reason);
+        return;
+      }
+      
+      // Show warning if approaching limit
+      if (attemptCheck.warning) {
+        ToastManager.showWarning(attemptCheck.warning);
+      }
+    }
+    
     // Show loading indicator
     await LoadingManager.show('Iniciando sesión...');
     
@@ -244,8 +259,17 @@ class LoginModal {
       // Hide loading
       await LoadingManager.hide();
       
-      // Show error message
-      const errorMessage = error.message || 'Error al iniciar sesión. Por favor, inténtalo de nuevo.';
+      // Show error message with attempt info
+      let errorMessage = error.message || 'Error al iniciar sesión. Por favor, inténtalo de nuevo.';
+      
+      // Add remaining attempts info if available
+      if (window.loginAttemptService) {
+        const stats = window.loginAttemptService.getAttemptStats(this.formData.email);
+        if (stats.hasAttempts && stats.remainingAttempts > 0 && stats.remainingAttempts <= 3) {
+          errorMessage += ` (${stats.remainingAttempts} intento${stats.remainingAttempts !== 1 ? 's' : ''} restante${stats.remainingAttempts !== 1 ? 's' : ''})`;
+        }
+      }
+      
       ToastManager.showError(errorMessage);
       
       console.error('Login error:', error);

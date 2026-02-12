@@ -4,8 +4,9 @@
  * Requirements: 1.4, 1.5, 1.6
  */
 class RegisterModal {
-  constructor(authAdapter) {
+  constructor(authAdapter, emailVerificationService) {
     this.authAdapter = authAdapter;
+    this.emailVerificationService = emailVerificationService;
     this.modal = null;
     this.selectedRole = null;
     this.formData = {
@@ -118,6 +119,15 @@ class RegisterModal {
               autocomplete="new-password"
             ></ion-input>
           </ion-item>
+          <div id="password-strength" style="padding: 8px 16px; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <div style="flex: 1; height: 4px; background: var(--ion-color-light); border-radius: 2px; overflow: hidden;">
+                <div id="password-strength-bar" style="height: 100%; width: 0%; transition: all 0.3s;"></div>
+              </div>
+              <span id="password-strength-label" style="font-size: 12px; font-weight: 500;"></span>
+            </div>
+            <div id="password-feedback" style="font-size: 11px; color: var(--ion-color-medium);"></div>
+          </div>
           <ion-note color="danger" id="password-error" style="display: none; padding-left: 16px;"></ion-note>
           
           <ion-item id="confirmPassword-item">
@@ -207,6 +217,7 @@ class RegisterModal {
     passwordInput?.addEventListener('ionInput', (e) => {
       this.formData.password = e.target.value;
       this.clearFieldError('password');
+      this.updatePasswordStrength(e.target.value);
     });
     
     confirmPasswordInput?.addEventListener('ionInput', (e) => {
@@ -220,6 +231,45 @@ class RegisterModal {
         this.handleSubmit();
       }
     });
+  }
+
+  /**
+   * Update password strength indicator
+   * @param {string} password - Password to validate
+   */
+  updatePasswordStrength(password) {
+    const strengthContainer = this.modal.querySelector('#password-strength');
+    const strengthBar = this.modal.querySelector('#password-strength-bar');
+    const strengthLabel = this.modal.querySelector('#password-strength-label');
+    const feedbackDiv = this.modal.querySelector('#password-feedback');
+    
+    if (!password) {
+      strengthContainer.style.display = 'none';
+      return;
+    }
+    
+    strengthContainer.style.display = 'block';
+    
+    // Validate password strength
+    const validation = window.cryptoService.validatePasswordStrength(password);
+    
+    // Update bar
+    const percentage = (validation.score / 7) * 100;
+    strengthBar.style.width = percentage + '%';
+    strengthBar.style.backgroundColor = `var(--ion-color-${validation.color})`;
+    
+    // Update label
+    strengthLabel.textContent = validation.strength;
+    strengthLabel.style.color = `var(--ion-color-${validation.color})`;
+    
+    // Update feedback
+    if (validation.feedback.length > 0) {
+      feedbackDiv.innerHTML = '• ' + validation.feedback.join('<br>• ');
+      feedbackDiv.style.color = 'var(--ion-color-warning)';
+    } else {
+      feedbackDiv.innerHTML = '✓ Contraseña segura';
+      feedbackDiv.style.color = 'var(--ion-color-success)';
+    }
   }
 
   /**
@@ -431,15 +481,18 @@ class RegisterModal {
     }
     
     // Show loading indicator
-    await LoadingManager.show('Creando cuenta...');
+    await LoadingManager.show('Enviando código de verificación...');
     
     try {
+      // Hash password before storing in userData
+      const hashedPassword = await window.cryptoService.hashPassword(this.formData.password);
+      
       // Prepare user data
       const userData = {
         nombre: this.formData.nombre.trim(),
         email: this.formData.email.trim(),
         telefono: this.formData.telefono.trim(),
-        password: this.formData.password,
+        password: hashedPassword, // Store hashed password
         rol: this.selectedRole
       };
       
@@ -448,40 +501,43 @@ class RegisterModal {
         userData.codigoPatron = this.formData.codigoInvitacion.trim().toUpperCase();
       }
       
-      // Attempt registration via AuthAdapter
-      const user = await this.authAdapter.register(userData);
+      // Create verification and send code
+      const code = this.emailVerificationService.createVerification(
+        userData.email, 
+        userData
+      );
       
-      // If taxista, create join request (code already validated)
-      if (this.selectedRole === 'TAXISTA') {
-        await this.createJoinRequest(user, userData.codigoPatron);
-      }
+      await this.emailVerificationService.sendVerificationEmail(
+        userData.email, 
+        code
+      );
       
       // Hide loading
       await LoadingManager.hide();
       
-      if (user) {
-        // Show success message
-        let successMessage = '¡Cuenta creada exitosamente! Bienvenido.';
-        if (this.selectedRole === 'TAXISTA') {
-          successMessage = '¡Cuenta creada! Solicitud de unión enviada al patrón.';
-        }
-        ToastManager.showSuccess(successMessage);
-        
-        // Close modal
-        this.close();
-        
-        // Trigger registration success event (auto-login handled by adapter)
+      // Show success message
+      ToastManager.showSuccess('Código de verificación enviado a tu email');
+      
+      // Close registration modal
+      this.close();
+      
+      // Show verification modal
+      const verificationModal = new EmailVerificationModal(
+        this.emailVerificationService,
+        this.authAdapter
+      );
+      
+      await verificationModal.show(userData.email, (user) => {
+        // On successful verification and registration
         this.onRegisterSuccess(user);
-      } else {
-        // Show error message
-        ToastManager.showError('Error al crear la cuenta');
-      }
+      });
+      
     } catch (error) {
       // Hide loading
       await LoadingManager.hide();
       
       // Show error message
-      const errorMessage = error.message || 'Error al crear la cuenta. Por favor, inténtalo de nuevo.';
+      const errorMessage = error.message || 'Error al enviar código de verificación. Por favor, inténtalo de nuevo.';
       ToastManager.showError(errorMessage);
       
       console.error('Registration error:', error);

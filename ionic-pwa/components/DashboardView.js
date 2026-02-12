@@ -15,16 +15,21 @@ class DashboardView {
    * Render the dashboard view
    */
   async render() {
+    console.log('DashboardView.render: Starting render');
     const user = this.authAdapter.getCurrentUser();
+    console.log('DashboardView.render: Current user:', user ? user.id : 'none');
     
     if (!user) {
+      console.log('DashboardView.render: No user, showing welcome');
       this.renderWelcome();
     } else {
+      console.log('DashboardView.render: User found, rendering dashboard');
       await this.renderDashboard(user);
     }
     
     // Set up pull-to-refresh
     this.setupPullToRefresh();
+    console.log('DashboardView.render: Render complete');
   }
 
   /**
@@ -48,8 +53,15 @@ class DashboardView {
    * @param {Object} user - The authenticated user
    */
   async renderDashboard(user) {
+    console.log('renderDashboard: Starting render for user:', user.id);
+    
     const welcomeSection = document.getElementById('welcome-section');
     const dashboardSection = document.getElementById('dashboard-section');
+    
+    console.log('renderDashboard: Sections found:', {
+      welcomeSection: !!welcomeSection,
+      dashboardSection: !!dashboardSection
+    });
     
     if (welcomeSection) {
       welcomeSection.style.display = 'none';
@@ -63,13 +75,18 @@ class DashboardView {
     this.displayUserRole(user);
     
     // Load and display stats
+    console.log('renderDashboard: Loading stats...');
     await this.loadStats(user);
+    console.log('renderDashboard: Displaying stats...');
     this.displayStats();
+    console.log('renderDashboard: Displaying recent activity...');
     this.displayRecentActivity();
+    console.log('renderDashboard: Displaying action buttons...');
     this.displayActionButtons(user);
     
     // If patron, display fleet info
     if (user.rol === 'PATRON') {
+      console.log('renderDashboard: Displaying fleet info...');
       await this.displayFleetInfo(user);
     } else {
       // Clear fleet info for taxistas
@@ -78,6 +95,8 @@ class DashboardView {
         fleetInfoContainer.innerHTML = '';
       }
     }
+    
+    console.log('renderDashboard: Render complete');
   }
 
   /**
@@ -96,7 +115,7 @@ class DashboardView {
       <ion-chip color="${roleColor}" style="font-size: 14px; font-weight: bold;">
         <ion-label>${roleIcon} ${roleText}</ion-label>
       </ion-chip>
-      <div style="font-size: 18px; font-weight: bold; margin-top: 4px;">${user.nombre}</div>
+      <div style="font-size: 18px; font-weight: bold; margin-top: 4px; color: var(--ion-color-dark);">${user.nombre}</div>
       ${user.numeroTaxista ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${user.numeroTaxista}</div>` : ''}
     `;
   }
@@ -107,18 +126,31 @@ class DashboardView {
    */
   async loadStats(user) {
     try {
+      console.log('loadStats: Loading stats for user:', user.id, user.rol);
+      
       // Load services and expenses
       const services = await this.reconcileAdapter.getServices();
       const expenses = await this.reconcileAdapter.getExpenses();
+      
+      console.log('loadStats: Total services:', services.length);
+      console.log('loadStats: Total expenses:', expenses.length);
       
       // Filter data based on role
       const filteredServices = this.filterByRole(services, user);
       const filteredExpenses = this.filterByRole(expenses, user);
       
+      console.log('loadStats: Filtered services:', filteredServices.length);
+      console.log('loadStats: Filtered expenses:', filteredExpenses.length);
+      
       // Calculate statistics for today
       const today = new Date().toISOString().split('T')[0];
+      console.log('loadStats: Today date:', today);
+      
       const todayServices = filteredServices.filter(s => s.date === today);
       const todayExpenses = filteredExpenses.filter(e => e.date === today);
+      
+      console.log('loadStats: Today services:', todayServices.length);
+      console.log('loadStats: Today expenses:', todayExpenses.length);
       
       // Calculate total income (gross amount before commissions)
       const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
@@ -140,6 +172,8 @@ class DashboardView {
         netAmount,
         recentServices: filteredServices.slice(-5).reverse()
       };
+      
+      console.log('loadStats: Calculated stats:', this.stats);
       
       return this.stats;
     } catch (error) {
@@ -185,7 +219,12 @@ class DashboardView {
    * Display statistics in the UI
    */
   displayStats() {
-    if (!this.stats) return;
+    if (!this.stats) {
+      console.warn('displayStats: No stats available');
+      return;
+    }
+    
+    console.log('displayStats: Updating with stats:', this.stats);
     
     const statServices = document.getElementById('stat-services');
     const statIncome = document.getElementById('stat-income');
@@ -193,6 +232,15 @@ class DashboardView {
     const statCommissions = document.getElementById('stat-commissions');
     const statExpenses = document.getElementById('stat-expenses');
     const statNet = document.getElementById('stat-net');
+    
+    console.log('displayStats: DOM elements found:', {
+      statServices: !!statServices,
+      statIncome: !!statIncome,
+      statTips: !!statTips,
+      statCommissions: !!statCommissions,
+      statExpenses: !!statExpenses,
+      statNet: !!statNet
+    });
     
     if (statServices) {
       statServices.textContent = this.stats.servicesCount;
@@ -228,6 +276,8 @@ class DashboardView {
         statNet.style.color = 'var(--ion-color-medium)';
       }
     }
+    
+    console.log('displayStats: Stats updated successfully');
   }
 
   /**
