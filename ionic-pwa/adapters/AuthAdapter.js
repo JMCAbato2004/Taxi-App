@@ -17,6 +17,7 @@ class AuthAdapter {
     this.secureStorageService = window.secureStorageService || null;
     this.csrfProtectionService = window.csrfProtectionService || null;
     this.loginAttemptService = window.loginAttemptService || null;
+    this.tokenService = window.tokenService || null;
     this.currentUser = null;
     this.currentToken = null;
     
@@ -223,7 +224,17 @@ class AuthAdapter {
       }
 
       this.currentUser = userWithoutPassword;
-      this.currentToken = 'token-' + user.id + '-' + Date.now();
+      
+      // Generate tokens with expiration using TokenService
+      let tokenPair;
+      if (this.tokenService) {
+        tokenPair = this.tokenService.generateTokenPair(userWithoutPassword);
+        await this.tokenService.storeTokens(tokenPair);
+        this.currentToken = tokenPair.accessToken;
+      } else {
+        // Fallback to simple token
+        this.currentToken = 'token-' + user.id + '-' + Date.now();
+      }
       
       // Determine permissions based on role
       const permissions = user.rol === 'PATRON' 
@@ -237,6 +248,9 @@ class AuthAdapter {
         success: true,
         user: userWithoutPassword,
         token: this.currentToken,
+        accessToken: tokenPair?.accessToken,
+        refreshToken: tokenPair?.refreshToken,
+        expiresAt: tokenPair?.accessTokenExpiresAt,
         permissions: permissions
       };
     } catch (error) {
@@ -331,6 +345,11 @@ class AuthAdapter {
         await this.authService.logout();
       }
       
+      // Clear tokens
+      if (this.tokenService) {
+        await this.tokenService.clearTokens();
+      }
+      
       // Clear CSRF token
       if (this.csrfProtectionService) {
         this.csrfProtectionService.clearToken();
@@ -358,6 +377,9 @@ class AuthAdapter {
       }
       if (this.csrfProtectionService) {
         this.csrfProtectionService.clearToken();
+      }
+      if (this.tokenService) {
+        await this.tokenService.clearTokens();
       }
       throw new Error('Error al cerrar sesión: ' + (error.message || 'Error desconocido'));
     }
@@ -802,6 +824,68 @@ class AuthAdapter {
       return this.csrfProtectionService.validateToken(token);
     }
     // If CSRF service not available, allow operation (backward compatibility)
+    return true;
+  }
+  
+  /**
+   * Validate current session token
+   * @returns {Promise<boolean>} True if valid
+   */
+  async validateToken() {
+    if (!this.tokenService) {
+      // Fallback: assume valid if user exists
+      return !!this.getCurrentUser();
+    }
+    
+    const accessToken = await this.tokenService.getAccessToken();
+    
+    if (!accessToken) {
+      return false;
+    }
+    
+    const validation = this.tokenService.validateToken(accessToken);
+    
+    if (!validation.valid) {
+      // Try to refresh token
+      if (validation.expired) {
+        console.log('Access token expired, attempting refresh');
+        const refreshed = await this.tokenService.refreshAccessToken();
+        return !!refreshed;
+      }
+      return false;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Refresh access token if needed
+   * @returns {Promise<boolean>} True if refreshed or still valid
+   */
+  async refreshTokenIfNeeded() {
+    if (!this.tokenService) {
+      return true; // No token service, assume valid
+    }
+    
+    const accessToken = await this.tokenService.getAccessToken();
+    
+    if (!accessToken) {
+      return false;
+    }
+    
+    // Check if needs refresh
+    if (this.tokenService.needsRefresh(accessToken)) {
+      console.log('Token needs refresh, refreshing...');
+      const refreshed = await this.tokenService.refreshAccessToken();
+      
+      if (refreshed) {
+        this.currentToken = refreshed.accessToken;
+        return true;
+      }
+      
+      return false;
+    }
+    
     return true;
   }
 }
