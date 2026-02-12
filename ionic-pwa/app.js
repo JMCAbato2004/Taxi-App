@@ -453,11 +453,33 @@ customElements.whenDefined('ion-modal').then(() => {
   // Listen for service saved event
   window.addEventListener('service-saved', async () => {
     console.log('service-saved event received');
+    console.log('serviceListView exists:', !!serviceListView);
+    console.log('dashboardView exists:', !!dashboardView);
+    
+    // Always refresh service list if it exists
     if (serviceListView) {
-      await serviceListView.refresh();
+      console.log('Refreshing service list...');
+      try {
+        await serviceListView.refresh();
+        console.log('Service list refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing service list:', error);
+      }
+    } else {
+      console.warn('serviceListView not initialized');
     }
+    
+    // Refresh dashboard if it exists
     if (dashboardView) {
-      await dashboardView.render();
+      console.log('Refreshing dashboard...');
+      try {
+        await dashboardView.render();
+        console.log('Dashboard refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing dashboard:', error);
+      }
+    } else {
+      console.warn('dashboardView not initialized');
     }
   });
   
