@@ -119,6 +119,15 @@ class RegisterModal {
               autocomplete="new-password"
             ></ion-input>
           </ion-item>
+          <div id="password-strength" style="padding: 8px 16px; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <div style="flex: 1; height: 4px; background: var(--ion-color-light); border-radius: 2px; overflow: hidden;">
+                <div id="password-strength-bar" style="height: 100%; width: 0%; transition: all 0.3s;"></div>
+              </div>
+              <span id="password-strength-label" style="font-size: 12px; font-weight: 500;"></span>
+            </div>
+            <div id="password-feedback" style="font-size: 11px; color: var(--ion-color-medium);"></div>
+          </div>
           <ion-note color="danger" id="password-error" style="display: none; padding-left: 16px;"></ion-note>
           
           <ion-item id="confirmPassword-item">
@@ -208,6 +217,7 @@ class RegisterModal {
     passwordInput?.addEventListener('ionInput', (e) => {
       this.formData.password = e.target.value;
       this.clearFieldError('password');
+      this.updatePasswordStrength(e.target.value);
     });
     
     confirmPasswordInput?.addEventListener('ionInput', (e) => {
@@ -221,6 +231,45 @@ class RegisterModal {
         this.handleSubmit();
       }
     });
+  }
+
+  /**
+   * Update password strength indicator
+   * @param {string} password - Password to validate
+   */
+  updatePasswordStrength(password) {
+    const strengthContainer = this.modal.querySelector('#password-strength');
+    const strengthBar = this.modal.querySelector('#password-strength-bar');
+    const strengthLabel = this.modal.querySelector('#password-strength-label');
+    const feedbackDiv = this.modal.querySelector('#password-feedback');
+    
+    if (!password) {
+      strengthContainer.style.display = 'none';
+      return;
+    }
+    
+    strengthContainer.style.display = 'block';
+    
+    // Validate password strength
+    const validation = window.cryptoService.validatePasswordStrength(password);
+    
+    // Update bar
+    const percentage = (validation.score / 7) * 100;
+    strengthBar.style.width = percentage + '%';
+    strengthBar.style.backgroundColor = `var(--ion-color-${validation.color})`;
+    
+    // Update label
+    strengthLabel.textContent = validation.strength;
+    strengthLabel.style.color = `var(--ion-color-${validation.color})`;
+    
+    // Update feedback
+    if (validation.feedback.length > 0) {
+      feedbackDiv.innerHTML = '• ' + validation.feedback.join('<br>• ');
+      feedbackDiv.style.color = 'var(--ion-color-warning)';
+    } else {
+      feedbackDiv.innerHTML = '✓ Contraseña segura';
+      feedbackDiv.style.color = 'var(--ion-color-success)';
+    }
   }
 
   /**

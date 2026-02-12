@@ -124,14 +124,35 @@ class AuthAdapter {
         throw new Error('Usuario no encontrado');
       }
 
-      // In a real app, we would verify the password here
-      // For now, we'll accept any password for demo purposes
+      // Verify password using CryptoService
+      if (!user.passwordHash || !user.passwordSalt) {
+        throw new Error('Cuenta no configurada correctamente. Por favor, contacta al administrador.');
+      }
+
+      const isValidPassword = await window.cryptoService.verifyPassword(
+        credentials.password,
+        user.passwordHash,
+        user.passwordSalt
+      );
+
+      if (!isValidPassword) {
+        throw new Error('Contraseña incorrecta');
+      }
       
       // Update last login
       user.lastLogin = new Date().toISOString();
-      localStorage.setItem('taxi_users', JSON.stringify(users));
+      
+      // Remove password fields before storing
+      const { passwordHash, passwordSalt, ...userWithoutPassword } = user;
+      
+      // Update user in storage
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = user;
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+      }
 
-      this.currentUser = user;
+      this.currentUser = userWithoutPassword;
       this.currentToken = 'token-' + user.id + '-' + Date.now();
       
       // Determine permissions based on role
@@ -139,12 +160,12 @@ class AuthAdapter {
         ? ['VIEW_ALL_DRIVERS', 'VIEW_AGGREGATED_DATA', 'MANAGE_ASSOCIATIONS', 'VIEW_OWN_DATA', 'EDIT_OWN_PROFILE']
         : ['VIEW_OWN_DATA', 'INPUT_OPERATIONAL_DATA', 'EDIT_OWN_PROFILE'];
       
-      // Store in localStorage
-      this.storeInLocalStorage(user, this.currentToken, permissions);
+      // Store in localStorage (without password fields)
+      this.storeInLocalStorage(userWithoutPassword, this.currentToken, permissions);
       
       return {
         success: true,
-        user: user,
+        user: userWithoutPassword,
         token: this.currentToken,
         permissions: permissions
       };
@@ -176,6 +197,15 @@ class AuthAdapter {
         return loginResult.user;
       }
       
+      // Validate password strength
+      const passwordValidation = window.cryptoService.validatePasswordStrength(userData.password);
+      if (!passwordValidation.valid) {
+        throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
+      }
+      
+      // Hash password using CryptoService
+      const { hash, salt } = await window.cryptoService.hashPassword(userData.password);
+      
       // Fallback: simulate registration for development
       const user = {
         id: 'user-' + Date.now(),
@@ -187,21 +217,32 @@ class AuthAdapter {
         codigoInvitacion: userData.rol === 'PATRON' ? this.generateInvitationCode() : null,
         estado: 'independiente',
         activo: true,
-        fechaCreacion: new Date().toISOString()
+        fechaCreacion: new Date().toISOString(),
+        passwordHash: hash,
+        passwordSalt: salt
       };
 
       // Save user to taxi_users
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      
+      // Check if email already exists
+      if (users.some(u => u.email === userData.email)) {
+        throw new Error('El email ya está registrado');
+      }
+      
       users.push(user);
       localStorage.setItem('taxi_users', JSON.stringify(users));
 
       // Auto-login after registration
-      this.currentUser = user;
+      // Remove password fields before storing in session
+      const { passwordHash, passwordSalt, ...userWithoutPassword } = user;
+      
+      this.currentUser = userWithoutPassword;
       this.currentToken = 'demo-token-' + Date.now();
       
-      this.storeInLocalStorage(user, this.currentToken, ['VIEW_OWN_DATA']);
+      this.storeInLocalStorage(userWithoutPassword, this.currentToken, ['VIEW_OWN_DATA']);
 
-      return user;
+      return userWithoutPassword;
     } catch (error) {
       console.error('Registration error:', error);
       throw new Error('Error al registrarse: ' + (error.message || 'Error desconocido'));
@@ -387,16 +428,51 @@ class AuthAdapter {
         return;
       }
       
-      // Fallback: basic validation for development
-      if (!currentPassword || !newPassword) {
-        throw new Error('Las contraseñas son obligatorias');
+      // Get current user
+      const user = this.getCurrentUser();
+      if (!user) {
+        throw new Error('No hay usuario autenticado');
       }
-
-      if (newPassword.length < 8) {
-        throw new Error('La nueva contraseña debe tener al menos 8 caracteres');
+      
+      // Get full user data from storage
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const fullUser = users.find(u => u.id === user.id);
+      
+      if (!fullUser) {
+        throw new Error('Usuario no encontrado');
       }
-
-      // Simulate success
+      
+      // Verify current password
+      const isValidPassword = await window.cryptoService.verifyPassword(
+        currentPassword,
+        fullUser.passwordHash,
+        fullUser.passwordSalt
+      );
+      
+      if (!isValidPassword) {
+        throw new Error('La contraseña actual es incorrecta');
+      }
+      
+      // Validate new password strength
+      const passwordValidation = window.cryptoService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
+      }
+      
+      // Hash new password
+      const { hash, salt } = await window.cryptoService.hashPassword(newPassword);
+      
+      // Update user in storage
+      fullUser.passwordHash = hash;
+      fullUser.passwordSalt = salt;
+      fullUser.passwordChangedAt = new Date().toISOString();
+      
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = fullUser;
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+      }
+      
       return true;
     } catch (error) {
       console.error('Change password error:', error);
