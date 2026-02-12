@@ -539,7 +539,7 @@ async function handleRegisterSuccess() {
  * Show register modal
  */
 async function showRegisterModal() {
-  const registerModal = new RegisterModal(authAdapter);
+  const registerModal = new RegisterModal(authAdapter, emailVerificationService);
   await registerModal.show();
 }
 
@@ -896,11 +896,18 @@ window.app = {
   },
   
   approveRequest: async (requestId) => {
+    console.log('approveRequest called with:', requestId);
+    
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     
+    console.log('All requests:', requests);
+    console.log('All users:', users);
+    
     // Convert requestId to number if it's a string
     const id = typeof requestId === 'string' ? parseInt(requestId, 10) : requestId;
+    
+    console.log('Looking for request with id:', id);
     
     const request = requests.find(r => r.id === id);
     if (!request) {
@@ -909,28 +916,68 @@ window.app = {
       return;
     }
     
+    console.log('Request found:', request);
+    
     // Update request status
     request.estado = 'aprobada';
     request.fechaAprobacion = new Date().toISOString();
     
+    console.log('Looking for taxista with id:', request.taxistaId);
+    
     // Update taxista
     const taxista = users.find(u => u.id === request.taxistaId);
     if (taxista) {
-      taxista.patronId = authAdapter.getCurrentUser().id;
+      console.log('Taxista found:', taxista);
+      const currentUser = authAdapter.getCurrentUser();
+      console.log('Current user (patron):', currentUser);
+      
+      taxista.patronId = currentUser.id;
       taxista.estado = 'asociado';
+      
+      console.log('Taxista updated:', taxista);
+    } else {
+      console.error('Taxista not found with id:', request.taxistaId);
     }
     
     // Save changes
     localStorage.setItem('taxi_join_requests', JSON.stringify(requests));
     localStorage.setItem('taxi_users', JSON.stringify(users));
     
+    console.log('Changes saved to localStorage');
+    
     ToastManager.showSuccess('Solicitud aprobada');
     
     // Refresh fleet management
+    console.log('fleetManagementView exists?', !!fleetManagementView);
+    
     if (fleetManagementView) {
       const user = authAdapter.getCurrentUser();
+      console.log('Reloading fleet for user:', user);
+      
+      // Reload both tabs
       await fleetManagementView.loadFleet(user);
       await fleetManagementView.loadRequests(user);
+      
+      // Switch to fleet tab to show the new taxista
+      const modal = fleetManagementView.currentModal;
+      if (modal) {
+        const segment = modal.querySelector('#fleet-segment');
+        if (segment) {
+          segment.value = 'fleet';
+          // Trigger the change event manually
+          const fleetContent = modal.querySelector('#fleet-tab-content');
+          const requestsContent = modal.querySelector('#requests-tab-content');
+          if (fleetContent && requestsContent) {
+            fleetContent.style.display = 'block';
+            requestsContent.style.display = 'none';
+          }
+        }
+      }
+      
+      console.log('Fleet reloaded and switched to fleet tab');
+    } else {
+      console.warn('fleetManagementView not available, dispatching event instead');
+      window.dispatchEvent(new CustomEvent('taxista-updated'));
     }
   },
   

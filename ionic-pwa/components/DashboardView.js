@@ -96,7 +96,7 @@ class DashboardView {
       <ion-chip color="${roleColor}" style="font-size: 14px; font-weight: bold;">
         <ion-label>${roleIcon} ${roleText}</ion-label>
       </ion-chip>
-      <div style="font-size: 18px; font-weight: bold; margin-top: 4px;">${user.nombre}</div>
+      <div style="font-size: 18px; font-weight: bold; margin-top: 4px; color: var(--ion-color-dark);">${user.nombre}</div>
       ${user.numeroTaxista ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${user.numeroTaxista}</div>` : ''}
     `;
   }

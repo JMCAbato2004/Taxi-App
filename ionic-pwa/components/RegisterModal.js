@@ -4,8 +4,9 @@
  * Requirements: 1.4, 1.5, 1.6
  */
 class RegisterModal {
-  constructor(authAdapter) {
+  constructor(authAdapter, emailVerificationService) {
     this.authAdapter = authAdapter;
+    this.emailVerificationService = emailVerificationService;
     this.modal = null;
     this.selectedRole = null;
     this.formData = {
@@ -431,7 +432,7 @@ class RegisterModal {
     }
     
     // Show loading indicator
-    await LoadingManager.show('Creando cuenta...');
+    await LoadingManager.show('Enviando código de verificación...');
     
     try {
       // Prepare user data
@@ -448,40 +449,43 @@ class RegisterModal {
         userData.codigoPatron = this.formData.codigoInvitacion.trim().toUpperCase();
       }
       
-      // Attempt registration via AuthAdapter
-      const user = await this.authAdapter.register(userData);
+      // Create verification and send code
+      const code = this.emailVerificationService.createVerification(
+        userData.email, 
+        userData
+      );
       
-      // If taxista, create join request (code already validated)
-      if (this.selectedRole === 'TAXISTA') {
-        await this.createJoinRequest(user, userData.codigoPatron);
-      }
+      await this.emailVerificationService.sendVerificationEmail(
+        userData.email, 
+        code
+      );
       
       // Hide loading
       await LoadingManager.hide();
       
-      if (user) {
-        // Show success message
-        let successMessage = '¡Cuenta creada exitosamente! Bienvenido.';
-        if (this.selectedRole === 'TAXISTA') {
-          successMessage = '¡Cuenta creada! Solicitud de unión enviada al patrón.';
-        }
-        ToastManager.showSuccess(successMessage);
-        
-        // Close modal
-        this.close();
-        
-        // Trigger registration success event (auto-login handled by adapter)
+      // Show success message
+      ToastManager.showSuccess('Código de verificación enviado a tu email');
+      
+      // Close registration modal
+      this.close();
+      
+      // Show verification modal
+      const verificationModal = new EmailVerificationModal(
+        this.emailVerificationService,
+        this.authAdapter
+      );
+      
+      await verificationModal.show(userData.email, (user) => {
+        // On successful verification and registration
         this.onRegisterSuccess(user);
-      } else {
-        // Show error message
-        ToastManager.showError('Error al crear la cuenta');
-      }
+      });
+      
     } catch (error) {
       // Hide loading
       await LoadingManager.hide();
       
       // Show error message
-      const errorMessage = error.message || 'Error al crear la cuenta. Por favor, inténtalo de nuevo.';
+      const errorMessage = error.message || 'Error al enviar código de verificación. Por favor, inténtalo de nuevo.';
       ToastManager.showError(errorMessage);
       
       console.error('Registration error:', error);
