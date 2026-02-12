@@ -859,6 +859,18 @@ window.app = {
   },
   
   removeTaxista: async (taxistaId) => {
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('removeTaxista', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
+    
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     const taxista = users.find(u => u.id === taxistaId);
     
@@ -897,6 +909,18 @@ window.app = {
   
   approveRequest: async (requestId) => {
     console.log('approveRequest called with:', requestId);
+    
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('approveRequest', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
     
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
@@ -982,6 +1006,18 @@ window.app = {
   },
   
   rejectRequest: async (requestId) => {
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('rejectRequest', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
+    
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     

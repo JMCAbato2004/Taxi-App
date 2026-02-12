@@ -15,6 +15,7 @@ class AuthAdapter {
     this.authService = null;
     this.roleService = null;
     this.secureStorageService = window.secureStorageService || null;
+    this.csrfProtectionService = window.csrfProtectionService || null;
     this.currentUser = null;
     this.currentToken = null;
     
@@ -121,6 +122,11 @@ class AuthAdapter {
    */
   async login(credentials) {
     try {
+      // Generate new CSRF token on login
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.generateNewToken();
+      }
+      
       // If authService is available, use it
       if (this.authService) {
         const authResult = await this.authService.login(credentials);
@@ -290,6 +296,11 @@ class AuthAdapter {
         await this.authService.logout();
       }
       
+      // Clear CSRF token
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.clearToken();
+      }
+      
       // Clear secure storage
       if (this.secureStorageService) {
         await this.secureStorageService.clearAuthData();
@@ -309,6 +320,9 @@ class AuthAdapter {
       this.clearLocalStorage();
       if (this.secureStorageService) {
         await this.secureStorageService.clearAuthData();
+      }
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.clearToken();
       }
       throw new Error('Error al cerrar sesión: ' + (error.message || 'Error desconocido'));
     }
@@ -730,6 +744,30 @@ class AuthAdapter {
     }
     
     return null;
+  }
+  
+  /**
+   * Get CSRF token for protected operations
+   * @returns {string|null} CSRF token or null
+   */
+  getCSRFToken() {
+    if (this.csrfProtectionService) {
+      return this.csrfProtectionService.getToken();
+    }
+    return null;
+  }
+  
+  /**
+   * Validate CSRF token for operation
+   * @param {string} token - Token to validate
+   * @returns {boolean} True if valid
+   */
+  validateCSRFToken(token) {
+    if (this.csrfProtectionService) {
+      return this.csrfProtectionService.validateToken(token);
+    }
+    // If CSRF service not available, allow operation (backward compatibility)
+    return true;
   }
 }
 
