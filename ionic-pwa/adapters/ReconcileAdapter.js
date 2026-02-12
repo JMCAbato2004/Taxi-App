@@ -3,11 +3,12 @@
  * Connects the Ionic PWA interface to the JavaScript reconciliation modules
  */
 class ReconcileAdapter {
-  constructor() {
+  constructor(authAdapter = null) {
     // Will be initialized with actual reconciliation services when integrated
     this.storageManager = null;
     this.roleService = null;
     this.calculationEngine = null;
+    this.authAdapter = authAdapter;
   }
 
   /**
@@ -54,7 +55,17 @@ class ReconcileAdapter {
    */
   async createService(serviceData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      // Try to get user from AuthAdapter first, fallback to localStorage
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
       if (!currentUser) throw new Error('Usuario no autenticado');
 
       const service = {

@@ -5,7 +5,7 @@
 
 // Initialize adapters
 const authAdapter = new AuthAdapter();
-const reconcileAdapter = new ReconcileAdapter();
+const reconcileAdapter = new ReconcileAdapter(authAdapter);
 const rgpdAdapter = new RGPDAdapter();
 
 // Initialize data sync
