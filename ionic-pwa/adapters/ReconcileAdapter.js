@@ -37,15 +37,33 @@ class ReconcileAdapter {
       console.log('ReconcileAdapter.getServices: Loaded services:', services.length);
       console.log('ReconcileAdapter.getServices: Services:', services);
       
-      // Filter by role (will use roleService when integrated)
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) return [];
+      // Get current user from AuthAdapter (supports encrypted storage)
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
+      console.log('ReconcileAdapter.getServices: Current user:', currentUser ? currentUser.id : 'none');
+      
+      if (!currentUser) {
+        console.log('ReconcileAdapter.getServices: No user found, returning empty array');
+        return [];
+      }
 
       if (currentUser.rol === 'TAXISTA') {
-        return services.filter(s => s.userId === currentUser.id);
+        console.log('ReconcileAdapter.getServices: Filtering for TAXISTA');
+        const filtered = services.filter(s => s.userId === currentUser.id);
+        console.log('ReconcileAdapter.getServices: Filtered services:', filtered.length);
+        return filtered;
       }
 
       // PATRON sees all services from associated taxistas
+      console.log('ReconcileAdapter.getServices: PATRON, returning all services');
       return services;
     } catch (error) {
       console.error('Get services error:', error);
@@ -159,8 +177,17 @@ class ReconcileAdapter {
     try {
       const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
       
-      // Filter by role
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      // Get current user from AuthAdapter (supports encrypted storage)
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
       if (!currentUser) return [];
 
       if (currentUser.rol === 'TAXISTA') {
