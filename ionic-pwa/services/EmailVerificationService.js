@@ -74,16 +74,24 @@ class EmailVerificationService {
     // Simulate email sending delay
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    // In development, log the code to console
-    console.log('='.repeat(60));
-    console.log('📧 CÓDIGO DE VERIFICACIÓN (DESARROLLO)');
-    console.log('='.repeat(60));
-    console.log(`Email: ${email}`);
-    console.log(`Código: ${code}`);
-    console.log(`Válido por: ${this.CODE_EXPIRY_MINUTES} minutos`);
-    console.log('='.repeat(60));
-    console.log('⚠️  En producción, este código se enviaría por email');
-    console.log('='.repeat(60));
+    // Detect environment
+    const isProduction = this.isProductionEnvironment();
+    
+    if (!isProduction) {
+      // DEVELOPMENT MODE: Show code in console
+      console.log('='.repeat(60));
+      console.log('📧 CÓDIGO DE VERIFICACIÓN (DESARROLLO)');
+      console.log('='.repeat(60));
+      console.log(`Email: ${email}`);
+      console.log(`Código: ${code}`);
+      console.log(`Válido por: ${this.CODE_EXPIRY_MINUTES} minutos`);
+      console.log('='.repeat(60));
+      console.log('⚠️  En producción, este código se enviaría por email');
+      console.log('='.repeat(60));
+    } else {
+      // PRODUCTION MODE: Never log the code
+      console.log(`[EmailVerification] Código enviado a ${email.substring(0, 3)}***@***`);
+    }
 
     // TODO: In production, integrate with email service (SendGrid, AWS SES, etc.)
     // Example:
@@ -95,6 +103,40 @@ class EmailVerificationService {
     // });
 
     return true;
+  }
+
+  /**
+   * Detect if running in production environment
+   * @returns {boolean} True if production
+   */
+  isProductionEnvironment() {
+    // Use centralized environment config if available
+    if (window.environmentConfig) {
+      return window.environmentConfig.isProduction();
+    }
+    
+    // Fallback: Check multiple indicators
+    
+    // 1. Check if running on production domain
+    const hostname = window.location.hostname;
+    const isProductionDomain = hostname.includes('github.io') || 
+                               hostname.includes('taxi-app.com') ||
+                               hostname.includes('taxiapp.com') ||
+                               (!hostname.includes('localhost') && !hostname.includes('127.0.0.1'));
+    
+    // 2. Check if protocol is HTTPS (production should always use HTTPS)
+    const isHTTPS = window.location.protocol === 'https:';
+    
+    // 3. Check for NODE_ENV if available (set by build tools)
+    const nodeEnv = typeof process !== 'undefined' && process.env && process.env.NODE_ENV;
+    const isNodeEnvProduction = nodeEnv === 'production';
+    
+    // 4. Check for custom production flag
+    const hasProductionFlag = window.PRODUCTION_MODE === true;
+    
+    // Consider production if any of these are true
+    return isProductionDomain || (isHTTPS && !hostname.includes('localhost')) || 
+           isNodeEnvProduction || hasProductionFlag;
   }
 
   /**

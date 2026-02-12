@@ -105,12 +105,12 @@ class EmailVerificationModal {
             </div>
           </div>
 
-          <!-- Development Note -->
-          <ion-card style="margin-top: 24px; background: var(--ion-color-light);">
+          <!-- Environment-specific Note -->
+          <ion-card id="env-note-card" style="margin-top: 24px; background: var(--ion-color-light);">
             <ion-card-content style="padding: 12px;">
-              <p style="font-size: 12px; color: var(--ion-color-medium); margin: 0;">
+              <p id="env-note-text" style="font-size: 12px; color: var(--ion-color-medium); margin: 0;">
                 <ion-icon name="information-circle" style="vertical-align: middle;"></ion-icon>
-                <strong>Modo desarrollo:</strong> El código se muestra en la consola del navegador (F12)
+                <span id="env-note-content"></span>
               </p>
             </ion-card-content>
           </ion-card>
@@ -128,8 +128,33 @@ class EmailVerificationModal {
       console.log('componentOnReady not available, continuing...');
     }
 
+    // Update environment note
+    this.updateEnvironmentNote();
+
     // Setup event listeners
     this.setupEventListeners();
+  }
+
+  /**
+   * Update environment note based on current environment
+   */
+  updateEnvironmentNote() {
+    const noteContent = this.modal.querySelector('#env-note-content');
+    const noteCard = this.modal.querySelector('#env-note-card');
+    
+    if (!noteContent || !noteCard) return;
+    
+    const isProduction = this.emailVerificationService.isProductionEnvironment();
+    
+    if (isProduction) {
+      // Production mode
+      noteContent.innerHTML = '<strong>Revisa tu bandeja de entrada</strong> y la carpeta de spam. El código fue enviado a tu correo electrónico.';
+      noteCard.style.background = 'var(--ion-color-primary-tint)';
+    } else {
+      // Development mode
+      noteContent.innerHTML = '<strong>Modo desarrollo:</strong> El código se muestra en la consola del navegador (F12)';
+      noteCard.style.background = 'var(--ion-color-warning-tint)';
+    }
   }
 
   /**
