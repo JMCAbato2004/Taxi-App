@@ -29,8 +29,13 @@ class ReconcileAdapter {
    */
   async getServices() {
     try {
+      console.log('ReconcileAdapter.getServices: Loading services from localStorage...');
+      
       // TODO: Integrate with actual storageManager.getServices()
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      
+      console.log('ReconcileAdapter.getServices: Loaded services:', services.length);
+      console.log('ReconcileAdapter.getServices: Services:', services);
       
       // Filter by role (will use roleService when integrated)
       const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
@@ -55,6 +60,8 @@ class ReconcileAdapter {
    */
   async createService(serviceData) {
     try {
+      console.log('ReconcileAdapter.createService: Starting with data:', serviceData);
+      
       // Try to get user from AuthAdapter first, fallback to localStorage
       let currentUser = null;
       if (this.authAdapter) {
@@ -66,6 +73,8 @@ class ReconcileAdapter {
         currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
       }
       
+      console.log('ReconcileAdapter.createService: Current user:', currentUser ? currentUser.id : 'none');
+      
       if (!currentUser) throw new Error('Usuario no autenticado');
 
       const service = {
@@ -76,9 +85,19 @@ class ReconcileAdapter {
         updatedAt: new Date().toISOString()
       };
 
+      console.log('ReconcileAdapter.createService: Service object created:', service);
+
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      console.log('ReconcileAdapter.createService: Existing services count:', services.length);
+      
       services.push(service);
       localStorage.setItem('taxi_services', JSON.stringify(services));
+      
+      console.log('ReconcileAdapter.createService: Service saved. Total services now:', services.length);
+      console.log('ReconcileAdapter.createService: Verifying save...');
+      
+      const verifyServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      console.log('ReconcileAdapter.createService: Verified services count:', verifyServices.length);
 
       return service;
     } catch (error) {
