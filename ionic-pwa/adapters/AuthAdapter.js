@@ -16,6 +16,7 @@ class AuthAdapter {
     this.roleService = null;
     this.secureStorageService = window.secureStorageService || null;
     this.csrfProtectionService = window.csrfProtectionService || null;
+    this.loginAttemptService = window.loginAttemptService || null;
     this.currentUser = null;
     this.currentToken = null;
     
@@ -122,6 +123,23 @@ class AuthAdapter {
    */
   async login(credentials) {
     try {
+      // Check if login is allowed (brute force protection)
+      if (this.loginAttemptService) {
+        const attemptCheck = this.loginAttemptService.canAttemptLogin(credentials.email);
+        
+        if (!attemptCheck.allowed) {
+          throw new Error(attemptCheck.reason);
+        }
+        
+        // Show warning if approaching limit
+        if (attemptCheck.warning) {
+          console.warn(attemptCheck.warning);
+        }
+        
+        // Apply progressive delay
+        await this.loginAttemptService.applyProgressiveDelay(credentials.email);
+      }
+      
       // Generate new CSRF token on login
       if (this.csrfProtectionService) {
         this.csrfProtectionService.generateNewToken();
@@ -156,6 +174,12 @@ class AuthAdapter {
       const user = users.find(u => u.email === credentials.email);
 
       if (!user) {
+        // Record failed attempt
+        if (this.loginAttemptService) {
+          this.loginAttemptService.recordFailedAttempt(credentials.email, {
+            userAgent: navigator.userAgent
+          });
+        }
         throw new Error('Usuario no encontrado');
       }
 
@@ -171,7 +195,18 @@ class AuthAdapter {
       );
 
       if (!isValidPassword) {
+        // Record failed attempt
+        if (this.loginAttemptService) {
+          this.loginAttemptService.recordFailedAttempt(credentials.email, {
+            userAgent: navigator.userAgent
+          });
+        }
         throw new Error('Contraseña incorrecta');
+      }
+      
+      // Password is valid - record successful login
+      if (this.loginAttemptService) {
+        this.loginAttemptService.recordSuccessfulLogin(credentials.email);
       }
       
       // Update last login
