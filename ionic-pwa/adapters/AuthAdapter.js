@@ -14,11 +14,11 @@ class AuthAdapter {
     // Will be initialized with actual auth services when integrated
     this.authService = null;
     this.roleService = null;
-    this.secureStorageService = null;
+    this.secureStorageService = window.secureStorageService || null;
     this.currentUser = null;
     this.currentToken = null;
     
-    // Storage keys for fallback localStorage
+    // Storage keys for fallback localStorage (legacy)
     this.STORAGE_KEY_USER = 'taxi_auth_current_user';
     this.STORAGE_KEY_TOKEN = 'taxi_auth_current_token';
     this.STORAGE_KEY_PERMISSIONS = 'taxi_auth_permissions';
@@ -48,19 +48,48 @@ class AuthAdapter {
    * Restore session from localStorage (fallback)
    * @private
    */
-  restoreSession() {
+  async restoreSession() {
     try {
+      // Try secure storage first
+      if (this.secureStorageService) {
+        const authData = await this.secureStorageService.getAuthData();
+        if (authData) {
+          this.currentUser = authData.user;
+          this.currentToken = authData.token;
+          console.log('Session restored from secure storage');
+          return;
+        }
+      }
+      
+      // Fallback to localStorage (legacy)
       const storedUser = localStorage.getItem(this.STORAGE_KEY_USER);
       const storedToken = localStorage.getItem(this.STORAGE_KEY_TOKEN);
       
       if (storedUser && storedToken) {
         this.currentUser = JSON.parse(storedUser);
         this.currentToken = storedToken;
+        
+        // Migrate to secure storage
+        if (this.secureStorageService) {
+          const permissions = JSON.parse(localStorage.getItem(this.STORAGE_KEY_PERMISSIONS) || '[]');
+          await this.secureStorageService.storeAuthData({
+            user: this.currentUser,
+            token: this.currentToken,
+            permissions: permissions
+          });
+          
+          // Clear old localStorage data
+          this.clearLocalStorage();
+          console.log('Session migrated to secure storage');
+        }
       }
     } catch (error) {
       console.error('Error restoring session:', error);
       // Clear potentially corrupted data
       this.clearLocalStorage();
+      if (this.secureStorageService) {
+        await this.secureStorageService.clearAuthData();
+      }
     }
   }
   
@@ -160,8 +189,8 @@ class AuthAdapter {
         ? ['VIEW_ALL_DRIVERS', 'VIEW_AGGREGATED_DATA', 'MANAGE_ASSOCIATIONS', 'VIEW_OWN_DATA', 'EDIT_OWN_PROFILE']
         : ['VIEW_OWN_DATA', 'INPUT_OPERATIONAL_DATA', 'EDIT_OWN_PROFILE'];
       
-      // Store in localStorage (without password fields)
-      this.storeInLocalStorage(userWithoutPassword, this.currentToken, permissions);
+      // Store in secure storage (without password fields)
+      await this.storeInSecureStorage(userWithoutPassword, this.currentToken, permissions);
       
       return {
         success: true,
@@ -240,7 +269,7 @@ class AuthAdapter {
       this.currentUser = userWithoutPassword;
       this.currentToken = 'demo-token-' + Date.now();
       
-      this.storeInLocalStorage(userWithoutPassword, this.currentToken, ['VIEW_OWN_DATA']);
+      await this.storeInSecureStorage(userWithoutPassword, this.currentToken, ['VIEW_OWN_DATA']);
 
       return userWithoutPassword;
     } catch (error) {
@@ -261,7 +290,7 @@ class AuthAdapter {
         await this.authService.logout();
       }
       
-      // Clear secure storage if available
+      // Clear secure storage
       if (this.secureStorageService) {
         await this.secureStorageService.clearAuthData();
       }
@@ -270,7 +299,7 @@ class AuthAdapter {
       this.currentUser = null;
       this.currentToken = null;
       
-      // Clear localStorage
+      // Clear localStorage (legacy)
       this.clearLocalStorage();
     } catch (error) {
       console.error('Logout error:', error);
@@ -278,12 +307,15 @@ class AuthAdapter {
       this.currentUser = null;
       this.currentToken = null;
       this.clearLocalStorage();
+      if (this.secureStorageService) {
+        await this.secureStorageService.clearAuthData();
+      }
       throw new Error('Error al cerrar sesión: ' + (error.message || 'Error desconocido'));
     }
   }
 
   /**
-   * Get current authenticated user
+   * Get current authenticated user (synchronous)
    * @returns {Object|null} Current user or null
    */
   getCurrentUser() {
@@ -291,7 +323,7 @@ class AuthAdapter {
       return this.currentUser;
     }
 
-    // Try to load from storage
+    // Fallback to localStorage for sync access
     const stored = localStorage.getItem(this.STORAGE_KEY_USER);
     if (stored) {
       try {
@@ -305,13 +337,39 @@ class AuthAdapter {
 
     return null;
   }
+  
+  /**
+   * Get current authenticated user from secure storage (async)
+   * @returns {Promise<Object|null>} Current user or null
+   */
+  async getCurrentUserAsync() {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // Try to load from secure storage
+    if (this.secureStorageService) {
+      try {
+        const user = await this.secureStorageService.getUserData();
+        if (user) {
+          this.currentUser = user;
+          return this.currentUser;
+        }
+      } catch (error) {
+        console.error('Error loading user from secure storage:', error);
+      }
+    }
+
+    // Fallback to localStorage
+    return this.getCurrentUser();
+  }
 
   /**
    * Update current user data
    * @param {Object} updates - Object with fields to update
-   * @returns {Object} Updated user
+   * @returns {Promise<Object>} Updated user
    */
-  updateCurrentUser(updates) {
+  async updateCurrentUser(updates) {
     if (!this.currentUser) {
       throw new Error('No hay usuario autenticado');
     }
@@ -319,13 +377,13 @@ class AuthAdapter {
     // Merge updates with current user
     this.currentUser = { ...this.currentUser, ...updates };
 
-    // Save to localStorage
-    localStorage.setItem(this.STORAGE_KEY_USER, JSON.stringify(this.currentUser));
-
-    // Save to secure storage if available
+    // Save to secure storage
     if (this.secureStorageService) {
-      this.secureStorageService.setUserData(this.currentUser);
+      await this.secureStorageService.storeUserData(this.currentUser);
     }
+    
+    // Fallback to localStorage
+    localStorage.setItem(this.STORAGE_KEY_USER, JSON.stringify(this.currentUser));
 
     return this.currentUser;
   }
@@ -575,7 +633,33 @@ class AuthAdapter {
   }
   
   /**
-   * Store user, token, and permissions in localStorage
+   * Store user, token, and permissions in secure storage
+   * @private
+   * @param {Object} user - User object
+   * @param {string} token - Auth token
+   * @param {Array<string>} permissions - User permissions
+   */
+  async storeInSecureStorage(user, token, permissions) {
+    try {
+      if (this.secureStorageService) {
+        await this.secureStorageService.storeAuthData({
+          user: user,
+          token: token,
+          permissions: permissions || []
+        });
+      } else {
+        // Fallback to localStorage
+        this.storeInLocalStorage(user, token, permissions);
+      }
+    } catch (error) {
+      console.error('Error storing in secure storage:', error);
+      // Fallback to localStorage on error
+      this.storeInLocalStorage(user, token, permissions);
+    }
+  }
+  
+  /**
+   * Store user, token, and permissions in localStorage (legacy fallback)
    * @private
    * @param {Object} user - User object
    * @param {string} token - Auth token
