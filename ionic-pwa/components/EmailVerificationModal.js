@@ -71,18 +71,18 @@ class EmailVerificationModal {
               Código de Verificación
             </ion-label>
             <div id="code-inputs" style="display: flex; gap: 8px; justify-content: center;">
-              <input type="text" id="code-input-0" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
-              <input type="text" id="code-input-1" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
-              <input type="text" id="code-input-2" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
-              <input type="text" id="code-input-3" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
-              <input type="text" id="code-input-4" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
-              <input type="text" id="code-input-5" maxlength="1" 
-                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white;">
+              <input type="text" inputmode="numeric" id="code-input-0" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
+              <input type="text" inputmode="numeric" id="code-input-1" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
+              <input type="text" inputmode="numeric" id="code-input-2" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
+              <input type="text" inputmode="numeric" id="code-input-3" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
+              <input type="text" inputmode="numeric" id="code-input-4" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
+              <input type="text" inputmode="numeric" id="code-input-5" maxlength="1" 
+                style="width: 48px; height: 56px; text-align: center; font-size: 24px; font-weight: bold; border: 2px solid var(--ion-color-medium); border-radius: 8px; background: white; color: #000;">
             </div>
             <div id="code-error" style="color: var(--ion-color-danger); font-size: 12px; margin-top: 8px; text-align: center; display: none;"></div>
           </div>
@@ -166,13 +166,18 @@ class EmailVerificationModal {
       const input = this.modal.querySelector(`#code-input-${i}`);
       
       input.addEventListener('input', (e) => {
-        const value = e.target.value;
+        let value = e.target.value;
         
-        // Only allow numbers
-        if (!/^\d*$/.test(value)) {
-          e.target.value = '';
-          return;
+        // Only allow numbers - remove any non-digit characters
+        value = value.replace(/\D/g, '');
+        
+        // Take only the first character if multiple were entered
+        if (value.length > 1) {
+          value = value.charAt(0);
         }
+        
+        // Update the input value
+        e.target.value = value;
         
         // Auto-advance to next input
         if (value && i < 5) {
@@ -290,8 +295,8 @@ class EmailVerificationModal {
    */
   async completeRegistration(userData) {
     try {
-      // Register user through AuthAdapter
-      const user = await this.authAdapter.register(userData);
+      // Register user through AuthAdapter with passwordAlreadyHashed flag
+      const user = await this.authAdapter.register(userData, true);
       
       // If taxista, create join request
       if (userData.rol === 'TAXISTA' && userData.codigoPatron) {

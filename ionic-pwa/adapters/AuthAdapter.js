@@ -263,9 +263,10 @@ class AuthAdapter {
    * Register a new user
    * Requirements: 1.6, 1.8, 1.9
    * @param {Object} userData - { nombre, email, telefono, password, rol }
+   * @param {boolean} passwordAlreadyHashed - If true, skip password validation and hashing
    * @returns {Promise<Object>} User object
    */
-  async register(userData) {
+  async register(userData, passwordAlreadyHashed = false) {
     try {
       // If authService is available, use it
       if (this.authService) {
@@ -281,14 +282,26 @@ class AuthAdapter {
         return loginResult.user;
       }
       
-      // Validate password strength
-      const passwordValidation = window.cryptoService.validatePasswordStrength(userData.password);
-      if (!passwordValidation.valid) {
-        throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
-      }
+      let hash, salt;
       
-      // Hash password using CryptoService
-      const { hash, salt } = await window.cryptoService.hashPassword(userData.password);
+      if (passwordAlreadyHashed) {
+        // Password is already hashed (from email verification flow)
+        // Extract hash and salt from the hashed password object
+        const hashedData = userData.password;
+        hash = hashedData.hash;
+        salt = hashedData.salt;
+      } else {
+        // Validate password strength
+        const passwordValidation = window.cryptoService.validatePasswordStrength(userData.password);
+        if (!passwordValidation.valid) {
+          throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
+        }
+        
+        // Hash password using CryptoService
+        const hashResult = await window.cryptoService.hashPassword(userData.password);
+        hash = hashResult.hash;
+        salt = hashResult.salt;
+      }
       
       // Fallback: simulate registration for development
       const user = {

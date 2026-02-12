@@ -484,12 +484,15 @@ class RegisterModal {
     await LoadingManager.show('Enviando código de verificación...');
     
     try {
+      // Hash password before storing in userData
+      const hashedPassword = await window.cryptoService.hashPassword(this.formData.password);
+      
       // Prepare user data
       const userData = {
         nombre: this.formData.nombre.trim(),
         email: this.formData.email.trim(),
         telefono: this.formData.telefono.trim(),
-        password: this.formData.password,
+        password: hashedPassword, // Store hashed password
         rol: this.selectedRole
       };
       
