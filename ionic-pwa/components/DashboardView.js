@@ -198,20 +198,34 @@ class DashboardView {
    * @returns {Array} Filtered data
    */
   filterByRole(data, user) {
-    if (!user || !data) return [];
+    console.log('filterByRole: Input data:', data);
+    console.log('filterByRole: User:', user);
+    
+    if (!user || !data) {
+      console.log('filterByRole: No user or data, returning empty array');
+      return [];
+    }
     
     // TAXISTA: only their own data
     if (user.rol === 'TAXISTA') {
-      return data.filter(item => item.userId === user.id);
+      console.log('filterByRole: Filtering for TAXISTA, userId:', user.id);
+      const filtered = data.filter(item => {
+        console.log('filterByRole: Checking item:', item.id, 'userId:', item.userId, 'matches:', item.userId === user.id);
+        return item.userId === user.id;
+      });
+      console.log('filterByRole: Filtered result:', filtered);
+      return filtered;
     }
     
     // PATRON: aggregated data from all associated taxistas
     if (user.rol === 'PATRON') {
+      console.log('filterByRole: PATRON, returning all data');
       // For now, return all data
       // In a real implementation, this would filter by associated taxistas
       return data;
     }
     
+    console.log('filterByRole: No role match, returning all data');
     return data;
   }
 
