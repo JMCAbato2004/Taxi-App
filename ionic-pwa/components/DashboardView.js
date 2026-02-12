@@ -15,16 +15,21 @@ class DashboardView {
    * Render the dashboard view
    */
   async render() {
+    console.log('DashboardView.render: Starting render');
     const user = this.authAdapter.getCurrentUser();
+    console.log('DashboardView.render: Current user:', user ? user.id : 'none');
     
     if (!user) {
+      console.log('DashboardView.render: No user, showing welcome');
       this.renderWelcome();
     } else {
+      console.log('DashboardView.render: User found, rendering dashboard');
       await this.renderDashboard(user);
     }
     
     // Set up pull-to-refresh
     this.setupPullToRefresh();
+    console.log('DashboardView.render: Render complete');
   }
 
   /**
@@ -48,8 +53,15 @@ class DashboardView {
    * @param {Object} user - The authenticated user
    */
   async renderDashboard(user) {
+    console.log('renderDashboard: Starting render for user:', user.id);
+    
     const welcomeSection = document.getElementById('welcome-section');
     const dashboardSection = document.getElementById('dashboard-section');
+    
+    console.log('renderDashboard: Sections found:', {
+      welcomeSection: !!welcomeSection,
+      dashboardSection: !!dashboardSection
+    });
     
     if (welcomeSection) {
       welcomeSection.style.display = 'none';
@@ -63,13 +75,18 @@ class DashboardView {
     this.displayUserRole(user);
     
     // Load and display stats
+    console.log('renderDashboard: Loading stats...');
     await this.loadStats(user);
+    console.log('renderDashboard: Displaying stats...');
     this.displayStats();
+    console.log('renderDashboard: Displaying recent activity...');
     this.displayRecentActivity();
+    console.log('renderDashboard: Displaying action buttons...');
     this.displayActionButtons(user);
     
     // If patron, display fleet info
     if (user.rol === 'PATRON') {
+      console.log('renderDashboard: Displaying fleet info...');
       await this.displayFleetInfo(user);
     } else {
       // Clear fleet info for taxistas
@@ -78,6 +95,8 @@ class DashboardView {
         fleetInfoContainer.innerHTML = '';
       }
     }
+    
+    console.log('renderDashboard: Render complete');
   }
 
   /**
