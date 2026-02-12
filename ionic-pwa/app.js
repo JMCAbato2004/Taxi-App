@@ -820,7 +820,7 @@ window.app = {
   },
   
   showBalanceSettings: async () => {
-    const modal = new BalanceSettingsModal();
+    const modal = new BalanceSettingsModal(window.app.authAdapter);
     await modal.show();
   },
   
