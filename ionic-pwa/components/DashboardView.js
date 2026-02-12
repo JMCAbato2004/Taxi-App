@@ -107,18 +107,31 @@ class DashboardView {
    */
   async loadStats(user) {
     try {
+      console.log('loadStats: Loading stats for user:', user.id, user.rol);
+      
       // Load services and expenses
       const services = await this.reconcileAdapter.getServices();
       const expenses = await this.reconcileAdapter.getExpenses();
+      
+      console.log('loadStats: Total services:', services.length);
+      console.log('loadStats: Total expenses:', expenses.length);
       
       // Filter data based on role
       const filteredServices = this.filterByRole(services, user);
       const filteredExpenses = this.filterByRole(expenses, user);
       
+      console.log('loadStats: Filtered services:', filteredServices.length);
+      console.log('loadStats: Filtered expenses:', filteredExpenses.length);
+      
       // Calculate statistics for today
       const today = new Date().toISOString().split('T')[0];
+      console.log('loadStats: Today date:', today);
+      
       const todayServices = filteredServices.filter(s => s.date === today);
       const todayExpenses = filteredExpenses.filter(e => e.date === today);
+      
+      console.log('loadStats: Today services:', todayServices.length);
+      console.log('loadStats: Today expenses:', todayExpenses.length);
       
       // Calculate total income (gross amount before commissions)
       const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
@@ -140,6 +153,8 @@ class DashboardView {
         netAmount,
         recentServices: filteredServices.slice(-5).reverse()
       };
+      
+      console.log('loadStats: Calculated stats:', this.stats);
       
       return this.stats;
     } catch (error) {
@@ -185,7 +200,12 @@ class DashboardView {
    * Display statistics in the UI
    */
   displayStats() {
-    if (!this.stats) return;
+    if (!this.stats) {
+      console.warn('displayStats: No stats available');
+      return;
+    }
+    
+    console.log('displayStats: Updating with stats:', this.stats);
     
     const statServices = document.getElementById('stat-services');
     const statIncome = document.getElementById('stat-income');
@@ -193,6 +213,15 @@ class DashboardView {
     const statCommissions = document.getElementById('stat-commissions');
     const statExpenses = document.getElementById('stat-expenses');
     const statNet = document.getElementById('stat-net');
+    
+    console.log('displayStats: DOM elements found:', {
+      statServices: !!statServices,
+      statIncome: !!statIncome,
+      statTips: !!statTips,
+      statCommissions: !!statCommissions,
+      statExpenses: !!statExpenses,
+      statNet: !!statNet
+    });
     
     if (statServices) {
       statServices.textContent = this.stats.servicesCount;
@@ -228,6 +257,8 @@ class DashboardView {
         statNet.style.color = 'var(--ion-color-medium)';
       }
     }
+    
+    console.log('displayStats: Stats updated successfully');
   }
 
   /**
