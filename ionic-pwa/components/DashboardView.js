@@ -145,10 +145,13 @@ class DashboardView {
       // Calculate statistics for today
       const today = new Date().toISOString().split('T')[0];
       console.log('loadStats: Today date:', today);
+      console.log('loadStats: All filtered services:', filteredServices.length);
       
       const todayServices = filteredServices.filter(s => {
         const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-        return serviceDate === today;
+        const isToday = serviceDate === today;
+        console.log(`loadStats: Service ${s.id} - date: ${s.date}, datetime: ${s.datetime}, serviceDate: ${serviceDate}, isToday: ${isToday}`);
+        return isToday;
       });
       const todayExpenses = filteredExpenses.filter(e => {
         const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];

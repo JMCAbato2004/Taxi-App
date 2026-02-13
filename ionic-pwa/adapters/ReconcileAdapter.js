@@ -62,8 +62,24 @@ class ReconcileAdapter {
         return filtered;
       }
 
-      // PATRON sees all services from associated taxistas
-      console.log('ReconcileAdapter.getServices: PATRON, returning all services');
+      // PATRON sees services from associated taxistas only
+      if (currentUser.rol === 'PATRON') {
+        console.log('ReconcileAdapter.getServices: Filtering for PATRON');
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const associatedTaxistas = users.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === currentUser.id
+        );
+        const taxistaIds = associatedTaxistas.map(t => t.id);
+        console.log('ReconcileAdapter.getServices: Associated taxista IDs:', taxistaIds);
+        
+        const filtered = services.filter(s => taxistaIds.includes(s.userId));
+        console.log('ReconcileAdapter.getServices: Filtered services for PATRON:', filtered.length);
+        return filtered;
+      }
+
+      console.log('ReconcileAdapter.getServices: Unknown role, returning all services');
       return services;
     } catch (error) {
       console.error('Get services error:', error);
@@ -212,7 +228,18 @@ class ReconcileAdapter {
         return expenses.filter(e => e.userId === currentUser.id);
       }
 
-      // PATRON sees all expenses from associated taxistas
+      // PATRON sees expenses from associated taxistas only
+      if (currentUser.rol === 'PATRON') {
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const associatedTaxistas = users.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === currentUser.id
+        );
+        const taxistaIds = associatedTaxistas.map(t => t.id);
+        return expenses.filter(e => taxistaIds.includes(e.userId));
+      }
+
       return expenses;
     } catch (error) {
       console.error('Get expenses error:', error);
