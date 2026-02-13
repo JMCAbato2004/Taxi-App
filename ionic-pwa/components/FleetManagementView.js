@@ -318,26 +318,6 @@ class FleetManagementView {
             </ion-card>
           </ion-col>
         </ion-row>
-        <ion-row>
-          <ion-col size="6">
-            <ion-card style="margin: 0; height: 100%;">
-              <ion-card-content style="padding: 12px; text-align: center;">
-                <ion-icon name="car" style="font-size: 24px; color: var(--ion-color-tertiary);"></ion-icon>
-                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-tertiary);">${stats.todayServices}</h2>
-                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Servicios Hoy</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6">
-            <ion-card style="margin: 0; height: 100%;">
-              <ion-card-content style="padding: 12px; text-align: center;">
-                <ion-icon name="cash" style="font-size: 24px; color: var(--ion-color-success);"></ion-icon>
-                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-success);">€${stats.todayIncome.toFixed(2)}</h2>
-                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Ingresos Hoy</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
       </ion-grid>
     `;
     
