@@ -415,12 +415,12 @@ class FleetManagementView {
       const html = `
         <div style="text-align: center; padding: 40px 20px;">
           <ion-icon name="people" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
-          <h2>No tienes taxistas en tu flota</h2>
+          <h2 style="color: var(--ion-text-color);">No tienes taxistas en tu flota</h2>
           <p style="color: var(--ion-color-medium);">Comparte tu código de invitación para que se unan</p>
           <ion-card style="margin-top: 20px;">
             <ion-card-content style="text-align: center;">
               <p style="font-size: 12px; color: var(--ion-color-medium); margin-bottom: 8px;">Tu código de invitación:</p>
-              <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-step-100); padding: 12px; border-radius: 8px;">
                 ${safeCode}
               </div>
             </ion-card-content>
@@ -450,9 +450,9 @@ class FleetManagementView {
             </div>
           </ion-avatar>
           <ion-label>
-            <h2>${safeName}</h2>
-            <p>${safeNumero} • ${safeEmail}</p>
-            <p style="font-size: 11px;">
+            <h2 style="color: var(--ion-text-color);">${safeName}</h2>
+            <p style="color: var(--ion-color-medium);">${safeNumero} • ${safeEmail}</p>
+            <p style="font-size: 11px; color: var(--ion-color-medium);">
               Total: ${taxista.totalServices} servicios • €${taxista.totalIncome.toFixed(2)}
             </p>
             <p style="font-size: 11px; color: var(--ion-color-success);">
@@ -480,10 +480,10 @@ class FleetManagementView {
       <!-- Invitation Code -->
       <ion-card>
         <ion-card-header>
-          <ion-card-subtitle>Código de Invitación</ion-card-subtitle>
+          <ion-card-subtitle style="color: var(--ion-color-medium);">Código de Invitación</ion-card-subtitle>
         </ion-card-header>
         <ion-card-content style="text-align: center;">
-          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-step-100); padding: 12px; border-radius: 8px;">
             ${safeCode}
           </div>
           <p style="font-size: 12px; color: var(--ion-color-medium); margin-top: 8px;">
@@ -529,7 +529,7 @@ class FleetManagementView {
         const html = `
           <div style="text-align: center; padding: 40px 20px;">
             <ion-icon name="mail-open" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
-            <h2>No hay solicitudes pendientes</h2>
+            <h2 style="color: var(--ion-text-color);">No hay solicitudes pendientes</h2>
             <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
           </div>
         `;
@@ -558,9 +558,9 @@ class FleetManagementView {
               </div>
             </ion-avatar>
             <ion-label>
-              <h2>${safeName}</h2>
-              <p>${safeEmail}</p>
-              <p style="font-size: 11px;">Número: ${safeNumero}</p>
+              <h2 style="color: var(--ion-text-color);">${safeName}</h2>
+              <p style="color: var(--ion-color-medium);">${safeEmail}</p>
+              <p style="font-size: 11px; color: var(--ion-color-medium);">Número: ${safeNumero}</p>
               <p style="font-size: 11px; color: var(--ion-color-medium);">
                 Solicitado: ${safeDate}
               </p>

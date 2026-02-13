@@ -125,6 +125,20 @@ class ReportsView {
     const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
     const activeTaxistas = taxistas.length;
     
+    // Calculate total commissions, tips, and expenses
+    const totalCommissions = services.reduce((sum, s) => sum + (s.commission || 0), 0);
+    const totalTips = services.reduce((sum, s) => sum + (s.tip || 0), 0);
+    
+    // Get expenses for all taxistas in the fleet
+    const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
+    const taxistaIds = taxistas.map(t => t.id);
+    const totalExpenses = expenses
+      .filter(e => taxistaIds.includes(e.userId))
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
+    
+    // Calculate Total Neto: Ingresos - Gastos - Comisiones + Propinas
+    const totalNeto = totalEarnings - totalExpenses - totalCommissions + totalTips;
+    
     // Services by day (last 7 days)
     const last7Days = this.getServicesLast7Days(services);
     
@@ -139,6 +153,10 @@ class ReportsView {
       totalEarnings,
       averageService,
       activeTaxistas,
+      totalCommissions,
+      totalTips,
+      totalExpenses,
+      totalNeto,
       last7Days,
       earningsByTaxista,
       taxistaStats
@@ -254,8 +272,8 @@ class ReportsView {
           <ion-col size="6" size-md="3">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.averageService.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Promedio/Servicio</div>
+                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.totalNeto.toFixed(2)}</div>
+                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Neto</div>
                 <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
