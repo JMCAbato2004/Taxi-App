@@ -1025,6 +1025,12 @@ window.app = {
       console.warn('fleetManagementView not available, dispatching event instead');
       window.dispatchEvent(new CustomEvent('taxista-updated'));
     }
+    
+    // Refresh dashboard to update pending requests banner
+    if (dashboardView) {
+      console.log('Refreshing dashboard to update banner...');
+      await dashboardView.render();
+    }
   },
   
   rejectRequest: async (requestId) => {
@@ -1074,6 +1080,12 @@ window.app = {
       const user = authAdapter.getCurrentUser();
       await fleetManagementView.loadFleet(user);
       await fleetManagementView.loadRequests(user);
+    }
+    
+    // Refresh dashboard to update pending requests banner
+    if (dashboardView) {
+      console.log('Refreshing dashboard to update banner...');
+      await dashboardView.render();
     }
   },
   
