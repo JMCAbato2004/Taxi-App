@@ -414,7 +414,8 @@ class ReportsView {
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">TAXISTA</th>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">SERVICIOS</th>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">INGRESOS</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">PROMEDIO</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">PROPINAS</th>
+              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">COMISIONES</th>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">GASTOS</th>
               <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">NETO</th>
             </tr>
@@ -435,7 +436,8 @@ class ReportsView {
                 </td>
                 <td style="padding: 12px; font-size: 14px;">${stats.totalServices}</td>
                 <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</td>
-                <td style="padding: 12px; font-size: 14px;">€${stats.averageService.toFixed(2)}</td>
+                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-tertiary);">€${stats.tips.toFixed(2)}</td>
+                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-warning);">€${stats.commissions.toFixed(2)}</td>
                 <td style="padding: 12px; font-size: 14px; color: var(--ion-color-danger);">€${stats.totalExpenses.toFixed(2)}</td>
                 <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-primary);">€${stats.netEarnings.toFixed(2)}</td>
               </tr>
