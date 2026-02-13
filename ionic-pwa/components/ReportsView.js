@@ -58,7 +58,23 @@ class ReportsView {
     document.body.appendChild(modal);
     await modal.componentOnReady();
 
+    // Listen for service updates to refresh reports
+    const serviceUpdateHandler = async () => {
+      console.log('Reloading reports due to service-saved event');
+      // Only reload if modal is still present
+      if (document.body.contains(modal)) {
+        await this.loadReports(user);
+      }
+    };
+    window.addEventListener('service-saved', serviceUpdateHandler);
+
+    // Clean up listener when modal is dismissed
+    modal.addEventListener('ionModalDidDismiss', () => {
+      window.removeEventListener('service-saved', serviceUpdateHandler);
+    });
+
     return modal;
+  }    return modal;
   }
 
   /**
