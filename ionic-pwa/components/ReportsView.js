@@ -82,33 +82,46 @@ class ReportsView {
    */
   async loadReports(user) {
     try {
-      // Get all services and users
-      const allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      console.log('ReportsView.loadReports: Starting for user:', user.id, user.rol);
+      
+      // Get all services using ReconcileAdapter (handles role filtering)
+      const allServices = await this.reconcileAdapter.getServices();
+      console.log('ReportsView.loadReports: Services from adapter:', allServices.length);
+      
+      // Get all users
       const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      console.log('ReportsView.loadReports: Total users:', allUsers.length);
       
       // Filter services by role
       let relevantServices = [];
       let relevantTaxistas = [];
       
       if (user.rol === 'PATRON') {
+        console.log('ReportsView.loadReports: PATRON mode');
         // Get associated taxistas
         relevantTaxistas = allUsers.filter(u => 
           u.rol === 'TAXISTA' && 
           u.estado === 'asociado' && 
           u.patronId === user.id
         );
+        console.log('ReportsView.loadReports: Associated taxistas:', relevantTaxistas.length);
         
         // Get services from associated taxistas
         const taxistaIds = relevantTaxistas.map(t => t.id);
         relevantServices = allServices.filter(s => taxistaIds.includes(s.userId));
+        console.log('ReportsView.loadReports: Filtered services for PATRON:', relevantServices.length);
       } else if (user.rol === 'TAXISTA') {
+        console.log('ReportsView.loadReports: TAXISTA mode');
         // Only own services
         relevantServices = allServices.filter(s => s.userId === user.id);
         relevantTaxistas = [user];
+        console.log('ReportsView.loadReports: Filtered services for TAXISTA:', relevantServices.length);
       }
       
+      console.log('ReportsView.loadReports: Calculating stats...');
       // Calculate statistics
       const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers);
+      console.log('ReportsView.loadReports: Stats calculated:', stats);
       
       // Render reports
       this.renderAdvancedReports(stats, user, relevantTaxistas);
