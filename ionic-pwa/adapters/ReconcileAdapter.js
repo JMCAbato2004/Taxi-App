@@ -95,9 +95,15 @@ class ReconcileAdapter {
       
       if (!currentUser) throw new Error('Usuario no autenticado');
 
+      // Create datetime field for compatibility (combines date and time)
+      const datetime = serviceData.date && serviceData.time 
+        ? `${serviceData.date}T${serviceData.time}:00`
+        : new Date().toISOString();
+
       const service = {
         id: 'service-' + Date.now(),
         ...serviceData,
+        datetime: datetime, // Add datetime field for compatibility
         userId: currentUser.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -139,11 +145,23 @@ class ReconcileAdapter {
         throw new Error('Servicio no encontrado');
       }
 
-      services[index] = {
+      // Update datetime field if date or time changed
+      const updatedService = {
         ...services[index],
         ...updates,
         updatedAt: new Date().toISOString()
       };
+
+      // Recalculate datetime if date or time was updated
+      if (updates.date || updates.time) {
+        const date = updates.date || updatedService.date;
+        const time = updates.time || updatedService.time;
+        if (date && time) {
+          updatedService.datetime = `${date}T${time}:00`;
+        }
+      }
+
+      services[index] = updatedService;
 
       localStorage.setItem('taxi_services', JSON.stringify(services));
       return services[index];
