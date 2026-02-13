@@ -214,16 +214,23 @@ class ReportsView {
     const weekAgo = new Date();
     weekAgo.setDate(weekAgo.getDate() - 7);
     
+    console.log('getServicesLast7Days: Total services to process:', services.length);
+    console.log('getServicesLast7Days: Week ago date:', weekAgo.toISOString());
+    
     services.forEach(service => {
       const serviceDate = new Date(service.datetime || service.date);
+      console.log('getServicesLast7Days: Service date:', serviceDate.toISOString(), 'is after weekAgo:', serviceDate >= weekAgo);
+      
       if (serviceDate >= weekAgo) {
         const dayName = days[serviceDate.getDay()];
         if (dailyServices.hasOwnProperty(dayName)) {
           dailyServices[dayName]++;
+          console.log('getServicesLast7Days: Added service to', dayName, '- new count:', dailyServices[dayName]);
         }
       }
     });
     
+    console.log('getServicesLast7Days: Final daily services:', dailyServices);
     return dailyServices;
   }
   

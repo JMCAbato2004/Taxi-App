@@ -213,12 +213,20 @@ class FleetManagementView {
       
       // Calculate stats for each taxista
       const today = new Date().toISOString().split('T')[0];
+      console.log('loadFleet: Today date for filtering:', today);
+      
       const taxistasWithStats = associatedTaxistas.map(taxista => {
         const taxistaServices = services.filter(s => s.userId === taxista.id);
+        console.log(`loadFleet: Taxista ${taxista.nombre} - Total services:`, taxistaServices.length);
+        
         const todayServices = taxistaServices.filter(s => {
           const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-          return serviceDate === today;
+          const isToday = serviceDate === today;
+          console.log(`loadFleet: Service ${s.id} - date: ${s.date}, datetime: ${s.datetime}, serviceDate: ${serviceDate}, isToday: ${isToday}`);
+          return isToday;
         });
+        console.log(`loadFleet: Taxista ${taxista.nombre} - Today services:`, todayServices.length);
+        
         const totalIncome = taxistaServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         
