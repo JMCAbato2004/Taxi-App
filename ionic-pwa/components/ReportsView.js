@@ -142,6 +142,9 @@ class ReportsView {
     // Services by day (last 7 days)
     const last7Days = this.getServicesLast7Days(services);
     
+    // Neto by day (last 7 days) - for chart
+    const netoLast7Days = this.getNetoLast7Days(services, taxistas);
+    
     // Earnings by taxista
     const earningsByTaxista = this.getEarningsByTaxista(services, taxistas);
     
@@ -158,6 +161,7 @@ class ReportsView {
       totalExpenses,
       totalNeto,
       last7Days,
+      netoLast7Days,
       earningsByTaxista,
       taxistaStats
     };
@@ -193,6 +197,60 @@ class ReportsView {
     });
     
     return dailyServices;
+  }
+  
+  /**
+   * Get net earnings for last 7 days (for PATRON view)
+   */
+  getNetoLast7Days(services, taxistas) {
+    const days = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+    const dailyNeto = {};
+    
+    // Initialize last 7 days
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      const dayName = days[date.getDay()];
+      dailyNeto[dayName] = 0;
+    }
+    
+    // Get expenses
+    const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
+    const taxistaIds = taxistas.map(t => t.id);
+    
+    // Calculate neto per day
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    
+    // Process services
+    services.forEach(service => {
+      const serviceDate = new Date(service.datetime || service.date);
+      if (serviceDate >= weekAgo) {
+        const dayName = days[serviceDate.getDay()];
+        if (dailyNeto.hasOwnProperty(dayName)) {
+          const amount = service.amount || 0;
+          const commission = service.commission || 0;
+          const tip = service.tip || 0;
+          // Neto = amount - commission + tip
+          dailyNeto[dayName] += (amount - commission + tip);
+        }
+      }
+    });
+    
+    // Subtract expenses per day
+    expenses.forEach(expense => {
+      if (taxistaIds.includes(expense.userId)) {
+        const expenseDate = new Date(expense.date || expense.createdAt);
+        if (expenseDate >= weekAgo) {
+          const dayName = days[expenseDate.getDay()];
+          if (dailyNeto.hasOwnProperty(dayName)) {
+            dailyNeto[dayName] -= (expense.amount || 0);
+          }
+        }
+      }
+    });
+    
+    return dailyNeto;
   }
   
   /**
@@ -296,7 +354,7 @@ class ReportsView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Servicios por Día (Última Semana)</ion-card-title>
+                <ion-card-title style="font-size: 16px;">Evolución del Neto (Última Semana)</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 <canvas id="servicesChart" style="max-height: 250px;"></canvas>
@@ -400,18 +458,18 @@ class ReportsView {
       this.earningsChart.destroy();
     }
     
-    // Services chart
+    // Services chart - now showing Neto evolution
     const servicesCtx = document.getElementById('servicesChart');
     if (servicesCtx && typeof Chart !== 'undefined') {
       this.servicesChart = new Chart(servicesCtx, {
         type: 'line',
         data: {
-          labels: Object.keys(stats.last7Days),
+          labels: Object.keys(stats.netoLast7Days),
           datasets: [{
-            label: 'Servicios',
-            data: Object.values(stats.last7Days),
-            borderColor: 'rgb(59, 130, 246)',
-            backgroundColor: 'rgba(59, 130, 246, 0.1)',
+            label: 'Neto (€)',
+            data: Object.values(stats.netoLast7Days),
+            borderColor: 'rgb(34, 197, 94)',
+            backgroundColor: 'rgba(34, 197, 94, 0.1)',
             tension: 0.4,
             fill: true
           }]
@@ -428,7 +486,9 @@ class ReportsView {
             y: {
               beginAtZero: true,
               ticks: {
-                precision: 0
+                callback: function(value) {
+                  return '€' + value.toFixed(2);
+                }
               }
             }
           }
