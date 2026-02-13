@@ -468,8 +468,8 @@ class ReportsView {
           datasets: [{
             label: 'Neto (€)',
             data: Object.values(stats.netoLast7Days),
-            borderColor: 'rgb(34, 197, 94)',
-            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+            borderColor: 'rgb(59, 130, 246)',
+            backgroundColor: 'rgba(59, 130, 246, 0.1)',
             tension: 0.4,
             fill: true
           }]
