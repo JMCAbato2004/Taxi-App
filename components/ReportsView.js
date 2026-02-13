@@ -6,11 +6,16 @@
 
 class ReportsView {
   constructor(authAdapter, reconcileAdapter) {
-    this.authAdapter = authAdapter;
-    this.reconcileAdapter = reconcileAdapter;
-    this.servicesChart = null;
-    this.earningsChart = null;
-  }
+      this.authAdapter = authAdapter;
+      this.reconcileAdapter = reconcileAdapter;
+      this.servicesChart = null;
+      this.earningsChart = null;
+
+      // Date range for TAXISTA view
+      this.selectedStartDate = null;
+      this.selectedEndDate = null;
+    }
+
 
   /**
    * Show reports modal
@@ -33,7 +38,44 @@ class ReportsView {
    * Create reports modal
    */
   async createModal(user) {
+    this.currentUser = user;
+    
+    // Set default date range to current month
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    
+    this.selectedStartDate = firstDay.toISOString().split('T')[0];
+    this.selectedEndDate = lastDay.toISOString().split('T')[0];
+    
     const modal = document.createElement('ion-modal');
+    
+    // Different header for TAXISTA vs PATRON
+    const dateRangeSelector = user.rol === 'TAXISTA' ? `
+      <ion-toolbar>
+        <div style="display: flex; gap: 8px; padding: 8px; align-items: center; flex-wrap: wrap;">
+          <ion-label style="font-size: 14px; font-weight: 500;">Período:</ion-label>
+          <input 
+            type="date" 
+            id="startDate" 
+            value="${this.selectedStartDate}"
+            style="padding: 8px; border: 1px solid var(--ion-color-medium); border-radius: 4px; font-size: 14px;"
+          />
+          <ion-label style="font-size: 14px;">-</ion-label>
+          <input 
+            type="date" 
+            id="endDate" 
+            value="${this.selectedEndDate}"
+            style="padding: 8px; border: 1px solid var(--ion-color-medium); border-radius: 4px; font-size: 14px;"
+          />
+          <ion-button size="small" id="applyDateRange">
+            <ion-icon name="checkmark" slot="start"></ion-icon>
+            Aplicar
+          </ion-button>
+        </div>
+      </ion-toolbar>
+    ` : '';
+    
     modal.innerHTML = `
       <ion-header>
         <ion-toolbar color="primary">
@@ -44,6 +86,7 @@ class ReportsView {
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
+        ${dateRangeSelector}
       </ion-header>
       <ion-content class="ion-padding">
         <div id="reports-content">
@@ -57,6 +100,23 @@ class ReportsView {
 
     document.body.appendChild(modal);
     await modal.componentOnReady();
+    
+    // Add event listener for date range filter (TAXISTA only)
+    if (user.rol === 'TAXISTA') {
+      const applyButton = modal.querySelector('#applyDateRange');
+      if (applyButton) {
+        applyButton.addEventListener('click', () => {
+          const startDateInput = modal.querySelector('#startDate');
+          const endDateInput = modal.querySelector('#endDate');
+          
+          if (startDateInput && endDateInput) {
+            this.selectedStartDate = startDateInput.value;
+            this.selectedEndDate = endDateInput.value;
+            this.loadReports(user);
+          }
+        });
+      }
+    }
 
     return modal;
   }
@@ -88,11 +148,25 @@ class ReportsView {
       } else if (user.rol === 'TAXISTA') {
         // Only own services
         relevantServices = allServices.filter(s => s.userId === user.id);
+        
+        // Filter by date range for TAXISTA
+        if (this.selectedStartDate && this.selectedEndDate) {
+          const startDate = new Date(this.selectedStartDate);
+          startDate.setHours(0, 0, 0, 0);
+          const endDate = new Date(this.selectedEndDate);
+          endDate.setHours(23, 59, 59, 999);
+          
+          relevantServices = relevantServices.filter(s => {
+            const serviceDate = new Date(s.datetime || s.date);
+            return serviceDate >= startDate && serviceDate <= endDate;
+          });
+        }
+        
         relevantTaxistas = [user];
       }
       
       // Calculate statistics
-      const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers);
+      const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers, user);
       
       // Render reports
       this.renderAdvancedReports(stats, user, relevantTaxistas);
@@ -119,7 +193,7 @@ class ReportsView {
   /**
    * Calculate advanced statistics
    */
-  calculateAdvancedStats(services, taxistas, allUsers) {
+  calculateAdvancedStats(services, taxistas, allUsers, user) {
     const totalServices = services.length;
     const totalEarnings = services.reduce((sum, s) => sum + (s.amount || 0), 0);
     const averageService = totalServices > 0 ? totalEarnings / totalServices : 0;
@@ -131,8 +205,8 @@ class ReportsView {
     // Earnings by taxista
     const earningsByTaxista = this.getEarningsByTaxista(services, taxistas);
     
-    // Detailed taxista stats
-    const taxistaStats = this.getTaxistaDetailedStats(services, taxistas);
+    // Detailed taxista stats (with date filtering for expenses if TAXISTA)
+    const taxistaStats = this.getTaxistaDetailedStats(services, taxistas, user);
     
     return {
       totalServices,
@@ -194,7 +268,7 @@ class ReportsView {
   /**
    * Get detailed stats per taxista
    */
-  getTaxistaDetailedStats(services, taxistas) {
+  getTaxistaDetailedStats(services, taxistas, user) {
     return taxistas.map(taxista => {
       const taxistaServices = services.filter(s => s.userId === taxista.id);
       const totalServices = taxistaServices.length;
@@ -206,7 +280,21 @@ class ReportsView {
       
       // Get expenses (if available)
       const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
-      const taxistaExpenses = expenses.filter(e => e.userId === taxista.id);
+      let taxistaExpenses = expenses.filter(e => e.userId === taxista.id);
+      
+      // Filter expenses by date range if TAXISTA
+      if (user && user.rol === 'TAXISTA' && this.selectedStartDate && this.selectedEndDate) {
+        const startDate = new Date(this.selectedStartDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(this.selectedEndDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        taxistaExpenses = taxistaExpenses.filter(e => {
+          const expenseDate = new Date(e.date || e.createdAt);
+          return expenseDate >= startDate && expenseDate <= endDate;
+        });
+      }
+      
       const totalExpenses = taxistaExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
       
       return {
@@ -229,91 +317,184 @@ class ReportsView {
     const container = document.getElementById('reports-content');
     if (!container) return;
     
-    container.innerHTML = `
-      <!-- Summary Cards -->
-      <ion-grid>
-        <ion-row>
-          <ion-col size="6" size-md="3">
-            <ion-card style="margin: 0;">
-              <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${stats.totalServices}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Servicios</div>
-                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-card style="margin: 0;">
-              <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.totalEarnings.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Ingresos Totales</div>
-                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-card style="margin: 0;">
-              <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.averageService.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Promedio/Servicio</div>
-                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-card style="margin: 0;">
-              <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Taxistas Activos</div>
-                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+    // Different view for TAXISTA vs PATRON
+    if (user.rol === 'TAXISTA') {
+      // Calculate additional stats for TAXISTA
+      const taxistaStats = stats.taxistaStats[0] || {
+        totalServices: 0,
+        grossEarnings: 0,
+        commissions: 0,
+        tips: 0,
+        totalExpenses: 0,
+        netEarnings: 0
+      };
       
-      <!-- Charts Row -->
-      <ion-grid>
-        <ion-row>
-          <ion-col size="12" size-md="6">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Servicios por Día (Última Semana)</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <canvas id="servicesChart" style="max-height: 250px;"></canvas>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="12" size-md="6">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Ingresos por Taxista (Este Mes)</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <canvas id="earningsChart" style="max-height: 250px;"></canvas>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      // Calculate total income (earnings + tips)
+      const totalIncome = taxistaStats.grossEarnings + taxistaStats.tips;
       
-      <!-- Detailed Table -->
-      <ion-card>
-        <ion-card-header>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <ion-card-title style="font-size: 16px;">Detalle por Taxista</ion-card-title>
-            <ion-button size="small" color="primary" onclick="window.app.exportReports()">
-              <ion-icon name="download" slot="start"></ion-icon>
-              Exportar
-            </ion-button>
+      // View for TAXISTA - 6 cards
+      container.innerHTML = `
+        <!-- Summary Cards for TAXISTA -->
+        <div style="margin-bottom: 12px; text-align: center; color: var(--ion-color-medium); font-size: 14px;">
+          ${this.selectedStartDate && this.selectedEndDate ? 
+            `Del ${new Date(this.selectedStartDate).toLocaleDateString('es-ES')} al ${new Date(this.selectedEndDate).toLocaleDateString('es-ES')}` : 
+            'Período actual'}
+        </div>
+        
+        <ion-grid>
+          <ion-row>
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: var(--ion-color-primary);">${taxistaStats.totalServices}</div>
+                  <div style="font-size: 13px; color: var(--ion-color-medium); margin-top: 4px; font-weight: 500;">Total Servicios</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: var(--ion-color-success);">€${totalIncome.toFixed(2)}</div>
+                  <div style="font-size: 13px; color: var(--ion-color-medium); margin-top: 4px; font-weight: 500;">Ingresos Totales</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: var(--ion-color-tertiary);">€${taxistaStats.tips.toFixed(2)}</div>
+                  <div style="font-size: 13px; color: var(--ion-color-medium); margin-top: 4px; font-weight: 500;">Propinas</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: var(--ion-color-danger);">€${taxistaStats.totalExpenses.toFixed(2)}</div>
+                  <div style="font-size: 13px; color: var(--ion-color-medium); margin-top: 4px; font-weight: 500;">Gastos</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: var(--ion-color-warning);">€${taxistaStats.commissions.toFixed(2)}</div>
+                  <div style="font-size: 13px; color: var(--ion-color-medium); margin-top: 4px; font-weight: 500;">Comisiones</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0; background: linear-gradient(135deg, var(--ion-color-primary) 0%, var(--ion-color-primary-shade) 100%);">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 32px; font-weight: bold; color: white;">€${taxistaStats.netEarnings.toFixed(2)}</div>
+                  <div style="font-size: 13px; color: white; margin-top: 4px; font-weight: 500;">Neto</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+        
+        ${stats.totalServices === 0 ? `
+          <div style="text-align: center; padding: 40px; margin-top: 20px;">
+            <ion-icon name="calendar-outline" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
+            <h3 style="color: var(--ion-color-medium); margin-top: 16px;">No hay servicios en este período</h3>
+            <p style="color: var(--ion-color-medium); font-size: 14px;">Selecciona otro rango de fechas para ver tus servicios</p>
           </div>
-        </ion-card-header>
-        <ion-card-content style="padding: 0;">
-          ${this.renderTaxistaTable(stats.taxistaStats)}
-        </ion-card-content>
-      </ion-card>
-    `;
+        ` : ''}
+      `;
+    } else {
+      // Full view for PATRON (unchanged)
+      container.innerHTML = `
+        <!-- Summary Cards -->
+        <ion-grid>
+          <ion-row>
+            <ion-col size="6" size-md="3">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${stats.totalServices}</div>
+                  <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Servicios</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.totalEarnings.toFixed(2)}</div>
+                  <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Ingresos Totales</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.averageService.toFixed(2)}</div>
+                  <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Promedio/Servicio</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="6" size-md="3">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
+                  <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Taxistas Activos</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+        
+        <!-- Charts Row -->
+        <ion-grid>
+          <ion-row>
+            <ion-col size="12" size-md="6">
+              <ion-card>
+                <ion-card-header>
+                  <ion-card-title style="font-size: 16px;">Servicios por Día (Última Semana)</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  <canvas id="servicesChart" style="max-height: 250px;"></canvas>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="12" size-md="6">
+              <ion-card>
+                <ion-card-header>
+                  <ion-card-title style="font-size: 16px;">Ingresos por Taxista (Este Mes)</ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  <canvas id="earningsChart" style="max-height: 250px;"></canvas>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+        
+        <!-- Detailed Table -->
+        <ion-card>
+          <ion-card-header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <ion-card-title style="font-size: 16px;">Detalle por Taxista</ion-card-title>
+              <ion-button size="small" color="primary" onclick="window.app.exportReports()">
+                <ion-icon name="download" slot="start"></ion-icon>
+                Exportar
+              </ion-button>
+            </div>
+          </ion-card-header>
+          <ion-card-content style="padding: 0;">
+            ${this.renderTaxistaTable(stats.taxistaStats)}
+          </ion-card-content>
+        </ion-card>
+      `;
+    }
   }
   
   /**
