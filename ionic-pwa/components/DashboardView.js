@@ -462,10 +462,6 @@ class DashboardView {
           <ion-icon slot="start" name="bar-chart"></ion-icon>
           Ver Reportes
         </ion-button>
-        <ion-button expand="block" color="tertiary" onclick="window.app.showBalanceSettings()">
-          <ion-icon slot="start" name="settings"></ion-icon>
-          Ajustes de Balance
-        </ion-button>
       `;
     } else {
       buttons = `
