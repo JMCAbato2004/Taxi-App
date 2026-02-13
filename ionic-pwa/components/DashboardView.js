@@ -146,8 +146,14 @@ class DashboardView {
       const today = new Date().toISOString().split('T')[0];
       console.log('loadStats: Today date:', today);
       
-      const todayServices = filteredServices.filter(s => s.date === today);
-      const todayExpenses = filteredExpenses.filter(e => e.date === today);
+      const todayServices = filteredServices.filter(s => {
+        const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+        return serviceDate === today;
+      });
+      const todayExpenses = filteredExpenses.filter(e => {
+        const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];
+        return expenseDate === today;
+      });
       
       console.log('loadStats: Today services:', todayServices.length);
       console.log('loadStats: Today expenses:', todayExpenses.length);
