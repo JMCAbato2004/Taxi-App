@@ -209,8 +209,27 @@ class ReconcileAdapter {
    */
   async createExpense(expenseData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) throw new Error('Usuario no autenticado');
+      console.log('ReconcileAdapter.createExpense: Starting...');
+      console.log('ReconcileAdapter.createExpense: authAdapter available?', !!this.authAdapter);
+      
+      // Try to get user from authAdapter first
+      let currentUser = null;
+      if (this.authAdapter) {
+        // Use async method to ensure we get the user from secure storage
+        currentUser = await this.authAdapter.getCurrentUserAsync();
+        console.log('ReconcileAdapter.createExpense: User from authAdapter:', currentUser);
+      }
+      
+      // Fallback to localStorage if authAdapter is not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+        console.log('ReconcileAdapter.createExpense: User from localStorage:', currentUser);
+      }
+      
+      if (!currentUser) {
+        console.error('ReconcileAdapter.createExpense: No user found!');
+        throw new Error('Usuario no autenticado');
+      }
 
       const expense = {
         id: 'expense-' + Date.now(),
@@ -224,6 +243,7 @@ class ReconcileAdapter {
       expenses.push(expense);
       localStorage.setItem('taxi_expenses', JSON.stringify(expenses));
 
+      console.log('ReconcileAdapter.createExpense: Expense created successfully:', expense.id);
       return expense;
     } catch (error) {
       console.error('Create expense error:', error);

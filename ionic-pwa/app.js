@@ -808,6 +808,8 @@ console.log('App.js loaded');
 
 // Export app functions for global access
 window.app = {
+  authAdapter: authAdapter, // Export authAdapter for use in modals
+  
   showReports: async () => {
     if (reportsView) {
       await reportsView.show();
