@@ -52,15 +52,15 @@ class BalanceSettingsModal {
   /**
    * Show the modal
    */
-  async show() {
-    const modal = await this.createModal();
+  async show(taxistaId = null) {
+    const modal = await this.createModal(taxistaId);
     await modal.present();
   }
 
   /**
    * Create the modal
    */
-  async createModal() {
+  async createModal(taxistaId = null) {
     const taxistas = this.getAssociatedTaxistas();
     
     if (taxistas.length === 0) {
@@ -68,8 +68,8 @@ class BalanceSettingsModal {
       return null;
     }
     
-    // Select first taxista by default
-    this.selectedTaxistaId = taxistas[0].id;
+    // Select specified taxista or first taxista by default
+    this.selectedTaxistaId = taxistaId || taxistas[0].id;
     this.settings = this.loadSettings(this.selectedTaxistaId);
     
     this.modal = document.createElement('ion-modal');

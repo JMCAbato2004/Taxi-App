@@ -460,6 +460,9 @@ class FleetManagementView {
             </p>
           </ion-label>
           <div slot="end" style="display: flex; gap: 4px;">
+            <ion-button fill="clear" color="warning" onclick="window.app.showBalanceSettings('${safeId}')" title="Ajustes de Balance">
+              <ion-icon name="settings"></ion-icon>
+            </ion-button>
             <ion-button fill="clear" onclick="window.app.viewTaxistaDetails('${safeId}')">
               <ion-icon name="eye"></ion-icon>
             </ion-button>

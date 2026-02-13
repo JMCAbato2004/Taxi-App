@@ -843,9 +843,9 @@ window.app = {
     }
   },
   
-  showBalanceSettings: async () => {
+  showBalanceSettings: async (taxistaId = null) => {
     const modal = new BalanceSettingsModal(window.app.authAdapter);
-    await modal.show();
+    await modal.show(taxistaId);
   },
   
   showDataSync: async () => {
