@@ -163,18 +163,18 @@ class ServiceFormModal {
           </p>
 
           <!-- Net Amount Preview -->
-          <ion-card style="margin: 16px 0; background: var(--ion-color-success-tint);">
+          <ion-card style="margin: 16px 0; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%); border: 2px solid var(--ion-color-success);">
             <ion-card-content style="padding: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <p style="margin: 0; font-size: 12px; color: var(--ion-color-success);">Importe Neto</p>
-                  <p style="margin: 4px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
-                    Base <span id="preview-base">€0.00</span>
-                    <span id="preview-commission-text" style="display: none;"> - Comisión <span id="preview-commission">€0.00</span></span>
-                    <span id="preview-tip-text" style="display: none;"> + Propina <span id="preview-tip">€0.00</span></span>
+                  <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--ion-text-color);">Importe Neto</p>
+                  <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--ion-text-color); opacity: 0.8;">
+                    Base <span id="preview-base" style="font-weight: 600;">€0.00</span>
+                    <span id="preview-commission-text" style="display: none;"> - Comisión <span id="preview-commission" style="font-weight: 600;">€0.00</span></span>
+                    <span id="preview-tip-text" style="display: none;"> + Propina <span id="preview-tip" style="font-weight: 600;">€0.00</span></span>
                   </p>
                 </div>
-                <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-success);" id="preview-net">
+                <div style="font-size: 26px; font-weight: bold; color: var(--ion-color-success);" id="preview-net">
                   €0.00
                 </div>
               </div>

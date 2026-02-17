@@ -17,10 +17,12 @@ class EmailVerificationModal {
    * Show verification modal
    * @param {string} email - Email that needs verification
    * @param {Function} onSuccess - Callback on successful verification
+   * @param {string} code - Verification code (optional, for development display)
    */
-  async show(email, onSuccess) {
+  async show(email, onSuccess, code = null) {
     this.email = email;
     this.onSuccess = onSuccess;
+    this.verificationCode = code; // Store code for display
     
     // Create modal if it doesn't exist
     if (!this.modal) {
@@ -29,6 +31,13 @@ class EmailVerificationModal {
     
     // Reset form
     this.resetForm();
+    
+    // Display code in UI if in development/staging
+    if (code) {
+      setTimeout(() => {
+        this.displayCodeInUI(code);
+      }, 100);
+    }
     
     // Present modal
     await this.modal.present();
@@ -145,15 +154,76 @@ class EmailVerificationModal {
     if (!noteContent || !noteCard) return;
     
     const isProduction = this.emailVerificationService.isProductionEnvironment();
+    const showCodeInUI = window.environmentConfig && window.environmentConfig.get('showVerificationCodeInUI');
     
     if (isProduction) {
       // Production mode
       noteContent.innerHTML = '<strong>Revisa tu bandeja de entrada</strong> y la carpeta de spam. El código fue enviado a tu correo electrónico.';
       noteCard.style.background = 'var(--ion-color-primary-tint)';
     } else {
-      // Development mode
-      noteContent.innerHTML = '<strong>Modo desarrollo:</strong> El código se muestra en la consola del navegador (F12)';
-      noteCard.style.background = 'var(--ion-color-warning-tint)';
+      // Development/Staging mode
+      if (showCodeInUI) {
+        // Show code in UI for easy access
+        noteContent.innerHTML = `
+          <strong>🔧 Modo Desarrollo/Demo</strong><br>
+          <span style="font-size: 11px;">El código se muestra aquí para facilitar las pruebas:</span><br>
+          <div id="dev-code-display" style="margin-top: 8px; padding: 12px; background: rgba(255,255,255,0.9); border-radius: 8px; text-align: center;">
+            <div style="font-size: 11px; color: var(--ion-color-medium); margin-bottom: 4px;">CÓDIGO DE VERIFICACIÓN</div>
+            <div style="font-size: 28px; font-weight: bold; letter-spacing: 4px; color: var(--ion-color-primary); font-family: monospace;">
+              ------
+            </div>
+            <button id="copy-code-btn" style="margin-top: 8px; padding: 6px 12px; background: var(--ion-color-primary); color: white; border: none; border-radius: 4px; font-size: 11px; cursor: pointer;">
+              📋 Copiar Código
+            </button>
+          </div>
+        `;
+        noteCard.style.background = 'linear-gradient(135deg, rgba(255, 193, 7, 0.2) 0%, rgba(255, 152, 0, 0.2) 100%)';
+        noteCard.style.border = '2px solid var(--ion-color-warning)';
+      } else {
+        noteContent.innerHTML = '<strong>Modo desarrollo:</strong> El código se muestra en la consola del navegador (F12)';
+        noteCard.style.background = 'var(--ion-color-warning-tint)';
+      }
+    }
+  }
+
+  /**
+   * Display verification code in UI (development/staging only)
+   * @param {string} code - The verification code
+   */
+  displayCodeInUI(code) {
+    const showCodeInUI = window.environmentConfig && window.environmentConfig.get('showVerificationCodeInUI');
+    
+    if (!showCodeInUI) return;
+    
+    const codeDisplay = this.modal.querySelector('#dev-code-display div:nth-child(2)');
+    if (codeDisplay) {
+      codeDisplay.textContent = code;
+      codeDisplay.style.color = 'var(--ion-color-success)';
+      
+      // Setup copy button
+      const copyBtn = this.modal.querySelector('#copy-code-btn');
+      if (copyBtn) {
+        copyBtn.onclick = () => {
+          navigator.clipboard.writeText(code).then(() => {
+            copyBtn.textContent = '✅ Copiado!';
+            setTimeout(() => {
+              copyBtn.textContent = '📋 Copiar Código';
+            }, 2000);
+          }).catch(() => {
+            // Fallback for older browsers
+            const textArea = document.createElement('textarea');
+            textArea.value = code;
+            document.body.appendChild(textArea);
+            textArea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textArea);
+            copyBtn.textContent = '✅ Copiado!';
+            setTimeout(() => {
+              copyBtn.textContent = '📋 Copiar Código';
+            }, 2000);
+          });
+        };
+      }
     }
   }
 

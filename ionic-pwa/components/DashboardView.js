@@ -161,16 +161,24 @@ class DashboardView {
       console.log('loadStats: Today services:', todayServices.length);
       console.log('loadStats: Today expenses:', todayExpenses.length);
       
-      // Calculate total income (gross amount before commissions)
-      const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+      // Calculate total income (gross amount)
+      const totalIncomeBase = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+      
+      // Calculate tips
+      const totalTips = todayServices.reduce((sum, s) => sum + parseFloat(s.tip || 0), 0);
+      
+      // For both TAXISTA and PATRON: Income includes tips
+      const totalIncome = totalIncomeBase + totalTips;
       
       // Calculate total expenses
       const totalExpenses = todayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
       
-      // Calculate net amount (income + tips - commissions - expenses)
+      // Calculate commissions
       const totalCommissions = todayServices.reduce((sum, s) => sum + parseFloat(s.commission || 0), 0);
-      const totalTips = todayServices.reduce((sum, s) => sum + parseFloat(s.tip || 0), 0);
-      const netAmount = totalIncome + totalTips - totalCommissions - totalExpenses;
+      
+      // Calculate net amount (income - commissions - expenses)
+      // Income already includes tips for both roles
+      const netAmount = totalIncome - totalCommissions - totalExpenses;
       
       this.stats = {
         servicesCount: todayServices.length,
@@ -453,10 +461,24 @@ class DashboardView {
     let buttons = '';
     
     if (user.rol === 'PATRON') {
+      // Count pending requests
+      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
+      const pendingRequests = requests.filter(r => 
+        r.patronId === user.id && 
+        r.estado === 'pendiente'
+      );
+      const pendingCount = pendingRequests.length;
+      
+      // Create badge HTML if there are pending requests
+      const badgeHTML = pendingCount > 0 
+        ? `<ion-badge color="danger" style="margin-left: 8px;">${pendingCount}</ion-badge>` 
+        : '';
+      
       buttons = `
         <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
           <ion-icon slot="start" name="people"></ion-icon>
           Gestionar Flota
+          ${badgeHTML}
         </ion-button>
         <ion-button expand="block" color="success" onclick="window.app.showReports()">
           <ion-icon slot="start" name="bar-chart"></ion-icon>
@@ -468,10 +490,6 @@ class DashboardView {
         <ion-button expand="block" color="primary" onclick="window.app.showTaxistaPanel()">
           <ion-icon slot="start" name="person-circle"></ion-icon>
           Mi Panel Personal
-        </ion-button>
-        <ion-button expand="block" color="success" onclick="window.app.showBalanceLiquidacion()">
-          <ion-icon slot="start" name="cash"></ion-icon>
-          Balance y Liquidación
         </ion-button>
         <ion-button expand="block" color="tertiary" onclick="window.app.showReports()">
           <ion-icon slot="start" name="bar-chart"></ion-icon>

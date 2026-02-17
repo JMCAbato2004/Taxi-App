@@ -350,15 +350,36 @@ class ReconcileAdapter {
       const reconciliations = JSON.parse(localStorage.getItem('taxi_reconciliations') || '[]');
       
       // Filter by role
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) return [];
+      const currentUser = this.authAdapter ? this.authAdapter.getCurrentUser() : null;
+      if (!currentUser) {
+        console.log('No current user found for getReconciliations');
+        return [];
+      }
+
+      console.log('Getting reconciliations for user:', currentUser.id, 'role:', currentUser.rol);
+      console.log('Total reconciliations in storage:', reconciliations.length);
 
       if (currentUser.rol === 'TAXISTA') {
-        return reconciliations.filter(r => r.userId === currentUser.id);
+        const filtered = reconciliations.filter(r => r.userId === currentUser.id);
+        console.log('Filtered reconciliations for TAXISTA:', filtered.length);
+        return filtered;
       }
 
       // PATRON sees all reconciliations from associated taxistas
-      return reconciliations;
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const associatedTaxistas = users.filter(u => 
+        u.rol === 'TAXISTA' && 
+        u.estado === 'asociado' && 
+        u.patronId === currentUser.id
+      );
+      
+      const taxistaIds = associatedTaxistas.map(t => t.id);
+      const filtered = reconciliations.filter(r => 
+        r.userId === currentUser.id || taxistaIds.includes(r.userId)
+      );
+      
+      console.log('Filtered reconciliations for PATRON:', filtered.length);
+      return filtered;
     } catch (error) {
       console.error('Get reconciliations error:', error);
       return [];
@@ -372,8 +393,11 @@ class ReconcileAdapter {
    */
   async saveReconciliation(reconciliationData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) throw new Error('Usuario no autenticado');
+      const currentUser = this.authAdapter ? this.authAdapter.getCurrentUser() : null;
+      if (!currentUser) {
+        console.error('No current user found');
+        throw new Error('Usuario no autenticado');
+      }
 
       const reconciliation = {
         id: 'reconciliation-' + Date.now(),
@@ -387,6 +411,7 @@ class ReconcileAdapter {
       reconciliations.push(reconciliation);
       localStorage.setItem('taxi_reconciliations', JSON.stringify(reconciliations));
 
+      console.log('Reconciliation saved successfully:', reconciliation.id);
       return reconciliation;
     } catch (error) {
       console.error('Save reconciliation error:', error);

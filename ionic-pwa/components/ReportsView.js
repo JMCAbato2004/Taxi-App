@@ -482,11 +482,13 @@ class ReportsView {
     const container = document.getElementById('reports-content');
     if (!container) return;
     
+    const isTaxista = user.rol === 'TAXISTA';
+    
     container.innerHTML = `
       <!-- Summary Cards -->
       <ion-grid>
         <ion-row>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="${isTaxista ? '4' : '3'}">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${stats.totalServices}</div>
@@ -495,7 +497,7 @@ class ReportsView {
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="${isTaxista ? '4' : '3'}">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.totalEarnings.toFixed(2)}</div>
@@ -504,7 +506,7 @@ class ReportsView {
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
+          <ion-col size="6" size-md="${isTaxista ? '4' : '3'}">
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.totalNeto.toFixed(2)}</div>
@@ -513,15 +515,45 @@ class ReportsView {
               </ion-card-content>
             </ion-card>
           </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-card style="margin: 0;">
-              <ion-card-content style="text-align: center; padding: 16px;">
-                <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
-                <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Taxistas Activos</div>
-                <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
+          ${isTaxista ? `
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.totalTips.toFixed(2)}</div>
+                  <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Propinas</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">€${stats.totalCommissions.toFixed(2)}</div>
+                  <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Comisiones</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col size="6" size-md="4">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-danger);">€${stats.totalExpenses.toFixed(2)}</div>
+                  <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Gastos</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          ` : `
+            <ion-col size="6" size-md="3">
+              <ion-card style="margin: 0;">
+                <ion-card-content style="text-align: center; padding: 16px;">
+                  <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
+                  <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Taxistas Activos</div>
+                  <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          `}
         </ion-row>
       </ion-grid>
       
@@ -541,7 +573,7 @@ class ReportsView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Ingresos por Taxista (Este Mes)</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">${isTaxista ? 'Distribución de Ingresos' : 'Ingresos por Taxista (Este Mes)'}</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 <canvas id="earningsChart" style="max-height: 250px;"></canvas>
@@ -551,30 +583,34 @@ class ReportsView {
         </ion-row>
       </ion-grid>
       
-      <!-- Detailed Table -->
-      <ion-card>
-        <ion-card-header>
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Detalle por Taxista</ion-card-title>
-            <ion-button size="small" color="primary" id="export-reports-btn">
-              <ion-icon name="download" slot="start"></ion-icon>
-              Exportar
-            </ion-button>
-          </div>
-        </ion-card-header>
-        <ion-card-content style="padding: 0;">
-          ${this.renderTaxistaTable(stats.taxistaStats)}
-        </ion-card-content>
-      </ion-card>
+      ${!isTaxista ? `
+        <!-- Detailed Table (only for PATRON) -->
+        <ion-card>
+          <ion-card-header>
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Detalle por Taxista</ion-card-title>
+              <ion-button size="small" color="primary" id="export-reports-btn">
+                <ion-icon name="download" slot="start"></ion-icon>
+                Exportar
+              </ion-button>
+            </div>
+          </ion-card-header>
+          <ion-card-content style="padding: 0;">
+            ${this.renderTaxistaTable(stats.taxistaStats)}
+          </ion-card-content>
+        </ion-card>
+      ` : ''}
     `;
     
-    // Setup export button listener after rendering
-    setTimeout(() => {
-      const exportBtn = container.querySelector('#export-reports-btn');
-      if (exportBtn) {
-        exportBtn.addEventListener('click', () => this.exportReports());
-      }
-    }, 100);
+    // Setup export button listener after rendering (only for PATRON)
+    if (!isTaxista) {
+      setTimeout(() => {
+        const exportBtn = container.querySelector('#export-reports-btn');
+        if (exportBtn) {
+          exportBtn.addEventListener('click', () => this.exportReports());
+        }
+      }, 100);
+    }
   }
   
   /**
@@ -652,6 +688,16 @@ class ReportsView {
       this.earningsChart.destroy();
     }
     
+    // Get current user to check role
+    const user = this.authAdapter.getCurrentUser();
+    const isTaxista = user && user.rol === 'TAXISTA';
+    
+    // Detect dark mode and set appropriate colors
+    const isDarkMode = document.body.classList.contains('dark') || 
+                       window.matchMedia('(prefers-color-scheme: dark)').matches;
+    const textColor = isDarkMode ? '#ffffff' : '#000000';
+    const gridColor = isDarkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+    
     // Services chart - now showing Neto evolution
     const servicesCtx = document.getElementById('servicesChart');
     if (servicesCtx && typeof Chart !== 'undefined') {
@@ -677,12 +723,24 @@ class ReportsView {
             }
           },
           scales: {
+            x: {
+              ticks: {
+                color: textColor
+              },
+              grid: {
+                color: gridColor
+              }
+            },
             y: {
               beginAtZero: true,
               ticks: {
+                color: textColor,
                 callback: function(value) {
                   return '€' + value.toFixed(2);
                 }
+              },
+              grid: {
+                color: gridColor
               }
             }
           }
@@ -693,45 +751,30 @@ class ReportsView {
     // Earnings chart
     const earningsCtx = document.getElementById('earningsChart');
     if (earningsCtx && typeof Chart !== 'undefined') {
-      if (stats.earningsByTaxista.length === 0) {
-        // Show empty state
+      if (isTaxista) {
+        // For TAXISTA: Show distribution of Ingresos breakdown
+        // Calculate the net amount after deducting commissions and expenses, then add tips
+        const netAmount = stats.totalEarnings - stats.totalCommissions - stats.totalExpenses;
+        
         this.earningsChart = new Chart(earningsCtx, {
           type: 'doughnut',
           data: {
-            labels: ['Sin datos'],
+            labels: ['Neto', 'Propinas', 'Comisiones', 'Gastos'],
             datasets: [{
-              data: [1],
-              backgroundColor: ['#e5e7eb'],
-              borderWidth: 0
-            }]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-              legend: {
-                display: false
-              }
-            }
-          }
-        });
-      } else {
-        this.earningsChart = new Chart(earningsCtx, {
-          type: 'doughnut',
-          data: {
-            labels: stats.earningsByTaxista.map(t => t.name),
-            datasets: [{
-              data: stats.earningsByTaxista.map(t => t.earnings),
-              backgroundColor: [
-                'rgb(34, 197, 94)',
-                'rgb(59, 130, 246)',
-                'rgb(168, 85, 247)',
-                'rgb(245, 158, 11)',
-                'rgb(239, 68, 68)',
-                'rgb(20, 184, 166)',
-                'rgb(251, 146, 60)'
+              data: [
+                netAmount > 0 ? netAmount : 0,
+                stats.totalTips,
+                stats.totalCommissions,
+                stats.totalExpenses
               ],
-              borderWidth: 0
+              backgroundColor: [
+                'rgb(59, 130, 246)',    // Blue for Neto
+                'rgb(34, 197, 94)',     // Green for Tips
+                'rgb(245, 158, 11)',    // Orange for Commissions
+                'rgb(239, 68, 68)'      // Red for Expenses
+              ],
+              borderWidth: 2,
+              borderColor: '#ffffff'
             }]
           },
           options: {
@@ -739,18 +782,93 @@ class ReportsView {
             maintainAspectRatio: true,
             plugins: {
               legend: {
+                display: true,
                 position: 'bottom',
                 labels: {
                   padding: 15,
                   usePointStyle: true,
                   font: {
-                    size: 11
+                    size: 12
+                  },
+                  color: textColor
+                }
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    const label = context.label || '';
+                    const value = context.parsed || 0;
+                    const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                    const percentage = ((value / total) * 100).toFixed(1);
+                    return `${label}: €${value.toFixed(2)} (${percentage}%)`;
                   }
                 }
               }
             }
           }
         });
+      } else {
+        // For PATRON: Show earnings by taxista
+        if (stats.earningsByTaxista.length === 0) {
+          // Show empty state
+          this.earningsChart = new Chart(earningsCtx, {
+            type: 'doughnut',
+            data: {
+              labels: ['Sin datos'],
+              datasets: [{
+                data: [1],
+                backgroundColor: ['#e5e7eb'],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  display: false
+                }
+              }
+            }
+          });
+        } else {
+          this.earningsChart = new Chart(earningsCtx, {
+            type: 'doughnut',
+            data: {
+              labels: stats.earningsByTaxista.map(t => t.name),
+              datasets: [{
+                data: stats.earningsByTaxista.map(t => t.earnings),
+                backgroundColor: [
+                  'rgb(34, 197, 94)',
+                  'rgb(59, 130, 246)',
+                  'rgb(168, 85, 247)',
+                  'rgb(245, 158, 11)',
+                  'rgb(239, 68, 68)',
+                  'rgb(20, 184, 166)',
+                  'rgb(251, 146, 60)'
+                ],
+                borderWidth: 0
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: {
+                legend: {
+                  position: 'bottom',
+                  labels: {
+                    padding: 15,
+                    usePointStyle: true,
+                    font: {
+                      size: 11
+                    },
+                    color: textColor
+                  }
+                }
+              }
+            }
+          });
+        }
       }
     }
   }

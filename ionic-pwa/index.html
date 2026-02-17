@@ -193,16 +193,29 @@
             <ion-tab tab="services">
                 <ion-header>
                     <ion-toolbar color="primary">
-                        <ion-title>Servicios</ion-title>
-                        <ion-buttons slot="end">
-                            <ion-button id="add-service-btn">
-                                <ion-icon name="add"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
+                        <ion-title>Servicios y Gastos</ion-title>
+                    </ion-toolbar>
+                    <ion-toolbar>
+                        <ion-segment id="services-segment" value="services">
+                            <ion-segment-button value="services">
+                                <ion-label>Servicios</ion-label>
+                            </ion-segment-button>
+                            <ion-segment-button value="expenses">
+                                <ion-label>Gastos</ion-label>
+                            </ion-segment-button>
+                        </ion-segment>
                     </ion-toolbar>
                 </ion-header>
-                <ion-content class="ion-padding" id="services-content">
-                    <!-- ServiceListView will render here -->
+                <ion-content class="ion-padding">
+                    <div id="services-content" style="display: block;">
+                        <!-- ServiceListView will render here -->
+                    </div>
+                    <div id="expenses-content" style="display: none;">
+                        <div style="text-align: center; padding: 40px;">
+                            <ion-spinner name="circles"></ion-spinner>
+                            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando gastos...</p>
+                        </div>
+                    </div>
                 </ion-content>
             </ion-tab>
             
@@ -210,18 +223,10 @@
             <ion-tab tab="balance">
                 <ion-header>
                     <ion-toolbar color="primary">
-                        <ion-title>Balance</ion-title>
-                        <ion-buttons slot="end">
-                            <ion-button id="add-expense-btn">
-                                <ion-icon name="add"></ion-icon>
-                            </ion-button>
-                        </ion-buttons>
+                        <ion-title>Balance y Liquidación</ion-title>
                     </ion-toolbar>
                     <ion-toolbar>
-                        <ion-segment id="balance-segment" value="expenses">
-                            <ion-segment-button value="expenses">
-                                <ion-label>Gastos</ion-label>
-                            </ion-segment-button>
+                        <ion-segment id="balance-segment" value="reconciliation">
                             <ion-segment-button value="reconciliation">
                                 <ion-label>Conciliación</ion-label>
                             </ion-segment-button>
@@ -232,13 +237,7 @@
                     </ion-toolbar>
                 </ion-header>
                 <ion-content class="ion-padding">
-                    <div id="expenses-content" style="display: block;">
-                        <div style="text-align: center; padding: 40px;">
-                            <ion-spinner name="circles"></ion-spinner>
-                            <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando gastos...</p>
-                        </div>
-                    </div>
-                    <div id="reconciliation-content" style="display: none;">
+                    <div id="reconciliation-content" style="display: block;">
                         <div style="text-align: center; padding: 40px;">
                             <ion-spinner name="circles"></ion-spinner>
                             <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando conciliación...</p>

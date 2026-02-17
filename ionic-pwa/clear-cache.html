@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Limpiar Caché - Taxi App</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #3880ff;
+            margin-bottom: 20px;
+        }
+        button {
+            background: #3880ff;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #2d6fd8;
+        }
+        .success {
+            background: #10dc60;
+            padding: 15px;
+            border-radius: 5px;
+            color: white;
+            margin-top: 20px;
+            display: none;
+        }
+        .info {
+            background: #ffce00;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        ul {
+            text-align: left;
+            line-height: 1.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 Limpiar Caché de la Aplicación</h1>
+        
+        <p>Esta página te ayudará a limpiar completamente la caché del navegador y el Service Worker.</p>
+        
+        <button onclick="clearEverything()">Limpiar Todo y Recargar</button>
+        <button onclick="unregisterServiceWorker()">Solo Desregistrar Service Worker</button>
+        <button onclick="clearCacheStorage()">Solo Limpiar Cache Storage</button>
+        
+        <div id="success" class="success"></div>
+        
+        <div class="info">
+            <h3>Pasos manuales adicionales:</h3>
+            <ul>
+                <li>Presiona <strong>Ctrl+Shift+R</strong> para forzar recarga</li>
+                <li>Abre DevTools (F12) → Application → Storage → Clear site data</li>
+                <li>O cierra completamente el navegador y vuelve a abrirlo</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        async function unregisterServiceWorker() {
+            if ('serviceWorker' in navigator) {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (let registration of registrations) {
+                    await registration.unregister();
+                    console.log('Service Worker unregistered:', registration);
+                }
+                showSuccess('Service Worker desregistrado correctamente');
+            } else {
+                showSuccess('No hay Service Worker registrado');
+            }
+        }
+
+        async function clearCacheStorage() {
+            if ('caches' in window) {
+                const cacheNames = await caches.keys();
+                for (let cacheName of cacheNames) {
+                    await caches.delete(cacheName);
+                    console.log('Cache deleted:', cacheName);
+                }
+                showSuccess('Cache Storage limpiado correctamente');
+            } else {
+                showSuccess('No hay Cache Storage disponible');
+            }
+        }
+
+        async function clearEverything() {
+            try {
+                // Unregister service workers
+                await unregisterServiceWorker();
+                
+                // Clear cache storage
+                await clearCacheStorage();
+                
+                // Clear localStorage
+                localStorage.clear();
+                
+                // Clear sessionStorage
+                sessionStorage.clear();
+                
+                showSuccess('Todo limpiado correctamente. Redirigiendo en 2 segundos...');
+                
+                setTimeout(() => {
+                    window.location.href = '/index.html';
+                }, 2000);
+            } catch (error) {
+                console.error('Error clearing:', error);
+                showSuccess('Error al limpiar: ' + error.message);
+            }
+        }
+
+        function showSuccess(message) {
+            const successDiv = document.getElementById('success');
+            successDiv.textContent = message;
+            successDiv.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

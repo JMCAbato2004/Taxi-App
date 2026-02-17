@@ -521,7 +521,7 @@ class RegisterModal {
       // Close registration modal
       this.close();
       
-      // Show verification modal
+      // Show verification modal with code (for development/staging)
       const verificationModal = new EmailVerificationModal(
         this.emailVerificationService,
         this.authAdapter
@@ -530,7 +530,7 @@ class RegisterModal {
       await verificationModal.show(userData.email, (user) => {
         // On successful verification and registration
         this.onRegisterSuccess(user);
-      });
+      }, code); // Pass code for development display
       
     } catch (error) {
       // Hide loading

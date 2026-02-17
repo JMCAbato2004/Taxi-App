@@ -128,7 +128,7 @@ function initializeComponents() {
 
   // Initialize ReconciliationView
   if (window.ReconciliationView) {
-    reconciliationView = new ReconciliationView(reconcileAdapter);
+    reconciliationView = new ReconciliationView(reconcileAdapter, authAdapter);
   }
 
   // Initialize ReconciliationHistoryView
@@ -512,6 +512,11 @@ customElements.whenDefined('ion-modal').then(() => {
     await showExpenseFormModal(e.detail);
   });
 
+  // Services segment change
+  document.getElementById('services-segment')?.addEventListener('ionChange', (e) => {
+    handleServicesSegmentChange(e.detail.value);
+  });
+
   // Balance segment change
   document.getElementById('balance-segment')?.addEventListener('ionChange', (e) => {
     handleBalanceSegmentChange(e.detail.value);
@@ -725,7 +730,9 @@ async function clearAllData() {
  * Show FAB action sheet
  */
 async function showFabActionSheet() {
-  await ActionSheetManager.show('Nueva Acción', [
+  const user = authAdapter.getCurrentUser();
+  
+  const actions = [
     {
       text: 'Nuevo Servicio',
       icon: 'car',
@@ -735,18 +742,27 @@ async function showFabActionSheet() {
       text: 'Nuevo Gasto',
       icon: 'wallet',
       handler: () => showExpenseFormModal()
-    },
-    {
+    }
+  ];
+  
+  // Only show "Ver Reportes" for PATRON role
+  // TAXISTA can access reports from dashboard button
+  if (user && user.rol === 'PATRON') {
+    actions.push({
       text: 'Ver Reportes',
       icon: 'bar-chart',
-      handler: () => ToastManager.showInfo('Reportes - Próximamente')
-    },
-    {
-      text: 'Cancelar',
-      icon: 'close',
-      role: 'cancel'
-    }
-  ]);
+      handler: () => window.app.showReports()
+    });
+  }
+  
+  // Add cancel button
+  actions.push({
+    text: 'Cancelar',
+    icon: 'close',
+    role: 'cancel'
+  });
+  
+  await ActionSheetManager.show('Nueva Acción', actions);
 }
 
 /**
@@ -782,22 +798,37 @@ async function showChangePasswordModal() {
 }
 
 /**
+ * Handle services segment change
+ */
+function handleServicesSegmentChange(value) {
+  const servicesContent = document.getElementById('services-content');
+  const expensesContent = document.getElementById('expenses-content');
+
+  // Hide all
+  if (servicesContent) servicesContent.style.display = 'none';
+  if (expensesContent) expensesContent.style.display = 'none';
+
+  // Show selected
+  if (value === 'services' && servicesContent) {
+    servicesContent.style.display = 'block';
+  } else if (value === 'expenses' && expensesContent) {
+    expensesContent.style.display = 'block';
+  }
+}
+
+/**
  * Handle balance segment change
  */
 function handleBalanceSegmentChange(value) {
-  const expensesContent = document.getElementById('expenses-content');
   const reconciliationContent = document.getElementById('reconciliation-content');
   const historyContent = document.getElementById('reconciliation-history-content');
 
   // Hide all
-  if (expensesContent) expensesContent.style.display = 'none';
   if (reconciliationContent) reconciliationContent.style.display = 'none';
   if (historyContent) historyContent.style.display = 'none';
 
   // Show selected
-  if (value === 'expenses' && expensesContent) {
-    expensesContent.style.display = 'block';
-  } else if (value === 'reconciliation' && reconciliationContent) {
+  if (value === 'reconciliation' && reconciliationContent) {
     reconciliationContent.style.display = 'block';
   } else if (value === 'history' && historyContent) {
     historyContent.style.display = 'block';

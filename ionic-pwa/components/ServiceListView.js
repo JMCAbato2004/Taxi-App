@@ -208,6 +208,21 @@ class ServiceListView {
       return '';
     }
 
+    // Get current user to check if patron
+    const user = this.authAdapter.getCurrentUser();
+    const isPatron = user && user.rol === 'PATRON';
+    
+    // Get taxistas map if patron
+    let taxistasMap = {};
+    if (isPatron) {
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      users.forEach(u => {
+        if (u.rol === 'TAXISTA') {
+          taxistasMap[u.id] = u;
+        }
+      });
+    }
+
     return this.filteredServices.map(service => {
       const sourceIcons = {
         emisora: '📻',
@@ -232,6 +247,13 @@ class ServiceListView {
 
       const sourceIcon = sourceIcons[service.serviceSource] || '🚕';
       const paymentIcon = paymentIcons[service.paymentMethod] || '💵';
+      
+      // Get taxista name if patron
+      let taxistaInfo = '';
+      if (isPatron && service.userId && taxistasMap[service.userId]) {
+        const taxista = taxistasMap[service.userId];
+        taxistaInfo = `<p style="font-size: 11px; color: #3b82f6; font-weight: 600;">🚕 ${taxista.nombre}${taxista.numeroTaxista ? ` (${taxista.numeroTaxista})` : ''}</p>`;
+      }
 
       return `
         <ion-item button class="service-item" data-service-id="${service.id}">
@@ -239,6 +261,7 @@ class ServiceListView {
           <ion-label>
             <h2 style="font-weight: 600; color: #1f2937;">${service.origin} → ${service.destination}</h2>
             <p style="color: #6b7280; font-size: 13px;">${formattedDate} ${formattedTime} • ${paymentIcon} ${service.paymentMethod}</p>
+            ${taxistaInfo}
             ${service.clientName ? `<p style="font-size: 11px; color: #9ca3af;">Cliente: ${service.clientName}</p>` : ''}
             ${service.commission > 0 || service.tip > 0 ? `
               <p style="font-size: 11px; color: #6b7280;">

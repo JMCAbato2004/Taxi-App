@@ -97,6 +97,7 @@ class EnvironmentConfig {
         enableAnalytics: true,
         enableErrorReporting: true,
         showVerificationCodeInConsole: false,
+        showVerificationCodeInUI: false, // Never show in production
         enableSecurityLogging: true,
         strictMode: true
       },
@@ -109,6 +110,7 @@ class EnvironmentConfig {
         enableAnalytics: false,
         enableErrorReporting: true,
         showVerificationCodeInConsole: true,
+        showVerificationCodeInUI: true, // Show code in UI for staging/demos
         enableSecurityLogging: true,
         strictMode: true
       },
@@ -121,6 +123,7 @@ class EnvironmentConfig {
         enableAnalytics: false,
         enableErrorReporting: false,
         showVerificationCodeInConsole: true,
+        showVerificationCodeInUI: true, // Show code in UI for demos
         enableSecurityLogging: true,
         strictMode: false
       }
