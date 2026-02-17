@@ -255,7 +255,6 @@ class ReportsView {
     
     const totalExpenses = filteredExpenses
       .reduce((sum, e) => sum + (e.amount || 0), 0);
-      .reduce((sum, e) => sum + (e.amount || 0), 0);
     
     // Calculate Total Neto: Ingresos - Gastos - Comisiones + Propinas
     const totalNeto = totalEarnings - totalExpenses - totalCommissions + totalTips;
