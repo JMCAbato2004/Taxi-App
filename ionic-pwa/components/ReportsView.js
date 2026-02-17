@@ -531,7 +531,7 @@ class ReportsView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Evolución del Neto (Última Semana)</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Evolución del Neto (Última Semana)</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 <canvas id="servicesChart" style="max-height: 250px;"></canvas>
@@ -541,7 +541,7 @@ class ReportsView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Ingresos por Taxista (Este Mes)</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Ingresos por Taxista (Este Mes)</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 <canvas id="earningsChart" style="max-height: 250px;"></canvas>
@@ -555,7 +555,7 @@ class ReportsView {
       <ion-card>
         <ion-card-header>
           <div style="display: flex; justify-content: space-between; align-items: center;">
-            <ion-card-title style="font-size: 16px;">Detalle por Taxista</ion-card-title>
+            <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Detalle por Taxista</ion-card-title>
             <ion-button size="small" color="primary" onclick="window.app.exportReports()">
               <ion-icon name="download" slot="start"></ion-icon>
               Exportar
