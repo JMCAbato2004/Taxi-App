@@ -8,6 +8,7 @@ class BalanceLiquidacionView {
     this.authAdapter = authAdapter;
     this.reconcileAdapter = reconcileAdapter;
     this.currentPeriod = 'month';
+    this.selectedTaxistaId = null; // For PATRON to select which taxista to view
     this.platformConfig = {
       emisora: { name: 'Emisora', icon: '📻', color: 'primary' },
       calle: { name: 'Calle', icon: '🚶', color: 'success' },
@@ -35,6 +36,37 @@ class BalanceLiquidacionView {
    * Create modal element
    */
   async createModal(user) {
+    // Get associated taxistas if user is PATRON
+    let taxistaSelector = '';
+    if (user.rol === 'PATRON') {
+      const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const associatedTaxistas = allUsers.filter(u => 
+        u.rol === 'TAXISTA' && 
+        u.estado === 'asociado' && 
+        u.patronId === user.id
+      );
+      
+      if (associatedTaxistas.length > 0) {
+        // Set first taxista as default
+        this.selectedTaxistaId = associatedTaxistas[0].id;
+        
+        taxistaSelector = `
+          <ion-toolbar>
+            <ion-item lines="none">
+              <ion-label position="stacked" style="color: white;">Seleccionar Taxista</ion-label>
+              <ion-select id="taxista-selector" value="${this.selectedTaxistaId}" interface="popover" style="color: white;">
+                ${associatedTaxistas.map(t => `
+                  <ion-select-option value="${t.id}">
+                    ${t.nombre} ${t.numeroTaxista ? `(${t.numeroTaxista})` : ''}
+                  </ion-select-option>
+                `).join('')}
+              </ion-select>
+            </ion-item>
+          </ion-toolbar>
+        `;
+      }
+    }
+    
     const modal = document.createElement('ion-modal');
     modal.innerHTML = `
       <ion-header>
@@ -46,6 +78,7 @@ class BalanceLiquidacionView {
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
+        ${taxistaSelector}
         <ion-toolbar>
           <ion-segment id="balance-period-segment" value="month">
             <ion-segment-button value="today">
@@ -69,6 +102,18 @@ class BalanceLiquidacionView {
 
     document.body.appendChild(modal);
     await modal.componentOnReady();
+
+    // Set up taxista selector change handler (only for PATRON)
+    if (user.rol === 'PATRON') {
+      const taxistaSelect = modal.querySelector('#taxista-selector');
+      if (taxistaSelect) {
+        taxistaSelect.addEventListener('ionChange', async (e) => {
+          this.selectedTaxistaId = e.detail.value;
+          console.log('Selected taxista:', this.selectedTaxistaId);
+          await this.loadBalance(user, this.currentPeriod);
+        });
+      }
+    }
 
     // Set up segment change handler
     const segment = modal.querySelector('#balance-period-segment');
@@ -105,16 +150,23 @@ class BalanceLiquidacionView {
       // Filter by period
       const filteredServices = this.filterByPeriod(services, period);
       
-      // Filter by role
+      // Filter by role and selected taxista
       const userServices = this.filterByRole(filteredServices, user);
+      
+      // Get the taxista user object for configuration
+      let taxistaUser = user;
+      if (user.rol === 'PATRON' && this.selectedTaxistaId) {
+        const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        taxistaUser = allUsers.find(u => u.id === this.selectedTaxistaId) || user;
+      }
       
       // Calculate totals and platform breakdown
       const totals = this.calculateTotals(userServices);
       const platformStats = this.calculatePlatformStats(userServices);
-      const distribution = this.calculateDistribution(totals, user);
+      const distribution = this.calculateDistribution(totals, taxistaUser);
       
       // Render balance
-      this.renderBalance(totals, platformStats, distribution, user, period);
+      this.renderBalance(totals, platformStats, distribution, taxistaUser, period);
     } catch (error) {
       console.error('Error loading balance:', error);
       ToastManager.showError('Error al cargar balance');
@@ -160,7 +212,12 @@ class BalanceLiquidacionView {
     }
     
     if (user.rol === 'PATRON') {
-      // For patrons, get services from associated taxistas
+      // If a specific taxista is selected, filter by that taxista
+      if (this.selectedTaxistaId) {
+        return data.filter(item => item.userId === this.selectedTaxistaId);
+      }
+      
+      // Otherwise, get services from all associated taxistas
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const associatedTaxistas = users.filter(u => 
         u.rol === 'TAXISTA' && 
@@ -232,15 +289,17 @@ class BalanceLiquidacionView {
    * Calculate distribution between patron and taxista
    */
   calculateDistribution(totals, user) {
-    // Load balance settings
-    const settings = JSON.parse(localStorage.getItem('taxi_balance_settings') || '{}');
+    // Load balance settings for the specific taxista
+    const balanceSettingsPerTaxista = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
     const defaultSettings = {
       patronPercentage: 30,
       tipDistribution: 'taxista',
       commissionDistribution: 'taxista',
       expenseDistribution: 'taxista'
     };
-    const balanceSettings = { ...defaultSettings, ...settings };
+    
+    // Get settings for this specific taxista
+    const balanceSettings = balanceSettingsPerTaxista[user.id] || defaultSettings;
     
     const patronPercent = balanceSettings.patronPercentage;
     const taxistaPercent = 100 - patronPercent;
