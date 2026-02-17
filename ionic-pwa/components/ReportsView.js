@@ -795,6 +795,10 @@ class ReportsView {
 
       const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers);
 
+      // Calculate total to pay to all taxistas
+      const totalToPay = stats.taxistaStats.reduce((sum, t) => sum + t.amountToTaxista, 0);
+      const patronTotal = stats.totalEarnings - totalToPay;
+
       // Generate PDF using jsPDF
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF();
@@ -827,6 +831,27 @@ class ReportsView {
       doc.text(`Total Neto: €${stats.totalNeto.toFixed(2)}`, 20, yPos);
       yPos += 7;
       doc.text(`Taxistas Activos: ${stats.activeTaxistas}`, 20, yPos);
+      
+      yPos += 10;
+      
+      // Financial breakdown
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Desglose Financiero', 20, yPos);
+      
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.text(`Total a Pagar a Taxistas: €${totalToPay.toFixed(2)}`, 20, yPos);
+      yPos += 7;
+      
+      // Patron's total in green and bold
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(34, 197, 94); // Green
+      doc.setFontSize(12);
+      doc.text(`Total para el Patrón: €${patronTotal.toFixed(2)}`, 20, yPos);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(0, 0, 0);
+      doc.setFontSize(10);
       
       yPos += 15;
       
