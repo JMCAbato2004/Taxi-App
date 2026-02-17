@@ -10,6 +10,13 @@ class ReportsView {
     this.reconcileAdapter = reconcileAdapter;
     this.servicesChart = null;
     this.earningsChart = null;
+    this.currentModal = null;
+    
+    // Initialize date range (default: from day 1 of current month to today)
+    const today = new Date();
+    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    this.startDate = firstDayOfMonth.toISOString().split('T')[0];
+    this.endDate = today.toISOString().split('T')[0];
   }
 
   /**
@@ -34,6 +41,46 @@ class ReportsView {
    */
   async createModal(user) {
     const modal = document.createElement('ion-modal');
+    
+    // Build date range selector HTML (only for PATRON)
+    const dateRangeHTML = user.rol === 'PATRON' ? `
+      <ion-toolbar>
+        <ion-grid>
+          <ion-row class="ion-align-items-center">
+            <ion-col size="12" size-md="5">
+              <ion-item lines="none">
+                <ion-label position="stacked">Desde</ion-label>
+                <ion-input 
+                  id="reports-start-date" 
+                  type="date" 
+                  value="${this.startDate}">
+                </ion-input>
+              </ion-item>
+            </ion-col>
+            <ion-col size="12" size-md="5">
+              <ion-item lines="none">
+                <ion-label position="stacked">Hasta</ion-label>
+                <ion-input 
+                  id="reports-end-date" 
+                  type="date" 
+                  value="${this.endDate}">
+                </ion-input>
+              </ion-item>
+            </ion-col>
+            <ion-col size="12" size-md="2">
+              <ion-button 
+                expand="block" 
+                id="reports-filter-btn"
+                style="margin-top: 20px;">
+                <ion-icon slot="start" name="funnel"></ion-icon>
+                Filtrar
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+    ` : '';
+    
     modal.innerHTML = `
       <ion-header>
         <ion-toolbar color="primary">
@@ -44,6 +91,7 @@ class ReportsView {
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
+        ${dateRangeHTML}
       </ion-header>
       <ion-content class="ion-padding">
         <div id="reports-content">
@@ -57,6 +105,25 @@ class ReportsView {
 
     document.body.appendChild(modal);
     await modal.componentOnReady();
+    
+    this.currentModal = modal;
+
+    // Setup filter button event listener (only for PATRON)
+    if (user.rol === 'PATRON') {
+      const filterBtn = modal.querySelector('#reports-filter-btn');
+      if (filterBtn) {
+        filterBtn.addEventListener('click', async () => {
+          const startDateInput = modal.querySelector('#reports-start-date');
+          const endDateInput = modal.querySelector('#reports-end-date');
+          
+          this.startDate = startDateInput.value;
+          this.endDate = endDateInput.value;
+          
+          console.log('Filtering reports from', this.startDate, 'to', this.endDate);
+          await this.loadReports(user);
+        });
+      }
+    }
 
     // Listen for service updates to refresh reports
     const serviceUpdateHandler = async () => {
@@ -71,6 +138,7 @@ class ReportsView {
     // Clean up listener when modal is dismissed
     modal.addEventListener('ionModalDidDismiss', () => {
       window.removeEventListener('service-saved', serviceUpdateHandler);
+      this.currentModal = null;
     });
 
     return modal;
@@ -108,6 +176,14 @@ class ReportsView {
         // Get services from associated taxistas
         const taxistaIds = relevantTaxistas.map(t => t.id);
         relevantServices = allServices.filter(s => taxistaIds.includes(s.userId));
+        
+        // Filter by date range
+        console.log('ReportsView.loadReports: Filtering by date range:', this.startDate, 'to', this.endDate);
+        relevantServices = relevantServices.filter(s => {
+          const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+          return serviceDate >= this.startDate && serviceDate <= this.endDate;
+        });
+        
         console.log('ReportsView.loadReports: Filtered services for PATRON:', relevantServices.length);
       } else if (user.rol === 'TAXISTA') {
         console.log('ReportsView.loadReports: TAXISTA mode');
@@ -160,8 +236,23 @@ class ReportsView {
     // Get expenses for all taxistas in the fleet
     const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
     const taxistaIds = taxistas.map(t => t.id);
-    const totalExpenses = expenses
-      .filter(e => taxistaIds.includes(e.userId))
+    
+    // Filter expenses by taxistas and date range
+    const filteredExpenses = expenses
+      .filter(e => {
+        if (!taxistaIds.includes(e.userId)) return false;
+        
+        // Filter by date range (only for PATRON with date filter)
+        if (this.startDate && this.endDate) {
+          const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];
+          return expenseDate >= this.startDate && expenseDate <= this.endDate;
+        }
+        
+        return true;
+      });
+    
+    const totalExpenses = filteredExpenses
+      .reduce((sum, e) => sum + (e.amount || 0), 0);
       .reduce((sum, e) => sum + (e.amount || 0), 0);
     
     // Calculate Total Neto: Ingresos - Gastos - Comisiones + Propinas
