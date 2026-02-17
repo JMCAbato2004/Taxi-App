@@ -490,7 +490,7 @@ class ReportsView {
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${stats.totalServices}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Servicios</div>
+                <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Total Servicios</div>
                 <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
@@ -499,7 +499,7 @@ class ReportsView {
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">€${stats.totalEarnings.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Ingresos Totales</div>
+                <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Ingresos Totales</div>
                 <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
@@ -508,7 +508,7 @@ class ReportsView {
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-tertiary);">€${stats.totalNeto.toFixed(2)}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Total Neto</div>
+                <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Total Neto</div>
                 <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
@@ -517,7 +517,7 @@ class ReportsView {
             <ion-card style="margin: 0;">
               <ion-card-content style="text-align: center; padding: 16px;">
                 <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${stats.activeTaxistas}</div>
-                <div style="font-size: 12px; color: var(--ion-color-medium); margin-top: 4px;">Taxistas Activos</div>
+                <div style="font-size: 12px; color: var(--ion-text-color); margin-top: 4px; font-weight: 500;">Taxistas Activos</div>
                 <div style="font-size: 10px; color: var(--ion-color-success); margin-top: 2px;">Datos actualizados</div>
               </ion-card-content>
             </ion-card>
@@ -612,7 +612,7 @@ class ReportsView {
                   </div>
                 </td>
                 <td style="padding: 16px 12px; text-align: center;">
-                  <span style="background: var(--ion-color-primary-tint); color: var(--ion-color-primary); padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 13px;">${stats.totalServices}</span>
+                  <span style="background: var(--ion-color-primary); color: white; padding: 6px 14px; border-radius: 16px; font-weight: 700; font-size: 14px; display: inline-block;">${stats.totalServices}</span>
                 </td>
                 <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</td>
                 <td style="padding: 16px 12px; text-align: right; color: var(--ion-color-tertiary);">€${stats.tips.toFixed(2)}</td>
