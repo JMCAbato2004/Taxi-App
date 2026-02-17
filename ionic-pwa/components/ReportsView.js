@@ -556,7 +556,7 @@ class ReportsView {
         <ion-card-header>
           <div style="display: flex; justify-content: space-between; align-items: center;">
             <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Detalle por Taxista</ion-card-title>
-            <ion-button size="small" color="primary" onclick="window.app.exportReports()">
+            <ion-button size="small" color="primary" id="export-reports-btn">
               <ion-icon name="download" slot="start"></ion-icon>
               Exportar
             </ion-button>
@@ -567,6 +567,14 @@ class ReportsView {
         </ion-card-content>
       </ion-card>
     `;
+    
+    // Setup export button listener after rendering
+    setTimeout(() => {
+      const exportBtn = container.querySelector('#export-reports-btn');
+      if (exportBtn) {
+        exportBtn.addEventListener('click', () => this.exportReports());
+      }
+    }, 100);
   }
   
   /**
@@ -744,6 +752,161 @@ class ReportsView {
           }
         });
       }
+    }
+  }
+
+  /**
+   * Export reports to PDF
+   */
+  async exportReports() {
+    try {
+      const user = this.authAdapter.getCurrentUser();
+      if (!user) {
+        ToastManager.showError('Debes iniciar sesión');
+        return;
+      }
+
+      await LoadingManager.show('Generando informe PDF...');
+
+      // Get all data
+      const allServices = await this.reconcileAdapter.getServices();
+      const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      
+      let relevantServices = [];
+      let relevantTaxistas = [];
+      
+      if (user.rol === 'PATRON') {
+        relevantTaxistas = allUsers.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === user.id
+        );
+        
+        const taxistaIds = relevantTaxistas.map(t => t.id);
+        relevantServices = allServices.filter(s => {
+          if (!taxistaIds.includes(s.userId)) return false;
+          const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+          return serviceDate >= this.startDate && serviceDate <= this.endDate;
+        });
+      } else {
+        relevantServices = allServices.filter(s => s.userId === user.id);
+        relevantTaxistas = [user];
+      }
+
+      const stats = this.calculateAdvancedStats(relevantServices, relevantTaxistas, allUsers);
+
+      // Generate PDF using jsPDF
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      
+      let yPos = 20;
+      
+      // Title
+      doc.setFontSize(20);
+      doc.setTextColor(59, 130, 246); // Primary blue
+      doc.text('Informe de Reportes y Estadísticas', 105, yPos, { align: 'center' });
+      
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.setTextColor(100, 100, 100);
+      doc.text(`Período: ${this.startDate} a ${this.endDate}`, 105, yPos, { align: 'center' });
+      
+      yPos += 15;
+      
+      // Summary section
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text('Resumen General', 20, yPos);
+      
+      yPos += 10;
+      doc.setFontSize(10);
+      doc.text(`Total Servicios: ${stats.totalServices}`, 20, yPos);
+      yPos += 7;
+      doc.text(`Ingresos Totales: €${stats.totalEarnings.toFixed(2)}`, 20, yPos);
+      yPos += 7;
+      doc.text(`Total Neto: €${stats.totalNeto.toFixed(2)}`, 20, yPos);
+      yPos += 7;
+      doc.text(`Taxistas Activos: ${stats.activeTaxistas}`, 20, yPos);
+      
+      yPos += 15;
+      
+      // Taxista details table
+      doc.setFontSize(14);
+      doc.text('Detalle por Taxista', 20, yPos);
+      yPos += 10;
+      
+      // Table headers
+      doc.setFontSize(9);
+      doc.setFont(undefined, 'bold');
+      doc.text('Taxista', 20, yPos);
+      doc.text('Servicios', 70, yPos);
+      doc.text('Ingresos', 95, yPos);
+      doc.text('Propinas', 120, yPos);
+      doc.text('Comisiones', 145, yPos);
+      doc.text('A Pagar', 175, yPos);
+      
+      yPos += 7;
+      doc.setFont(undefined, 'normal');
+      
+      // Table rows
+      stats.taxistaStats.forEach((taxistaStat, index) => {
+        if (yPos > 270) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.text(taxistaStat.taxista.nombre.substring(0, 20), 20, yPos);
+        doc.text(taxistaStat.totalServices.toString(), 70, yPos);
+        doc.text(`€${taxistaStat.grossEarnings.toFixed(2)}`, 95, yPos);
+        doc.text(`€${taxistaStat.tips.toFixed(2)}`, 120, yPos);
+        doc.text(`€${taxistaStat.commissions.toFixed(2)}`, 145, yPos);
+        doc.setTextColor(34, 197, 94); // Green
+        doc.text(`€${taxistaStat.amountToTaxista.toFixed(2)}`, 175, yPos);
+        doc.setTextColor(0, 0, 0);
+        
+        yPos += 7;
+      });
+      
+      // Add chart if available
+      if (this.servicesChart) {
+        yPos += 10;
+        if (yPos > 200) {
+          doc.addPage();
+          yPos = 20;
+        }
+        
+        doc.setFontSize(12);
+        doc.text('Evolución del Neto (Última Semana)', 20, yPos);
+        yPos += 10;
+        
+        const chartCanvas = document.getElementById('servicesChart');
+        if (chartCanvas) {
+          const chartImage = chartCanvas.toDataURL('image/png');
+          doc.addImage(chartImage, 'PNG', 20, yPos, 170, 80);
+        }
+      }
+      
+      // Footer
+      const pageCount = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= pageCount; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(150, 150, 150);
+        doc.text(`Página ${i} de ${pageCount}`, 105, 290, { align: 'center' });
+        doc.text(`Generado el ${new Date().toLocaleString('es-ES')}`, 105, 285, { align: 'center' });
+      }
+      
+      // Save PDF
+      const fileName = `informe_${this.startDate}_${this.endDate}.pdf`;
+      doc.save(fileName);
+      
+      await LoadingManager.hide();
+      ToastManager.showSuccess('Informe exportado correctamente');
+      
+    } catch (error) {
+      console.error('Error exporting reports:', error);
+      await LoadingManager.hide();
+      ToastManager.showError('Error al exportar el informe');
     }
   }
 }
