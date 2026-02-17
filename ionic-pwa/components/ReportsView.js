@@ -398,19 +398,66 @@ class ReportsView {
    * Get detailed stats per taxista
    */
   getTaxistaDetailedStats(services, taxistas) {
+    // Load balance settings for all taxistas
+    const balanceSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+    
     return taxistas.map(taxista => {
       const taxistaServices = services.filter(s => s.userId === taxista.id);
       const totalServices = taxistaServices.length;
       const grossEarnings = taxistaServices.reduce((sum, s) => sum + (s.amount || 0), 0);
       const commissions = taxistaServices.reduce((sum, s) => sum + (s.commission || 0), 0);
       const tips = taxistaServices.reduce((sum, s) => sum + (s.tip || 0), 0);
-      const netEarnings = grossEarnings - commissions + tips;
-      const averageService = totalServices > 0 ? grossEarnings / totalServices : 0;
       
-      // Get expenses (if available)
+      // Get expenses
       const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
       const taxistaExpenses = expenses.filter(e => e.userId === taxista.id);
       const totalExpenses = taxistaExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+      
+      // Get balance settings for this taxista
+      const settings = balanceSettings[taxista.id] || {
+        patronPercentage: 20,
+        tipDistribution: 'taxista',
+        commissionDistribution: 'patron',
+        expenseDistribution: 'taxista'
+      };
+      
+      // Calculate what the patron owes to the taxista
+      // Start with gross earnings
+      let amountToTaxista = grossEarnings;
+      
+      // Subtract patron's percentage
+      const patronShare = grossEarnings * (settings.patronPercentage / 100);
+      amountToTaxista -= patronShare;
+      
+      // Add/subtract tips based on distribution
+      if (settings.tipDistribution === 'taxista') {
+        amountToTaxista += tips;
+      } else if (settings.tipDistribution === 'patron') {
+        // Tips go to patron, don't add to taxista
+      } else if (settings.tipDistribution === 'shared') {
+        amountToTaxista += tips / 2;
+      }
+      
+      // Add/subtract commissions based on distribution
+      if (settings.commissionDistribution === 'taxista') {
+        amountToTaxista -= commissions; // Taxista pays commissions
+      } else if (settings.commissionDistribution === 'patron') {
+        // Patron pays commissions, don't subtract from taxista
+      } else if (settings.commissionDistribution === 'shared') {
+        amountToTaxista -= commissions / 2;
+      }
+      
+      // Add/subtract expenses based on distribution
+      if (settings.expenseDistribution === 'taxista') {
+        amountToTaxista -= totalExpenses; // Taxista pays expenses
+      } else if (settings.expenseDistribution === 'patron') {
+        // Patron pays expenses, don't subtract from taxista
+      } else if (settings.expenseDistribution === 'shared') {
+        amountToTaxista -= totalExpenses / 2;
+      }
+      
+      const netEarnings = grossEarnings - commissions + tips;
+      const averageService = totalServices > 0 ? grossEarnings / totalServices : 0;
       
       return {
         taxista,
@@ -420,7 +467,10 @@ class ReportsView {
         tips,
         netEarnings,
         averageService,
-        totalExpenses
+        totalExpenses,
+        patronShare,
+        amountToTaxista,
+        settings
       };
     });
   }
@@ -535,38 +585,45 @@ class ReportsView {
     
     return `
       <div style="overflow-x: auto;">
-        <table style="width: 100%; border-collapse: collapse;">
-          <thead style="background: var(--ion-color-light);">
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+          <thead style="background: var(--ion-color-step-100);">
             <tr>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">TAXISTA</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">SERVICIOS</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">INGRESOS</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">PROPINAS</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">COMISIONES</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">GASTOS</th>
-              <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: var(--ion-color-medium);">NETO</th>
+              <th style="padding: 14px 12px; text-align: left; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Taxista</th>
+              <th style="padding: 14px 12px; text-align: center; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Servicios</th>
+              <th style="padding: 14px 12px; text-align: right; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Ingresos</th>
+              <th style="padding: 14px 12px; text-align: right; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Propinas</th>
+              <th style="padding: 14px 12px; text-align: right; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Comisiones</th>
+              <th style="padding: 14px 12px; text-align: right; font-size: 11px; font-weight: 700; color: var(--ion-color-medium); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">Gastos</th>
+              <th style="padding: 14px 12px; text-align: right; font-size: 11px; font-weight: 700; color: var(--ion-color-success); text-transform: uppercase; border-bottom: 2px solid var(--ion-color-step-150);">A Pagar</th>
             </tr>
           </thead>
           <tbody>
             ${taxistaStats.map((stats, index) => `
-              <tr style="border-bottom: 1px solid var(--ion-color-light);">
-                <td style="padding: 12px;">
+              <tr style="border-bottom: 1px solid var(--ion-color-step-100); transition: background 0.2s;" onmouseover="this.style.background='var(--ion-color-step-50)'" onmouseout="this.style.background='transparent'">
+                <td style="padding: 16px 12px;">
                   <div style="display: flex; align-items: center;">
-                    <div style="width: 32px; height: 32px; background: var(--ion-color-success-tint); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px;">
-                      <span style="font-weight: bold; font-size: 12px; color: var(--ion-color-success);">${stats.taxista.numeroTaxista?.slice(-2) || (index + 1).toString().padStart(2, '0')}</span>
+                    <div style="width: 36px; height: 36px; background: linear-gradient(135deg, var(--ion-color-success-tint), var(--ion-color-success)); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                      <span style="font-weight: bold; font-size: 13px; color: white;">${stats.taxista.numeroTaxista?.slice(-2) || (index + 1).toString().padStart(2, '0')}</span>
                     </div>
                     <div>
-                      <div style="font-weight: 500; font-size: 14px;">${stats.taxista.nombre}</div>
-                      <div style="font-size: 12px; color: var(--ion-color-medium);">${stats.taxista.numeroTaxista || 'Sin número'}</div>
+                      <div style="font-weight: 600; font-size: 14px; color: var(--ion-text-color);">${stats.taxista.nombre}</div>
+                      <div style="font-size: 11px; color: var(--ion-color-medium);">${stats.taxista.numeroTaxista || 'Sin número'}</div>
                     </div>
                   </div>
                 </td>
-                <td style="padding: 12px; font-size: 14px;">${stats.totalServices}</td>
-                <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</td>
-                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-tertiary);">€${stats.tips.toFixed(2)}</td>
-                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-warning);">€${stats.commissions.toFixed(2)}</td>
-                <td style="padding: 12px; font-size: 14px; color: var(--ion-color-danger);">€${stats.totalExpenses.toFixed(2)}</td>
-                <td style="padding: 12px; font-size: 14px; font-weight: 600; color: var(--ion-color-primary);">€${stats.netEarnings.toFixed(2)}</td>
+                <td style="padding: 16px 12px; text-align: center;">
+                  <span style="background: var(--ion-color-primary-tint); color: var(--ion-color-primary); padding: 4px 12px; border-radius: 12px; font-weight: 600; font-size: 13px;">${stats.totalServices}</span>
+                </td>
+                <td style="padding: 16px 12px; text-align: right; font-weight: 600; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</td>
+                <td style="padding: 16px 12px; text-align: right; color: var(--ion-color-tertiary);">€${stats.tips.toFixed(2)}</td>
+                <td style="padding: 16px 12px; text-align: right; color: var(--ion-color-warning);">€${stats.commissions.toFixed(2)}</td>
+                <td style="padding: 16px 12px; text-align: right; color: var(--ion-color-danger);">€${stats.totalExpenses.toFixed(2)}</td>
+                <td style="padding: 16px 12px; text-align: right;">
+                  <div style="display: flex; flex-direction: column; align-items: flex-end;">
+                    <span style="font-weight: 700; font-size: 15px; color: var(--ion-color-success);">€${stats.amountToTaxista.toFixed(2)}</span>
+                    <span style="font-size: 10px; color: var(--ion-color-medium); margin-top: 2px;">${stats.settings.patronPercentage}% patrón</span>
+                  </div>
+                </td>
               </tr>
             `).join('')}
           </tbody>
