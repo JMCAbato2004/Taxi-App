@@ -4,6 +4,8 @@
  * Based on main branch reports.html functionality
  */
 
+console.log('ReportsView: Loading component...');
+
 class ReportsView {
   constructor(authAdapter, reconcileAdapter) {
     this.authAdapter = authAdapter;
