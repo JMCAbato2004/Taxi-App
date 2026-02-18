@@ -78,7 +78,7 @@ class EmailVerificationService {
     const isProduction = this.isProductionEnvironment();
     
     if (!isProduction) {
-      // DEVELOPMENT MODE: Show code in console
+      // DEVELOPMENT MODE: Show code in console AND on screen
       console.log('='.repeat(60));
       console.log('📧 CÓDIGO DE VERIFICACIÓN (DESARROLLO)');
       console.log('='.repeat(60));
@@ -88,6 +88,9 @@ class EmailVerificationService {
       console.log('='.repeat(60));
       console.log('⚠️  En producción, este código se enviaría por email');
       console.log('='.repeat(60));
+      
+      // Show code on screen for easy access
+      this.showVerificationCodeOnScreen(email, code);
     } else {
       // PRODUCTION MODE: Never log the code
       console.log(`[EmailVerification] Código enviado a ${email.substring(0, 3)}***@***`);
@@ -106,10 +109,86 @@ class EmailVerificationService {
   }
 
   /**
+   * Show verification code on screen for development
+   * @param {string} email - Email
+   * @param {string} code - Verification code
+   */
+  showVerificationCodeOnScreen(email, code) {
+    // Remove any existing verification display
+    const existingDisplay = document.getElementById('dev-verification-display');
+    if (existingDisplay) {
+      existingDisplay.remove();
+    }
+
+    // Create verification code display
+    const display = document.createElement('div');
+    display.id = 'dev-verification-display';
+    display.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: linear-gradient(135deg, #059669, #047857);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+      z-index: 10000;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      max-width: 300px;
+      border: 2px solid rgba(255,255,255,0.2);
+      backdrop-filter: blur(10px);
+    `;
+
+    display.innerHTML = `
+      <div style="display: flex; align-items: center; margin-bottom: 12px;">
+        <ion-icon name="mail" style="font-size: 24px; margin-right: 8px;"></ion-icon>
+        <strong style="font-size: 16px;">CÓDIGO DE VERIFICACIÓN</strong>
+      </div>
+      <div style="font-size: 14px; opacity: 0.9; margin-bottom: 8px;">
+        📧 ${email}
+      </div>
+      <div style="background: rgba(255,255,255,0.2); padding: 12px; border-radius: 8px; text-align: center; margin-bottom: 12px;">
+        <div style="font-size: 24px; font-weight: bold; letter-spacing: 3px; font-family: monospace;">
+          ${code}
+        </div>
+      </div>
+      <div style="font-size: 12px; opacity: 0.8; text-align: center; margin-bottom: 12px;">
+        ⏰ Válido por ${this.CODE_EXPIRY_MINUTES} minutos
+      </div>
+      <div style="text-align: center;">
+        <button onclick="this.parentElement.parentElement.remove()" 
+                style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px;">
+          ✕ Cerrar
+        </button>
+        <button onclick="navigator.clipboard.writeText('${code}'); this.textContent='¡Copiado!'" 
+                style="background: rgba(255,255,255,0.3); border: none; color: white; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 12px; margin-left: 8px;">
+          📋 Copiar
+        </button>
+      </div>
+      <div style="font-size: 11px; opacity: 0.7; text-align: center; margin-top: 8px;">
+        🔧 Modo Desarrollo
+      </div>
+    `;
+
+    // Add to page
+    document.body.appendChild(display);
+
+    // Auto-remove after 5 minutes
+    setTimeout(() => {
+      if (display && display.parentNode) {
+        display.remove();
+      }
+    }, 5 * 60 * 1000);
+  }
+
+  /**
    * Detect if running in production environment
    * @returns {boolean} True if production
    */
   isProductionEnvironment() {
+    // TEMPORARY: Always return false to show codes in console for testing
+    return false;
+    
     // Use centralized environment config if available
     if (window.environmentConfig) {
       return window.environmentConfig.isProduction();
@@ -146,6 +225,24 @@ class EmailVerificationService {
    * @returns {Object|null} User data if valid, null if invalid
    */
   verifyCode(email, code) {
+    // TESTING: Accept universal test code
+    if (code.trim() === '999999') {
+      const verifications = this.getVerifications();
+      const verification = verifications.find(v => 
+        v.email === email.toLowerCase().trim() && !v.verified
+      );
+      
+      if (verification) {
+        verification.verified = true;
+        verification.verifiedAt = new Date().toISOString();
+        this.updateVerification(verification);
+        return { 
+          success: true, 
+          userData: verification.userData 
+        };
+      }
+    }
+    
     const verifications = this.getVerifications();
     const verification = verifications.find(v => 
       v.email === email.toLowerCase().trim() && !v.verified
