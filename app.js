@@ -878,6 +878,17 @@ window.app = {
     const modal = new BalanceSettingsModal(window.app.authAdapter);
     await modal.show(taxistaId);
   },
+
+  showTaxistaConditions: async () => {
+    const user = window.app.authAdapter.getCurrentUser();
+    if (!user || user.rol !== 'TAXISTA') {
+      ToastManager.showError('Solo disponible para taxistas');
+      return;
+    }
+    
+    const modal = new TaxistaConditionsModal(window.app.authAdapter);
+    await modal.show();
+  },
   
   showDataSync: async () => {
     if (dataSyncView) {

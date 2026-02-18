@@ -322,13 +322,21 @@ class AuthAdapter {
       // Save user to taxi_users
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       
-      // Check if email already exists
-      if (users.some(u => u.email === userData.email)) {
+      // Check if email already exists (only if not coming from email verification flow)
+      if (!passwordAlreadyHashed && users.some(u => u.email === userData.email)) {
         throw new Error('El email ya está registrado');
       }
       
-      users.push(user);
-      localStorage.setItem('taxi_users', JSON.stringify(users));
+      // If coming from email verification, remove any existing user with same email
+      // (this handles edge cases where user might have been partially registered)
+      if (passwordAlreadyHashed) {
+        const filteredUsers = users.filter(u => u.email !== userData.email);
+        filteredUsers.push(user);
+        localStorage.setItem('taxi_users', JSON.stringify(filteredUsers));
+      } else {
+        users.push(user);
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+      }
 
       // Auto-login after registration
       // Remove password fields before storing in session

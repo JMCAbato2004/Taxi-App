@@ -358,6 +358,26 @@ class TaxistaPanelView {
       <!-- Content Grid -->
       <ion-grid>
         <ion-row>
+          <!-- Conditions Summary -->
+          <ion-col size="12">
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color); display: flex; align-items: center; gap: 8px;">
+                  <ion-icon name="document-text" color="secondary"></ion-icon>
+                  Mis Condiciones de Trabajo
+                  <ion-button size="small" fill="clear" onclick="window.app.showTaxistaConditions()" style="margin-left: auto;">
+                    <ion-icon name="open" slot="end"></ion-icon>
+                    Ver Detalle
+                  </ion-button>
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                ${this.renderConditionsSummary(user)}
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row>
           <!-- Recent Services -->
           <ion-col size="12" size-md="6">
             <ion-card>
@@ -415,6 +435,74 @@ class TaxistaPanelView {
           </ion-col>
         </ion-row>
       </ion-grid>
+    `;
+  }
+
+  /**
+   * Render conditions summary
+   */
+  renderConditionsSummary(user) {
+    const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+    const conditions = allSettings[user.id] || {
+      patronPercentage: 30,
+      taxistaPercentage: 70,
+      expenseDistribution: 'taxista',
+      tipDistribution: 'taxista',
+      commissionDistribution: 'taxista'
+    };
+
+    const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+    let patronName = 'Patrón';
+    
+    if (user.estado === 'asociado' && user.patronId) {
+      const patron = allUsers.find(u => u.id === user.patronId);
+      if (patron) patronName = patron.nombre;
+    }
+
+    const getDistributionIcon = (distribution) => {
+      switch (distribution) {
+        case 'taxista': return '👤';
+        case 'patron': return '👔';
+        case 'shared': return '🤝';
+        default: return '❓';
+      }
+    };
+
+    const getDistributionText = (distribution) => {
+      switch (distribution) {
+        case 'taxista': return 'Taxista';
+        case 'patron': return patronName;
+        case 'shared': return 'Compartido';
+        default: return 'No definido';
+      }
+    };
+
+    return `
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div style="text-align: center; padding: 12px; background: var(--ion-color-step-100); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-success);">${conditions.taxistaPercentage}%</div>
+          <div style="font-size: 12px; color: var(--ion-color-medium);">Mi porcentaje</div>
+        </div>
+        <div style="text-align: center; padding: 12px; background: var(--ion-color-step-100); border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-warning);">${conditions.patronPercentage}%</div>
+          <div style="font-size: 12px; color: var(--ion-color-medium);">${patronName}</div>
+        </div>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--ion-color-step-200);">
+        <span style="font-size: 14px;">💰 Propinas:</span>
+        <span style="font-size: 14px; font-weight: 500;">${getDistributionIcon(conditions.tipDistribution)} ${getDistributionText(conditions.tipDistribution)}</span>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--ion-color-step-200);">
+        <span style="font-size: 14px;">🧾 Gastos:</span>
+        <span style="font-size: 14px; font-weight: 500;">${getDistributionIcon(conditions.expenseDistribution)} ${getDistributionText(conditions.expenseDistribution)}</span>
+      </div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 0;">
+        <span style="font-size: 14px;">💳 Comisiones:</span>
+        <span style="font-size: 14px; font-weight: 500;">${getDistributionIcon(conditions.commissionDistribution)} ${getDistributionText(conditions.commissionDistribution)}</span>
+      </div>
     `;
   }
 
