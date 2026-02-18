@@ -208,6 +208,21 @@ class ServiceListView {
       return '';
     }
 
+    // Get current user to check if patron
+    const user = this.authAdapter.getCurrentUser();
+    const isPatron = user && user.rol === 'PATRON';
+    
+    // Get taxistas map if patron
+    let taxistasMap = {};
+    if (isPatron) {
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      users.forEach(u => {
+        if (u.rol === 'TAXISTA') {
+          taxistasMap[u.id] = u;
+        }
+      });
+    }
+
     return this.filteredServices.map(service => {
       const sourceIcons = {
         emisora: '📻',
@@ -232,31 +247,39 @@ class ServiceListView {
 
       const sourceIcon = sourceIcons[service.serviceSource] || '🚕';
       const paymentIcon = paymentIcons[service.paymentMethod] || '💵';
+      
+      // Get taxista name if patron
+      let taxistaInfo = '';
+      if (isPatron && service.userId && taxistasMap[service.userId]) {
+        const taxista = taxistasMap[service.userId];
+        taxistaInfo = `<p style="font-size: 11px; color: #3b82f6; font-weight: 600;">🚕 ${taxista.nombre}${taxista.numeroTaxista ? ` (${taxista.numeroTaxista})` : ''}</p>`;
+      }
 
       return `
         <ion-item button class="service-item" data-service-id="${service.id}">
-          <div class="service-icon" slot="start">${sourceIcon}</div>
+          <div class="service-icon" slot="start" style="font-size: 28px;">${sourceIcon}</div>
           <ion-label>
-            <h2>${service.origin} → ${service.destination}</h2>
-            <p>${formattedDate} ${formattedTime} • ${paymentIcon} ${service.paymentMethod}</p>
-            ${service.clientName ? `<p style="font-size: 11px; color: var(--ion-color-medium);">Cliente: ${service.clientName}</p>` : ''}
+            <h2 style="font-weight: 600; color: #1f2937;">${service.origin} → ${service.destination}</h2>
+            <p style="color: #6b7280; font-size: 13px;">${formattedDate} ${formattedTime} • ${paymentIcon} ${service.paymentMethod}</p>
+            ${taxistaInfo}
+            ${service.clientName ? `<p style="font-size: 11px; color: #9ca3af;">Cliente: ${service.clientName}</p>` : ''}
             ${service.commission > 0 || service.tip > 0 ? `
-              <p style="font-size: 11px;">
+              <p style="font-size: 11px; color: #6b7280;">
                 ${service.amount !== service.netAmount ? `Base: €${service.amount.toFixed(2)}` : ''}
                 ${service.commission > 0 ? ` • -€${service.commission.toFixed(2)} comisión` : ''}
                 ${service.tip > 0 ? ` • +€${service.tip.toFixed(2)} propina` : ''}
               </p>
             ` : ''}
           </ion-label>
-          <div slot="end" class="service-actions">
-            <div style="text-align: right; margin-bottom: 8px;">
-              <div style="font-size: 18px; font-weight: bold; color: var(--ion-color-success);">€${service.netAmount.toFixed(2)}</div>
+          <div slot="end" class="service-actions" style="display: flex; flex-direction: column; align-items: flex-end; min-width: 100px;">
+            <div style="background: #10b981; color: white; padding: 6px 12px; border-radius: 8px; margin-bottom: 8px; box-shadow: 0 2px 4px rgba(16, 185, 129, 0.3);">
+              <div style="font-size: 16px; font-weight: bold; text-align: center;">€${service.netAmount.toFixed(2)}</div>
             </div>
             <div style="display: flex; gap: 4px;">
-              <ion-button fill="clear" size="small" class="edit-service-btn" data-service-id="${service.id}">
+              <ion-button fill="clear" size="small" class="edit-service-btn" data-service-id="${service.id}" style="--color: #3b82f6; margin: 0;">
                 <ion-icon name="create" slot="icon-only"></ion-icon>
               </ion-button>
-              <ion-button fill="clear" size="small" color="danger" class="delete-service-btn" data-service-id="${service.id}">
+              <ion-button fill="clear" size="small" color="danger" class="delete-service-btn" data-service-id="${service.id}" style="margin: 0;">
                 <ion-icon name="trash" slot="icon-only"></ion-icon>
               </ion-button>
             </div>

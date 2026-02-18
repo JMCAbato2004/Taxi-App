@@ -4,8 +4,9 @@
  * Requirements: 1.4, 1.5, 1.6
  */
 class RegisterModal {
-  constructor(authAdapter) {
+  constructor(authAdapter, emailVerificationService) {
     this.authAdapter = authAdapter;
+    this.emailVerificationService = emailVerificationService;
     this.modal = null;
     this.selectedRole = null;
     this.formData = {
@@ -118,6 +119,15 @@ class RegisterModal {
               autocomplete="new-password"
             ></ion-input>
           </ion-item>
+          <div id="password-strength" style="padding: 8px 16px; display: none;">
+            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+              <div style="flex: 1; height: 4px; background: var(--ion-color-light); border-radius: 2px; overflow: hidden;">
+                <div id="password-strength-bar" style="height: 100%; width: 0%; transition: all 0.3s;"></div>
+              </div>
+              <span id="password-strength-label" style="font-size: 12px; font-weight: 500;"></span>
+            </div>
+            <div id="password-feedback" style="font-size: 11px; color: var(--ion-color-medium);"></div>
+          </div>
           <ion-note color="danger" id="password-error" style="display: none; padding-left: 16px;"></ion-note>
           
           <ion-item id="confirmPassword-item">
@@ -207,6 +217,7 @@ class RegisterModal {
     passwordInput?.addEventListener('ionInput', (e) => {
       this.formData.password = e.target.value;
       this.clearFieldError('password');
+      this.updatePasswordStrength(e.target.value);
     });
     
     confirmPasswordInput?.addEventListener('ionInput', (e) => {
@@ -220,6 +231,45 @@ class RegisterModal {
         this.handleSubmit();
       }
     });
+  }
+
+  /**
+   * Update password strength indicator
+   * @param {string} password - Password to validate
+   */
+  updatePasswordStrength(password) {
+    const strengthContainer = this.modal.querySelector('#password-strength');
+    const strengthBar = this.modal.querySelector('#password-strength-bar');
+    const strengthLabel = this.modal.querySelector('#password-strength-label');
+    const feedbackDiv = this.modal.querySelector('#password-feedback');
+    
+    if (!password) {
+      strengthContainer.style.display = 'none';
+      return;
+    }
+    
+    strengthContainer.style.display = 'block';
+    
+    // Validate password strength
+    const validation = window.cryptoService.validatePasswordStrength(password);
+    
+    // Update bar
+    const percentage = (validation.score / 7) * 100;
+    strengthBar.style.width = percentage + '%';
+    strengthBar.style.backgroundColor = `var(--ion-color-${validation.color})`;
+    
+    // Update label
+    strengthLabel.textContent = validation.strength;
+    strengthLabel.style.color = `var(--ion-color-${validation.color})`;
+    
+    // Update feedback
+    if (validation.feedback.length > 0) {
+      feedbackDiv.innerHTML = '• ' + validation.feedback.join('<br>• ');
+      feedbackDiv.style.color = 'var(--ion-color-warning)';
+    } else {
+      feedbackDiv.innerHTML = '✓ Contraseña segura';
+      feedbackDiv.style.color = 'var(--ion-color-success)';
+    }
   }
 
   /**
@@ -269,95 +319,64 @@ class RegisterModal {
   }
 
   /**
-   * Validate the registration form using ValidationSchemas
+   * Validate the registration form
    * @returns {Object} Validation errors object
    */
   validateForm() {
-    // Use ValidationSchemas for comprehensive validation
-    if (window.validationSchemas) {
-      const validation = window.validationSchemas.validateRegistration({
-        nombre: this.formData.nombre,
-        email: this.formData.email,
-        telefono: this.formData.telefono,
-        password: this.formData.password,
-        confirmPassword: this.formData.confirmPassword,
-        rol: this.selectedRole
-      });
-      
-      // Add custom validation for invitation code if TAXISTA
-      if (this.selectedRole === 'TAXISTA') {
-        if (!this.formData.codigoInvitacion || this.formData.codigoInvitacion.trim().length === 0) {
-          validation.errors.codigoInvitacion = ['El código de invitación es obligatorio para taxistas'];
-        } else if (this.formData.codigoInvitacion.trim().length !== 6) {
-          validation.errors.codigoInvitacion = ['El código debe tener 6 caracteres'];
-        } else {
-          // Validate that the code exists
-          const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-          const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === this.formData.codigoInvitacion.trim().toUpperCase());
-          if (!patron) {
-            validation.errors.codigoInvitacion = ['Código de invitación inválido'];
-          }
-        }
-      }
-      
-      return validation.errors;
-    }
-    
-    // Fallback validation if ValidationSchemas not loaded
     const errors = {};
     
     // Role validation
     if (!this.selectedRole) {
-      errors.role = ['Debes seleccionar un rol'];
+      errors.role = 'Debes seleccionar un rol';
     }
     
     // Name validation
     if (!this.formData.nombre || this.formData.nombre.trim().length === 0) {
-      errors.nombre = ['El nombre es obligatorio'];
+      errors.nombre = 'El nombre es obligatorio';
     } else if (this.formData.nombre.trim().length < 3) {
-      errors.nombre = ['El nombre debe tener al menos 3 caracteres'];
+      errors.nombre = 'El nombre debe tener al menos 3 caracteres';
     }
     
     // Email validation
     if (!this.formData.email) {
-      errors.email = ['El email es obligatorio'];
+      errors.email = 'El email es obligatorio';
     } else if (!this.isValidEmail(this.formData.email)) {
-      errors.email = ['El formato del email no es válido'];
+      errors.email = 'El formato del email no es válido';
     }
     
     // Phone validation (optional but if provided, must be valid)
     if (this.formData.telefono && !this.isValidPhone(this.formData.telefono)) {
-      errors.telefono = ['El formato del teléfono no es válido'];
+      errors.telefono = 'El formato del teléfono no es válido';
     }
     
     // Invitation code validation (REQUIRED for TAXISTA)
     if (this.selectedRole === 'TAXISTA') {
       if (!this.formData.codigoInvitacion || this.formData.codigoInvitacion.trim().length === 0) {
-        errors.codigoInvitacion = ['El código de invitación es obligatorio para taxistas'];
+        errors.codigoInvitacion = 'El código de invitación es obligatorio para taxistas';
       } else if (this.formData.codigoInvitacion.trim().length !== 6) {
-        errors.codigoInvitacion = ['El código debe tener 6 caracteres'];
+        errors.codigoInvitacion = 'El código debe tener 6 caracteres';
       } else {
         // Validate that the code exists
         const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
         const patron = users.find(u => u.rol === 'PATRON' && u.codigoInvitacion === this.formData.codigoInvitacion.trim().toUpperCase());
         if (!patron) {
-          errors.codigoInvitacion = ['Código de invitación inválido'];
+          errors.codigoInvitacion = 'Código de invitación inválido';
         }
       }
     }
     
     // Password validation
     if (!this.formData.password) {
-      errors.password = ['La contraseña es obligatoria'];
+      errors.password = 'La contraseña es obligatoria';
     } else if (this.formData.password.length < 8) {
-      errors.password = ['La contraseña debe tener al menos 8 caracteres'];
+      errors.password = 'La contraseña debe tener al menos 8 caracteres';
     }
     
     // Confirm password validation
     if (!this.formData.confirmPassword) {
-      errors.confirmPassword = ['Debes confirmar la contraseña'];
+      errors.confirmPassword = 'Debes confirmar la contraseña';
     } else if (this.formData.password !== this.formData.confirmPassword) {
-      errors.confirmPassword = ['Las contraseñas no coinciden'];
+      errors.confirmPassword = 'Las contraseñas no coinciden';
     }
     
     return errors;
@@ -392,17 +411,15 @@ class RegisterModal {
     // Clear all previous errors
     this.clearAllErrors();
     
-    // Show role error (handle both array and string formats)
+    // Show role error
     if (errors.role) {
-      const roleError = Array.isArray(errors.role) ? errors.role[0] : errors.role;
-      this.showFieldError('role', roleError);
+      this.showFieldError('role', errors.role);
     }
     
-    // Show field errors (handle both array and string formats)
+    // Show field errors
     Object.keys(errors).forEach(field => {
       if (field !== 'role') {
-        const errorMessage = Array.isArray(errors[field]) ? errors[field][0] : errors[field];
-        this.showFieldError(field, errorMessage);
+        this.showFieldError(field, errors[field]);
       }
     });
   }
@@ -452,7 +469,7 @@ class RegisterModal {
   }
 
   /**
-   * Handle form submission with CSRF protection
+   * Handle form submission
    */
   async handleSubmit() {
     // Validate form
@@ -464,62 +481,63 @@ class RegisterModal {
     }
     
     // Show loading indicator
-    await LoadingManager.show('Creando cuenta...');
+    await LoadingManager.show('Enviando código de verificación...');
     
     try {
+      // Hash password before storing in userData
+      const hashedPassword = await window.cryptoService.hashPassword(this.formData.password);
+      
       // Prepare user data
-      let userData = {
+      const userData = {
         nombre: this.formData.nombre.trim(),
         email: this.formData.email.trim(),
         telefono: this.formData.telefono.trim(),
-        password: this.formData.password,
+        password: hashedPassword, // Store hashed password
         rol: this.selectedRole
       };
-      
-      // Add CSRF token
-      if (window.csrfService) {
-        userData = window.csrfService.addTokenToData(userData);
-      }
       
       // Add invitation code for taxistas (already validated)
       if (this.selectedRole === 'TAXISTA') {
         userData.codigoPatron = this.formData.codigoInvitacion.trim().toUpperCase();
       }
       
-      // Attempt registration via AuthAdapter
-      const user = await this.authAdapter.register(userData);
+      // Create verification and send code
+      const code = this.emailVerificationService.createVerification(
+        userData.email, 
+        userData
+      );
       
-      // If taxista, create join request (code already validated)
-      if (this.selectedRole === 'TAXISTA') {
-        await this.createJoinRequest(user, userData.codigoPatron);
-      }
+      await this.emailVerificationService.sendVerificationEmail(
+        userData.email, 
+        code
+      );
       
       // Hide loading
       await LoadingManager.hide();
       
-      if (user) {
-        // Show success message
-        let successMessage = '¡Cuenta creada exitosamente! Bienvenido.';
-        if (this.selectedRole === 'TAXISTA') {
-          successMessage = '¡Cuenta creada! Solicitud de unión enviada al patrón.';
-        }
-        ToastManager.showSuccess(successMessage);
-        
-        // Close modal
-        this.close();
-        
-        // Trigger registration success event (auto-login handled by adapter)
+      // Show success message
+      ToastManager.showSuccess('Código de verificación enviado a tu email');
+      
+      // Close registration modal
+      this.close();
+      
+      // Show verification modal with code (for development/staging)
+      const verificationModal = new EmailVerificationModal(
+        this.emailVerificationService,
+        this.authAdapter
+      );
+      
+      await verificationModal.show(userData.email, (user) => {
+        // On successful verification and registration
         this.onRegisterSuccess(user);
-      } else {
-        // Show error message
-        ToastManager.showError('Error al crear la cuenta');
-      }
+      }, code); // Pass code for development display
+      
     } catch (error) {
       // Hide loading
       await LoadingManager.hide();
       
       // Show error message
-      const errorMessage = error.message || 'Error al crear la cuenta. Por favor, inténtalo de nuevo.';
+      const errorMessage = error.message || 'Error al enviar código de verificación. Por favor, inténtalo de nuevo.';
       ToastManager.showError(errorMessage);
       
       console.error('Registration error:', error);

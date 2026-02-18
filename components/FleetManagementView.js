@@ -95,18 +95,26 @@ class FleetManagementView {
     // Set up segment change handler
     const segment = modal.querySelector('#fleet-segment');
     if (segment) {
+      console.log('Setting up segment change handler');
       segment.addEventListener('ionChange', (e) => {
+        console.log('Segment changed to:', e.detail.value);
         const fleetContent = modal.querySelector('#fleet-tab-content');
         const requestsContent = modal.querySelector('#requests-tab-content');
         
+        console.log('Fleet content:', fleetContent, 'Requests content:', requestsContent);
+        
         if (e.detail.value === 'fleet') {
+          console.log('Showing fleet tab');
           fleetContent.style.display = 'block';
           requestsContent.style.display = 'none';
         } else {
+          console.log('Showing requests tab');
           fleetContent.style.display = 'none';
           requestsContent.style.display = 'block';
         }
       });
+    } else {
+      console.error('Segment not found!');
     }
 
     // Listen for taxista updates
@@ -177,23 +185,48 @@ class FleetManagementView {
         totalRequests: requests.length 
       });
       
+      console.log('All users:', users);
+      console.log('Current patron ID:', user.id);
+      
       // Get associated taxistas
-      const associatedTaxistas = users.filter(u => 
-        u.rol === 'TAXISTA' && 
-        u.estado === 'asociado' && 
-        u.patronId === user.id
-      );
+      const associatedTaxistas = users.filter(u => {
+        const isTaxista = u.rol === 'TAXISTA';
+        const isAsociado = u.estado === 'asociado';
+        const hasPatronId = u.patronId === user.id;
+        
+        console.log('Checking user:', u.nombre, {
+          rol: u.rol,
+          isTaxista,
+          estado: u.estado,
+          isAsociado,
+          patronId: u.patronId,
+          expectedPatronId: user.id,
+          hasPatronId,
+          matches: isTaxista && isAsociado && hasPatronId
+        });
+        
+        return isTaxista && isAsociado && hasPatronId;
+      });
       
       console.log('Associated taxistas:', associatedTaxistas.length);
+      console.log('Associated taxistas details:', associatedTaxistas);
       
       // Calculate stats for each taxista
       const today = new Date().toISOString().split('T')[0];
+      console.log('loadFleet: Today date for filtering:', today);
+      
       const taxistasWithStats = associatedTaxistas.map(taxista => {
         const taxistaServices = services.filter(s => s.userId === taxista.id);
+        console.log(`loadFleet: Taxista ${taxista.nombre} - Total services:`, taxistaServices.length);
+        
         const todayServices = taxistaServices.filter(s => {
           const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-          return serviceDate === today;
+          const isToday = serviceDate === today;
+          console.log(`loadFleet: Service ${s.id} - date: ${s.date}, datetime: ${s.datetime}, serviceDate: ${serviceDate}, isToday: ${isToday}`);
+          return isToday;
         });
+        console.log(`loadFleet: Taxista ${taxista.nombre} - Today services:`, todayServices.length);
+        
         const totalIncome = taxistaServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
         
@@ -285,26 +318,6 @@ class FleetManagementView {
             </ion-card>
           </ion-col>
         </ion-row>
-        <ion-row>
-          <ion-col size="6">
-            <ion-card style="margin: 0; height: 100%;">
-              <ion-card-content style="padding: 12px; text-align: center;">
-                <ion-icon name="car" style="font-size: 24px; color: var(--ion-color-tertiary);"></ion-icon>
-                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-tertiary);">${stats.todayServices}</h2>
-                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Servicios Hoy</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6">
-            <ion-card style="margin: 0; height: 100%;">
-              <ion-card-content style="padding: 12px; text-align: center;">
-                <ion-icon name="cash" style="font-size: 24px; color: var(--ion-color-success);"></ion-icon>
-                <h2 style="margin: 8px 0 4px 0; font-size: 24px; font-weight: bold; color: var(--ion-color-success);">€${stats.todayIncome.toFixed(2)}</h2>
-                <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">Ingresos Hoy</p>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
       </ion-grid>
     `;
     
@@ -327,9 +340,16 @@ class FleetManagementView {
       const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       
-      const pendingRequests = requests.filter(r => 
-        r.estado === 'pendiente' && r.patronId === user.id
-      );
+      console.log('All requests:', requests);
+      console.log('Current user ID:', user.id);
+      console.log('Current user:', user);
+      
+      const pendingRequests = requests.filter(r => {
+        console.log('Checking request:', r, 'estado:', r.estado, 'patronId:', r.patronId, 'matches:', r.estado === 'pendiente' && r.patronId === user.id);
+        return r.estado === 'pendiente' && r.patronId === user.id;
+      });
+      
+      console.log('Pending requests found:', pendingRequests);
       
       // Update badge
       const badge = container.querySelector('#requests-badge');
@@ -341,6 +361,7 @@ class FleetManagementView {
       // Add user info to requests
       const requestsWithUsers = pendingRequests.map(request => {
         const taxista = users.find(u => u.id === request.taxistaId);
+        console.log('Request with user:', { request, taxista });
         return {
           ...request,
           taxista
@@ -364,8 +385,12 @@ class FleetManagementView {
    * Render fleet list
    */
   renderFleet(taxistas, user) {
+    console.log('renderFleet called with', taxistas.length, 'taxistas');
+    
     const container = this.currentModal || document;
     const fleetContainer = container.querySelector('#fleet-tab-content');
+    
+    console.log('fleetContainer found:', !!fleetContainer);
     
     if (!fleetContainer) {
       console.error('fleet-tab-content not found!');
@@ -373,28 +398,33 @@ class FleetManagementView {
     }
     
     if (taxistas.length === 0) {
+      console.log('No taxistas, showing empty state');
       const safeCode = sanitizer.escapeHTML(user.codigoInvitacion || 'No disponible');
       const html = `
         <div style="text-align: center; padding: 40px 20px;">
           <ion-icon name="people" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
-          <h2>No tienes taxistas en tu flota</h2>
+          <h2 style="color: var(--ion-text-color);">No tienes taxistas en tu flota</h2>
           <p style="color: var(--ion-color-medium);">Comparte tu código de invitación para que se unan</p>
           <ion-card style="margin-top: 20px;">
             <ion-card-content style="text-align: center;">
               <p style="font-size: 12px; color: var(--ion-color-medium); margin-bottom: 8px;">Tu código de invitación:</p>
-              <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
+              <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-step-100); padding: 12px; border-radius: 8px;">
                 ${safeCode}
               </div>
             </ion-card-content>
           </ion-card>
         </div>
       `;
-      sanitizer.setInnerHTML(fleetContainer, html);
+      // Use direct innerHTML for Ionic components
+      fleetContainer.innerHTML = html;
       return;
     }
     
+    console.log('Building HTML for', taxistas.length, 'taxistas');
+    
     const safeCode = sanitizer.escapeHTML(user.codigoInvitacion || 'No disponible');
-    const taxistaItems = taxistas.map(taxista => {
+    const taxistaItems = taxistas.map((taxista, index) => {
+      console.log('Processing taxista', index, ':', taxista.nombre);
       const safeName = sanitizer.escapeHTML(taxista.nombre);
       const safeNumero = sanitizer.escapeHTML(taxista.numeroTaxista || 'Sin número');
       const safeEmail = sanitizer.escapeHTML(taxista.email);
@@ -408,9 +438,9 @@ class FleetManagementView {
             </div>
           </ion-avatar>
           <ion-label>
-            <h2>${safeName}</h2>
-            <p>${safeNumero} • ${safeEmail}</p>
-            <p style="font-size: 11px;">
+            <h2 style="color: var(--ion-text-color);">${safeName}</h2>
+            <p style="color: var(--ion-color-medium);">${safeNumero} • ${safeEmail}</p>
+            <p style="font-size: 11px; color: var(--ion-color-medium);">
               Total: ${taxista.totalServices} servicios • €${taxista.totalIncome.toFixed(2)}
             </p>
             <p style="font-size: 11px; color: var(--ion-color-success);">
@@ -418,6 +448,9 @@ class FleetManagementView {
             </p>
           </ion-label>
           <div slot="end" style="display: flex; gap: 4px;">
+            <ion-button fill="clear" color="warning" onclick="window.app.showBalanceSettings('${safeId}')" title="Ajustes de Balance">
+              <ion-icon name="settings"></ion-icon>
+            </ion-button>
             <ion-button fill="clear" onclick="window.app.viewTaxistaDetails('${safeId}')">
               <ion-icon name="eye"></ion-icon>
             </ion-button>
@@ -432,14 +465,16 @@ class FleetManagementView {
       `;
     }).join('');
     
+    console.log('Taxista items HTML length:', taxistaItems.length);
+    
     const html = `
       <!-- Invitation Code -->
       <ion-card>
         <ion-card-header>
-          <ion-card-subtitle>Código de Invitación</ion-card-subtitle>
+          <ion-card-subtitle style="color: var(--ion-color-medium);">Código de Invitación</ion-card-subtitle>
         </ion-card-header>
         <ion-card-content style="text-align: center;">
-          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-primary-tint); padding: 12px; border-radius: 8px;">
+          <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-primary); background: var(--ion-color-step-100); padding: 12px; border-radius: 8px;">
             ${safeCode}
           </div>
           <p style="font-size: 12px; color: var(--ion-color-medium); margin-top: 8px;">
@@ -454,74 +489,103 @@ class FleetManagementView {
       </ion-list>
     `;
     
-    sanitizer.setInnerHTML(fleetContainer, html);
+    console.log('Final HTML length:', html.length);
+    console.log('Setting HTML to fleetContainer');
+    
+    // Use direct innerHTML since we've already sanitized individual values
+    fleetContainer.innerHTML = html;
+    
+    console.log('Fleet HTML set successfully');
   }
 
   /**
    * Render requests list
    */
   renderRequests(requests) {
-    const container = this.currentModal || document;
-    const requestsContainer = container.querySelector('#requests-tab-content');
-    
-    if (!requestsContainer) {
-      console.error('requests-tab-content not found!');
-      return;
-    }
-    
-    if (requests.length === 0) {
-      const html = `
-        <div style="text-align: center; padding: 40px 20px;">
-          <ion-icon name="mail-open" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
-          <h2>No hay solicitudes pendientes</h2>
-          <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
-        </div>
-      `;
-      sanitizer.setInnerHTML(requestsContainer, html);
-      return;
-    }
-    
-    const requestItems = requests.map(request => {
-      const safeName = sanitizer.escapeHTML(request.taxista?.nombre || 'Usuario desconocido');
-      const safeEmail = sanitizer.escapeHTML(request.taxista?.email || '');
-      const safeNumero = sanitizer.escapeHTML(request.taxista?.numeroTaxista || 'N/A');
-      const safeId = sanitizer.escapeHTML(request.id);
-      const safeDate = new Date(request.fechaSolicitud).toLocaleDateString();
+    try {
+      console.log('renderRequests called with:', requests.length, 'requests');
       
-      return `
-        <ion-item>
-          <ion-avatar slot="start">
-            <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
-              ${safeNumero.slice(-2) || '??'}
-            </div>
-          </ion-avatar>
-          <ion-label>
-            <h2>${safeName}</h2>
-            <p>${safeEmail}</p>
-            <p style="font-size: 11px;">Número: ${safeNumero}</p>
-            <p style="font-size: 11px; color: var(--ion-color-medium);">
-              Solicitado: ${safeDate}
-            </p>
-          </ion-label>
-          <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
-            <ion-button size="small" color="success" onclick="window.app.approveRequest('${safeId}')">
-              <ion-icon name="checkmark" slot="icon-only"></ion-icon>
-            </ion-button>
-            <ion-button size="small" color="danger" onclick="window.app.rejectRequest('${safeId}')">
-              <ion-icon name="close" slot="icon-only"></ion-icon>
-            </ion-button>
+      const container = this.currentModal || document;
+      const requestsContainer = container.querySelector('#requests-tab-content');
+      
+      if (!requestsContainer) {
+        console.error('requests-tab-content not found!');
+        return;
+      }
+      
+      console.log('requestsContainer found, checking if empty...');
+      
+      if (requests.length === 0) {
+        console.log('No requests, showing empty state');
+        const html = `
+          <div style="text-align: center; padding: 40px 20px;">
+            <ion-icon name="mail-open" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
+            <h2 style="color: var(--ion-text-color);">No hay solicitudes pendientes</h2>
+            <p style="color: var(--ion-color-medium);">Las solicitudes de unión aparecerán aquí</p>
           </div>
-        </ion-item>
+        `;
+        requestsContainer.innerHTML = html;
+        return;
+      }
+      
+      console.log('Building HTML for', requests.length, 'requests...');
+      
+      const requestItems = requests.map((request, index) => {
+        console.log('Processing request', index, ':', request);
+        
+        const safeName = sanitizer.escapeHTML(request.taxista?.nombre || 'Usuario desconocido');
+        const safeEmail = sanitizer.escapeHTML(request.taxista?.email || '');
+        const safeNumero = sanitizer.escapeHTML(request.taxista?.numeroTaxista || 'N/A');
+        const safeId = String(request.id); // Convert to string
+        const safeDate = new Date(request.fechaSolicitud).toLocaleDateString();
+        
+        console.log('Sanitized data:', { safeName, safeEmail, safeNumero, safeId, safeDate });
+        
+        return `
+          <ion-item>
+            <ion-avatar slot="start">
+              <div style="background: var(--ion-color-warning); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold;">
+                ${safeNumero.slice(-2) || '??'}
+              </div>
+            </ion-avatar>
+            <ion-label>
+              <h2 style="color: var(--ion-text-color);">${safeName}</h2>
+              <p style="color: var(--ion-color-medium);">${safeEmail}</p>
+              <p style="font-size: 11px; color: var(--ion-color-medium);">Número: ${safeNumero}</p>
+              <p style="font-size: 11px; color: var(--ion-color-medium);">
+                Solicitado: ${safeDate}
+              </p>
+            </ion-label>
+            <div slot="end" style="display: flex; flex-direction: column; gap: 4px;">
+              <ion-button size="small" color="success" onclick="window.app.approveRequest('${safeId}')">
+                <ion-icon name="checkmark" slot="icon-only"></ion-icon>
+              </ion-button>
+              <ion-button size="small" color="danger" onclick="window.app.rejectRequest('${safeId}')">
+                <ion-icon name="close" slot="icon-only"></ion-icon>
+              </ion-button>
+            </div>
+          </ion-item>
+        `;
+      }).join('');
+      
+      console.log('Request items built, length:', requestItems.length);
+      
+      const html = `
+        <ion-list>
+          ${requestItems}
+        </ion-list>
       `;
-    }).join('');
-    
-    const html = `
-      <ion-list>
-        ${requestItems}
-      </ion-list>
-    `;
-    
-    sanitizer.setInnerHTML(requestsContainer, html);
+      
+      console.log('Final HTML built, length:', html.length);
+      console.log('Setting innerHTML...');
+      
+      requestsContainer.innerHTML = html;
+      
+      console.log('innerHTML set successfully!');
+    } catch (error) {
+      console.error('Error in renderRequests:', error);
+      console.error('Error stack:', error.stack);
+    }
   }
 }
 

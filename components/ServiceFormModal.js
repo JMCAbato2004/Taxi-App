@@ -163,18 +163,18 @@ class ServiceFormModal {
           </p>
 
           <!-- Net Amount Preview -->
-          <ion-card style="margin: 16px 0; background: var(--ion-color-success-tint);">
+          <ion-card style="margin: 16px 0; background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.15) 100%); border: 2px solid var(--ion-color-success);">
             <ion-card-content style="padding: 12px;">
               <div style="display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                  <p style="margin: 0; font-size: 12px; color: var(--ion-color-success);">Importe Neto</p>
-                  <p style="margin: 4px 0 0 0; font-size: 10px; color: var(--ion-color-medium);">
-                    Base <span id="preview-base">€0.00</span>
-                    <span id="preview-commission-text" style="display: none;"> - Comisión <span id="preview-commission">€0.00</span></span>
-                    <span id="preview-tip-text" style="display: none;"> + Propina <span id="preview-tip">€0.00</span></span>
+                  <p style="margin: 0; font-size: 13px; font-weight: 600; color: var(--ion-text-color);">Importe Neto</p>
+                  <p style="margin: 4px 0 0 0; font-size: 11px; color: var(--ion-text-color); opacity: 0.8;">
+                    Base <span id="preview-base" style="font-weight: 600;">€0.00</span>
+                    <span id="preview-commission-text" style="display: none;"> - Comisión <span id="preview-commission" style="font-weight: 600;">€0.00</span></span>
+                    <span id="preview-tip-text" style="display: none;"> + Propina <span id="preview-tip" style="font-weight: 600;">€0.00</span></span>
                   </p>
                 </div>
-                <div style="font-size: 24px; font-weight: bold; color: var(--ion-color-success);" id="preview-net">
+                <div style="font-size: 26px; font-weight: bold; color: var(--ion-color-success);" id="preview-net">
                   €0.00
                 </div>
               </div>
@@ -340,40 +340,11 @@ class ServiceFormModal {
   }
 
   /**
-   * Validate form using ValidationSchemas
+   * Validate form
    */
   validateForm() {
     let isValid = true;
 
-    // Use ValidationSchemas if available
-    if (window.validationSchemas) {
-      const amount = parseFloat(document.getElementById('service-amount').value);
-      const commission = parseFloat(document.getElementById('service-commission').value) || 0;
-      const tip = parseFloat(document.getElementById('service-tip').value) || 0;
-      
-      const validation = window.validationSchemas.validateService({
-        date: document.getElementById('service-date').value,
-        amount: amount,
-        commission: commission,
-        tip: tip
-      });
-      
-      if (!validation.valid) {
-        // Show errors
-        if (validation.errors.date) {
-          this.showError('date-error', validation.errors.date[0]);
-          isValid = false;
-        }
-        if (validation.errors.amount) {
-          this.showError('amount-error', validation.errors.amount[0]);
-          isValid = false;
-        }
-      }
-      
-      return isValid;
-    }
-
-    // Fallback validation
     // Validate date
     const date = document.getElementById('service-date').value;
     if (!date) {
@@ -414,7 +385,7 @@ class ServiceFormModal {
   }
 
   /**
-   * Handle form submission with CSRF protection
+   * Handle form submission
    */
   async handleSubmit() {
     // Validate form
@@ -429,7 +400,7 @@ class ServiceFormModal {
     const tip = parseFloat(document.getElementById('service-tip').value) || 0;
     const netAmount = amount + tip - commission;
 
-    let serviceData = {
+    const serviceData = {
       date: document.getElementById('service-date').value,
       time: document.getElementById('service-time').value,
       origin: document.getElementById('service-origin').value || 'No especificado',
@@ -446,11 +417,6 @@ class ServiceFormModal {
       notes: document.getElementById('service-notes').value,
       status: 'completado'
     };
-
-    // Add CSRF token
-    if (window.csrfService) {
-      serviceData = window.csrfService.addTokenToData(serviceData);
-    }
 
     try {
       await LoadingManager.show(this.isEditMode ? 'Guardando cambios...' : 'Creando servicio...');

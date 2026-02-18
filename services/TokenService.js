@@ -1,279 +1,461 @@
 /**
- * TokenService - Secure JWT token management
- * Handles token generation, validation, and refresh
+ * TokenService - JWT Token Management with Expiration
+ * Implements token generation, validation, and refresh mechanism
  * 
- * Security Features:
- * - JWT with HMAC-SHA256 signature
- * - Access tokens (30 min expiration)
- * - Refresh tokens (7 days expiration)
- * - Token rotation on refresh
+ * IMPORTANT: This is a frontend implementation for demonstration.
+ * In production, JWT tokens MUST be generated and validated on the backend.
+ * 
+ * Features:
+ * - JWT-like token structure with expiration
+ * - Access tokens (short-lived: 1 hour)
+ * - Refresh tokens (long-lived: 7 days)
+ * - Automatic token refresh before expiration
+ * - Token validation and expiration checking
+ * - Secure token storage
  */
 
 class TokenService {
   constructor() {
-    // In production, this should be an environment variable
-    // For now, we'll generate a random secret on initialization
-    this.SECRET_KEY = this.generateSecretKey();
-    this.ACCESS_TOKEN_EXPIRY = 30 * 60; // 30 minutes in seconds
-    this.REFRESH_TOKEN_EXPIRY = 7 * 24 * 60 * 60; // 7 days in seconds
+    // Token configuration
+    this.ACCESS_TOKEN_LIFETIME = 60 * 60 * 1000; // 1 hour
+    this.REFRESH_TOKEN_LIFETIME = 7 * 24 * 60 * 60 * 1000; // 7 days
+    this.REFRESH_THRESHOLD = 5 * 60 * 1000; // Refresh 5 minutes before expiry
     
-    this.STORAGE_KEY_REFRESH = 'taxi_refresh_token';
+    // Storage keys
+    this.ACCESS_TOKEN_KEY = 'access_token';
+    this.REFRESH_TOKEN_KEY = 'refresh_token';
+    this.TOKEN_METADATA_KEY = 'token_metadata';
+    
+    // Auto-refresh interval
+    this.refreshInterval = null;
+    
+    // Initialize auto-refresh
+    this.startAutoRefresh();
   }
 
   /**
-   * Generate a cryptographically secure secret key
-   * @private
-   * @returns {string} Base64 encoded secret key
-   */
-  generateSecretKey() {
-    // Check if we already have a secret stored
-    const stored = localStorage.getItem('taxi_jwt_secret');
-    if (stored) {
-      return stored;
-    }
-
-    // Generate new secret using Web Crypto API
-    const array = new Uint8Array(32); // 256 bits
-    crypto.getRandomValues(array);
-    const secret = btoa(String.fromCharCode.apply(null, array));
-    
-    // Store for consistency across sessions
-    localStorage.setItem('taxi_jwt_secret', secret);
-    return secret;
-  }
-
-  /**
-   * Create a simple JWT token (without external library for now)
-   * In production, use jsonwebtoken library
+   * Generate a JWT-like token
    * @param {Object} payload - Token payload
-   * @param {number} expiresIn - Expiration time in seconds
-   * @returns {string} JWT token
+   * @param {number} expiresIn - Expiration time in milliseconds
+   * @returns {Object} Token object with token string and metadata
    */
-  createToken(payload, expiresIn) {
-    const header = {
-      alg: 'HS256',
-      typ: 'JWT'
-    };
-
-    const now = Math.floor(Date.now() / 1000);
+  generateToken(payload, expiresIn) {
+    const now = Date.now();
+    const expiresAt = now + expiresIn;
+    
+    // Create token payload
     const tokenPayload = {
       ...payload,
       iat: now, // Issued at
-      exp: now + expiresIn, // Expiration
-      jti: this.generateJti() // JWT ID (unique identifier)
+      exp: expiresAt, // Expires at
+      jti: this._generateTokenId() // JWT ID (unique identifier)
     };
-
-    // Encode header and payload
-    const encodedHeader = this.base64UrlEncode(JSON.stringify(header));
-    const encodedPayload = this.base64UrlEncode(JSON.stringify(tokenPayload));
-
-    // Create signature
-    const signature = this.createSignature(encodedHeader, encodedPayload);
-
-    return `${encodedHeader}.${encodedPayload}.${signature}`;
+    
+    // In production, this would be signed with a secret key on the backend
+    // For demo, we'll use base64 encoding
+    const header = { alg: 'HS256', typ: 'JWT' };
+    const encodedHeader = this._base64UrlEncode(JSON.stringify(header));
+    const encodedPayload = this._base64UrlEncode(JSON.stringify(tokenPayload));
+    
+    // Simulate signature (in production, use HMAC-SHA256 with secret)
+    const signature = this._generateSignature(encodedHeader, encodedPayload);
+    
+    const token = `${encodedHeader}.${encodedPayload}.${signature}`;
+    
+    return {
+      token: token,
+      expiresAt: expiresAt,
+      expiresIn: expiresIn,
+      issuedAt: now
+    };
   }
 
   /**
-   * Generate access token
+   * Generate access and refresh tokens
    * @param {Object} user - User object
-   * @returns {string} Access token
+   * @returns {Object} Token pair with metadata
    */
-  generateAccessToken(user) {
+  generateTokenPair(user) {
+    // Create minimal payload (don't include sensitive data)
     const payload = {
       userId: user.id,
       email: user.email,
       rol: user.rol,
       type: 'access'
     };
-
-    return this.createToken(payload, this.ACCESS_TOKEN_EXPIRY);
-  }
-
-  /**
-   * Generate refresh token
-   * @param {Object} user - User object
-   * @returns {string} Refresh token
-   */
-  generateRefreshToken(user) {
-    const payload = {
+    
+    // Generate access token
+    const accessToken = this.generateToken(payload, this.ACCESS_TOKEN_LIFETIME);
+    
+    // Generate refresh token with different payload
+    const refreshPayload = {
       userId: user.id,
-      type: 'refresh'
+      type: 'refresh',
+      tokenId: accessToken.token.split('.')[2] // Link to access token
     };
-
-    const token = this.createToken(payload, this.REFRESH_TOKEN_EXPIRY);
     
-    // Store refresh token securely
-    this.storeRefreshToken(token);
+    const refreshToken = this.generateToken(refreshPayload, this.REFRESH_TOKEN_LIFETIME);
     
-    return token;
+    return {
+      accessToken: accessToken.token,
+      refreshToken: refreshToken.token,
+      accessTokenExpiresAt: accessToken.expiresAt,
+      refreshTokenExpiresAt: refreshToken.expiresAt,
+      tokenType: 'Bearer'
+    };
   }
 
   /**
-   * Verify and decode token
-   * @param {string} token - JWT token
-   * @returns {Object|null} Decoded payload or null if invalid
+   * Store tokens securely
+   * @param {Object} tokens - Token pair
    */
-  verifyToken(token) {
+  async storeTokens(tokens) {
     try {
-      if (!token) return null;
-
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-
-      const [encodedHeader, encodedPayload, signature] = parts;
-
-      // Verify signature
-      const expectedSignature = this.createSignature(encodedHeader, encodedPayload);
-      if (signature !== expectedSignature) {
-        console.error('Invalid token signature');
-        return null;
+      // Use secure storage if available
+      if (window.secureStorageService) {
+        await window.secureStorageService.setItem(this.ACCESS_TOKEN_KEY, tokens.accessToken);
+        await window.secureStorageService.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken);
+        await window.secureStorageService.setItem(this.TOKEN_METADATA_KEY, {
+          accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+          refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+          issuedAt: Date.now()
+        });
+      } else {
+        // Fallback to sessionStorage (better than localStorage for tokens)
+        sessionStorage.setItem(this.ACCESS_TOKEN_KEY, tokens.accessToken);
+        sessionStorage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken);
+        sessionStorage.setItem(this.TOKEN_METADATA_KEY, JSON.stringify({
+          accessTokenExpiresAt: tokens.accessTokenExpiresAt,
+          refreshTokenExpiresAt: tokens.refreshTokenExpiresAt,
+          issuedAt: Date.now()
+        }));
       }
-
-      // Decode payload
-      const payload = JSON.parse(this.base64UrlDecode(encodedPayload));
-
-      // Check expiration
-      const now = Math.floor(Date.now() / 1000);
-      if (payload.exp && payload.exp < now) {
-        console.error('Token expired');
-        return null;
-      }
-
-      return payload;
+      
+      console.log('Tokens stored securely');
     } catch (error) {
-      console.error('Token verification error:', error);
+      console.error('Error storing tokens:', error);
+      throw new Error('Error al almacenar tokens');
+    }
+  }
+
+  /**
+   * Get access token
+   * @returns {Promise<string|null>} Access token or null
+   */
+  async getAccessToken() {
+    try {
+      if (window.secureStorageService) {
+        return await window.secureStorageService.getItem(this.ACCESS_TOKEN_KEY);
+      } else {
+        return sessionStorage.getItem(this.ACCESS_TOKEN_KEY);
+      }
+    } catch (error) {
+      console.error('Error getting access token:', error);
       return null;
     }
+  }
+
+  /**
+   * Get refresh token
+   * @returns {Promise<string|null>} Refresh token or null
+   */
+  async getRefreshToken() {
+    try {
+      if (window.secureStorageService) {
+        return await window.secureStorageService.getItem(this.REFRESH_TOKEN_KEY);
+      } else {
+        return sessionStorage.getItem(this.REFRESH_TOKEN_KEY);
+      }
+    } catch (error) {
+      console.error('Error getting refresh token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get token metadata
+   * @returns {Promise<Object|null>} Token metadata or null
+   */
+  async getTokenMetadata() {
+    try {
+      if (window.secureStorageService) {
+        return await window.secureStorageService.getItem(this.TOKEN_METADATA_KEY);
+      } else {
+        const stored = sessionStorage.getItem(this.TOKEN_METADATA_KEY);
+        return stored ? JSON.parse(stored) : null;
+      }
+    } catch (error) {
+      console.error('Error getting token metadata:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Decode token payload
+   * @param {string} token - JWT token
+   * @returns {Object|null} Decoded payload or null
+   */
+  decodeToken(token) {
+    try {
+      const parts = token.split('.');
+      if (parts.length !== 3) {
+        return null;
+      }
+      
+      const payload = this._base64UrlDecode(parts[1]);
+      return JSON.parse(payload);
+    } catch (error) {
+      console.error('Error decoding token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Validate token
+   * @param {string} token - JWT token
+   * @returns {Object} Validation result
+   */
+  validateToken(token) {
+    if (!token) {
+      return { valid: false, reason: 'Token missing' };
+    }
+    
+    const payload = this.decodeToken(token);
+    
+    if (!payload) {
+      return { valid: false, reason: 'Invalid token format' };
+    }
+    
+    // Check expiration
+    if (Date.now() >= payload.exp) {
+      return { valid: false, reason: 'Token expired', expired: true };
+    }
+    
+    // Check if token was issued in the future (clock skew)
+    if (payload.iat > Date.now() + 60000) { // Allow 1 minute skew
+      return { valid: false, reason: 'Token issued in the future' };
+    }
+    
+    return { valid: true, payload: payload };
+  }
+
+  /**
+   * Check if token is expired
+   * @param {string} token - JWT token
+   * @returns {boolean} True if expired
+   */
+  isTokenExpired(token) {
+    const validation = this.validateToken(token);
+    return validation.expired || !validation.valid;
+  }
+
+  /**
+   * Check if token needs refresh
+   * @param {string} token - JWT token
+   * @returns {boolean} True if needs refresh
+   */
+  needsRefresh(token) {
+    const payload = this.decodeToken(token);
+    
+    if (!payload) {
+      return true;
+    }
+    
+    const timeUntilExpiry = payload.exp - Date.now();
+    return timeUntilExpiry <= this.REFRESH_THRESHOLD;
   }
 
   /**
    * Refresh access token using refresh token
-   * @param {string} refreshToken - Refresh token
-   * @returns {Object|null} New tokens or null if invalid
+   * @returns {Promise<Object|null>} New token pair or null
    */
-  async refreshAccessToken(refreshToken) {
+  async refreshAccessToken() {
     try {
-      // Verify refresh token
-      const payload = this.verifyToken(refreshToken);
+      const refreshToken = await this.getRefreshToken();
       
-      if (!payload || payload.type !== 'refresh') {
-        throw new Error('Invalid refresh token');
+      if (!refreshToken) {
+        console.warn('No refresh token available');
+        return null;
       }
-
-      // Get user data
-      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-      const user = users.find(u => u.id === payload.userId);
-
+      
+      // Validate refresh token
+      const validation = this.validateToken(refreshToken);
+      
+      if (!validation.valid) {
+        console.warn('Refresh token invalid:', validation.reason);
+        await this.clearTokens();
+        return null;
+      }
+      
+      // Decode refresh token to get user info
+      const payload = validation.payload;
+      
+      // In production, this would call backend API to refresh token
+      // For demo, we'll get user from storage and generate new tokens
+      const user = await this._getUserFromStorage(payload.userId);
+      
       if (!user) {
-        throw new Error('User not found');
+        console.warn('User not found for token refresh');
+        await this.clearTokens();
+        return null;
       }
-
-      // Generate new tokens
-      const newAccessToken = this.generateAccessToken(user);
-      const newRefreshToken = this.generateRefreshToken(user);
-
-      return {
-        accessToken: newAccessToken,
-        refreshToken: newRefreshToken,
-        user: user
-      };
+      
+      // Generate new token pair
+      const newTokens = this.generateTokenPair(user);
+      
+      // Store new tokens
+      await this.storeTokens(newTokens);
+      
+      console.log('Access token refreshed successfully');
+      
+      return newTokens;
     } catch (error) {
-      console.error('Token refresh error:', error);
+      console.error('Error refreshing token:', error);
       return null;
     }
   }
 
   /**
-   * Check if token is expired or about to expire
-   * @param {string} token - JWT token
-   * @param {number} bufferSeconds - Buffer time in seconds (default 60)
-   * @returns {boolean} True if token needs refresh
-   */
-  needsRefresh(token, bufferSeconds = 60) {
-    const payload = this.verifyToken(token);
-    if (!payload) return true;
-
-    const now = Math.floor(Date.now() / 1000);
-    return payload.exp - now < bufferSeconds;
-  }
-
-  /**
-   * Store refresh token securely
+   * Get user from storage (helper for token refresh)
    * @private
-   * @param {string} token - Refresh token
    */
-  storeRefreshToken(token) {
-    // In production, consider using httpOnly cookies or secure storage
-    localStorage.setItem(this.STORAGE_KEY_REFRESH, token);
-  }
-
-  /**
-   * Get stored refresh token
-   * @returns {string|null} Refresh token or null
-   */
-  getRefreshToken() {
-    return localStorage.getItem(this.STORAGE_KEY_REFRESH);
+  async _getUserFromStorage(userId) {
+    try {
+      // Try secure storage first
+      if (window.secureStorageService) {
+        const user = await window.secureStorageService.getUserData();
+        if (user && user.id === userId) {
+          return user;
+        }
+      }
+      
+      // Fallback to localStorage
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      return users.find(u => u.id === userId);
+    } catch (error) {
+      console.error('Error getting user from storage:', error);
+      return null;
+    }
   }
 
   /**
    * Clear all tokens
    */
-  clearTokens() {
-    localStorage.removeItem(this.STORAGE_KEY_REFRESH);
-  }
-
-  /**
-   * Create HMAC-SHA256 signature
-   * @private
-   * @param {string} header - Encoded header
-   * @param {string} payload - Encoded payload
-   * @returns {string} Base64 URL encoded signature
-   */
-  createSignature(header, payload) {
-    const data = `${header}.${payload}`;
-    // Simple HMAC implementation using Web Crypto API would be better
-    // For now, using a simple hash
-    const hash = this.simpleHash(data + this.SECRET_KEY);
-    return this.base64UrlEncode(hash);
-  }
-
-  /**
-   * Simple hash function (for demonstration)
-   * In production, use Web Crypto API's subtle.sign()
-   * @private
-   * @param {string} str - String to hash
-   * @returns {string} Hash
-   */
-  simpleHash(str) {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) {
-      const char = str.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+  async clearTokens() {
+    try {
+      if (window.secureStorageService) {
+        window.secureStorageService.removeItem(this.ACCESS_TOKEN_KEY);
+        window.secureStorageService.removeItem(this.REFRESH_TOKEN_KEY);
+        window.secureStorageService.removeItem(this.TOKEN_METADATA_KEY);
+      } else {
+        sessionStorage.removeItem(this.ACCESS_TOKEN_KEY);
+        sessionStorage.removeItem(this.REFRESH_TOKEN_KEY);
+        sessionStorage.removeItem(this.TOKEN_METADATA_KEY);
+      }
+      
+      console.log('Tokens cleared');
+    } catch (error) {
+      console.error('Error clearing tokens:', error);
     }
-    return hash.toString(36);
   }
 
   /**
-   * Generate unique JWT ID
-   * @private
-   * @returns {string} Unique ID
+   * Start automatic token refresh
    */
-  generateJti() {
-    const array = new Uint8Array(16);
-    crypto.getRandomValues(array);
-    return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+  startAutoRefresh() {
+    // Check every minute if token needs refresh
+    this.refreshInterval = setInterval(async () => {
+      const accessToken = await this.getAccessToken();
+      
+      if (accessToken && this.needsRefresh(accessToken)) {
+        console.log('Auto-refreshing access token');
+        await this.refreshAccessToken();
+      }
+    }, 60000); // Check every minute
+  }
+
+  /**
+   * Stop automatic token refresh
+   */
+  stopAutoRefresh() {
+    if (this.refreshInterval) {
+      clearInterval(this.refreshInterval);
+      this.refreshInterval = null;
+    }
+  }
+
+  /**
+   * Get token info for debugging
+   * @returns {Promise<Object>} Token information
+   */
+  async getTokenInfo() {
+    const accessToken = await this.getAccessToken();
+    const refreshToken = await this.getRefreshToken();
+    const metadata = await this.getTokenMetadata();
+    
+    let accessTokenInfo = null;
+    let refreshTokenInfo = null;
+    
+    if (accessToken) {
+      const payload = this.decodeToken(accessToken);
+      const validation = this.validateToken(accessToken);
+      accessTokenInfo = {
+        valid: validation.valid,
+        expired: validation.expired,
+        expiresAt: payload ? new Date(payload.exp) : null,
+        timeUntilExpiry: payload ? payload.exp - Date.now() : null,
+        needsRefresh: this.needsRefresh(accessToken)
+      };
+    }
+    
+    if (refreshToken) {
+      const payload = this.decodeToken(refreshToken);
+      const validation = this.validateToken(refreshToken);
+      refreshTokenInfo = {
+        valid: validation.valid,
+        expired: validation.expired,
+        expiresAt: payload ? new Date(payload.exp) : null,
+        timeUntilExpiry: payload ? payload.exp - Date.now() : null
+      };
+    }
+    
+    return {
+      hasAccessToken: !!accessToken,
+      hasRefreshToken: !!refreshToken,
+      accessToken: accessTokenInfo,
+      refreshToken: refreshTokenInfo,
+      metadata: metadata
+    };
+  }
+
+  /**
+   * Generate unique token ID
+   * @private
+   */
+  _generateTokenId() {
+    return crypto.randomUUID ? crypto.randomUUID() : this._generateRandomString(32);
+  }
+
+  /**
+   * Generate random string
+   * @private
+   */
+  _generateRandomString(length) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const randomValues = crypto.getRandomValues(new Uint8Array(length));
+    for (let i = 0; i < length; i++) {
+      result += chars[randomValues[i] % chars.length];
+    }
+    return result;
   }
 
   /**
    * Base64 URL encode
    * @private
-   * @param {string} str - String to encode
-   * @returns {string} Encoded string
    */
-  base64UrlEncode(str) {
-    const base64 = btoa(unescape(encodeURIComponent(str)));
-    return base64
+  _base64UrlEncode(str) {
+    return btoa(str)
       .replace(/\+/g, '-')
       .replace(/\//g, '_')
       .replace(/=/g, '');
@@ -282,44 +464,40 @@ class TokenService {
   /**
    * Base64 URL decode
    * @private
-   * @param {string} str - String to decode
-   * @returns {string} Decoded string
    */
-  base64UrlDecode(str) {
-    let base64 = str
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-    
-    // Add padding
-    while (base64.length % 4) {
-      base64 += '=';
+  _base64UrlDecode(str) {
+    str = str.replace(/-/g, '+').replace(/_/g, '/');
+    while (str.length % 4) {
+      str += '=';
     }
-    
-    return decodeURIComponent(escape(atob(base64)));
+    return atob(str);
   }
 
   /**
-   * Extract user info from token without verification
-   * Use only for non-security-critical operations
-   * @param {string} token - JWT token
-   * @returns {Object|null} User info or null
+   * Generate signature (simulated)
+   * @private
    */
-  decodeToken(token) {
-    try {
-      const parts = token.split('.');
-      if (parts.length !== 3) return null;
-      
-      const payload = JSON.parse(this.base64UrlDecode(parts[1]));
-      return payload;
-    } catch (error) {
-      return null;
+  _generateSignature(header, payload) {
+    // In production, use HMAC-SHA256 with secret key
+    // For demo, use a simple hash
+    const data = header + '.' + payload;
+    let hash = 0;
+    for (let i = 0; i < data.length; i++) {
+      const char = data.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash;
     }
+    return Math.abs(hash).toString(36);
   }
 }
+
+// Create singleton instance
+const tokenService = new TokenService();
 
 // Export for use in other modules
 if (typeof window !== 'undefined') {
   window.TokenService = TokenService;
+  window.tokenService = tokenService;
 }
 
 console.log('TokenService loaded');

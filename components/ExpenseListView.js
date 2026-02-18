@@ -151,6 +151,21 @@ class ExpenseListView {
       return '';
     }
 
+    // Get current user to check if patron
+    const user = this.authAdapter.getCurrentUser();
+    const isPatron = user && user.rol === 'PATRON';
+    
+    // Get taxistas map if patron
+    let taxistasMap = {};
+    if (isPatron) {
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      users.forEach(u => {
+        if (u.rol === 'TAXISTA') {
+          taxistasMap[u.id] = u;
+        }
+      });
+    }
+
     return this.filteredExpenses.map(expense => {
       const categoryIcon = this.getCategoryIcon(expense.category);
       const date = new Date(expense.date);
@@ -158,6 +173,13 @@ class ExpenseListView {
         day: '2-digit', 
         month: 'short' 
       });
+      
+      // Get taxista name if patron
+      let taxistaInfo = '';
+      if (isPatron && expense.userId && taxistasMap[expense.userId]) {
+        const taxista = taxistasMap[expense.userId];
+        taxistaInfo = `<p style="font-size: 11px; color: #3b82f6; font-weight: 600;">🚕 ${taxista.nombre}${taxista.numeroTaxista ? ` (${taxista.numeroTaxista})` : ''}</p>`;
+      }
 
       return `
         <ion-item button class="expense-item" data-expense-id="${expense.id}">
@@ -165,6 +187,7 @@ class ExpenseListView {
           <ion-label>
             <h2>${expense.concept}</h2>
             <p>${formattedDate} • €${parseFloat(expense.amount).toFixed(2)}</p>
+            ${taxistaInfo}
             ${expense.paidBy ? `<p><ion-badge color="secondary">${this.getPaidByLabel(expense.paidBy)}</ion-badge></p>` : ''}
           </ion-label>
           <div slot="end" class="expense-actions">

@@ -15,16 +15,21 @@ class DashboardView {
    * Render the dashboard view
    */
   async render() {
+    console.log('DashboardView.render: Starting render');
     const user = this.authAdapter.getCurrentUser();
+    console.log('DashboardView.render: Current user:', user ? user.id : 'none');
     
     if (!user) {
+      console.log('DashboardView.render: No user, showing welcome');
       this.renderWelcome();
     } else {
+      console.log('DashboardView.render: User found, rendering dashboard');
       await this.renderDashboard(user);
     }
     
     // Set up pull-to-refresh
     this.setupPullToRefresh();
+    console.log('DashboardView.render: Render complete');
   }
 
   /**
@@ -48,8 +53,15 @@ class DashboardView {
    * @param {Object} user - The authenticated user
    */
   async renderDashboard(user) {
+    console.log('renderDashboard: Starting render for user:', user.id);
+    
     const welcomeSection = document.getElementById('welcome-section');
     const dashboardSection = document.getElementById('dashboard-section');
+    
+    console.log('renderDashboard: Sections found:', {
+      welcomeSection: !!welcomeSection,
+      dashboardSection: !!dashboardSection
+    });
     
     if (welcomeSection) {
       welcomeSection.style.display = 'none';
@@ -63,13 +75,18 @@ class DashboardView {
     this.displayUserRole(user);
     
     // Load and display stats
+    console.log('renderDashboard: Loading stats...');
     await this.loadStats(user);
+    console.log('renderDashboard: Displaying stats...');
     this.displayStats();
+    console.log('renderDashboard: Displaying recent activity...');
     this.displayRecentActivity();
+    console.log('renderDashboard: Displaying action buttons...');
     this.displayActionButtons(user);
     
     // If patron, display fleet info
     if (user.rol === 'PATRON') {
+      console.log('renderDashboard: Displaying fleet info...');
       await this.displayFleetInfo(user);
     } else {
       // Clear fleet info for taxistas
@@ -78,6 +95,8 @@ class DashboardView {
         fleetInfoContainer.innerHTML = '';
       }
     }
+    
+    console.log('renderDashboard: Render complete');
   }
 
   /**
@@ -90,21 +109,15 @@ class DashboardView {
     
     const roleIcon = user.rol === 'PATRON' ? '👔' : '🚗';
     const roleText = user.rol === 'PATRON' ? 'PATRÓN' : 'TAXISTA';
-    const roleColor = user.rol === 'PATRON' ? 'var(--ion-color-primary)' : 'var(--ion-color-success)';
+    const roleColor = user.rol === 'PATRON' ? 'primary' : 'success';
     
-    // Sanitize user name
-    const safeName = sanitizer.escapeHTML(user.nombre);
-    const safeNumero = user.numeroTaxista ? sanitizer.escapeHTML(user.numeroTaxista) : '';
-    
-    const html = `
-      <div class="role-chip" style="display: inline-block; padding: 8px 16px; background: ${roleColor}; color: white; border-radius: 20px; font-size: 14px; font-weight: bold; margin-bottom: 12px;">
-        ${roleIcon} ${roleText}
-      </div>
-      <div class="user-name" style="font-size: 18px; font-weight: bold; margin-top: 8px; color: var(--ion-color-dark);">${safeName}</div>
-      ${safeNumero ? `<div class="user-number" style="font-size: 14px; color: var(--ion-color-medium); margin-top: 4px;">Nº ${safeNumero}</div>` : ''}
+    container.innerHTML = `
+      <ion-chip color="${roleColor}" style="font-size: 14px; font-weight: bold;">
+        <ion-label>${roleIcon} ${roleText}</ion-label>
+      </ion-chip>
+      <div style="font-size: 18px; font-weight: bold; margin-top: 4px; color: var(--ion-color-dark);">${user.nombre}</div>
+      ${user.numeroTaxista ? `<div style="font-size: 14px; color: var(--ion-color-medium);">Nº ${user.numeroTaxista}</div>` : ''}
     `;
-    
-    sanitizer.setInnerHTML(container, html);
   }
 
   /**
@@ -113,29 +126,59 @@ class DashboardView {
    */
   async loadStats(user) {
     try {
+      console.log('loadStats: Loading stats for user:', user.id, user.rol);
+      
       // Load services and expenses
       const services = await this.reconcileAdapter.getServices();
       const expenses = await this.reconcileAdapter.getExpenses();
+      
+      console.log('loadStats: Total services:', services.length);
+      console.log('loadStats: Total expenses:', expenses.length);
       
       // Filter data based on role
       const filteredServices = this.filterByRole(services, user);
       const filteredExpenses = this.filterByRole(expenses, user);
       
+      console.log('loadStats: Filtered services:', filteredServices.length);
+      console.log('loadStats: Filtered expenses:', filteredExpenses.length);
+      
       // Calculate statistics for today
       const today = new Date().toISOString().split('T')[0];
-      const todayServices = filteredServices.filter(s => s.date === today);
-      const todayExpenses = filteredExpenses.filter(e => e.date === today);
+      console.log('loadStats: Today date:', today);
+      console.log('loadStats: All filtered services:', filteredServices.length);
       
-      // Calculate total income (gross amount before commissions)
-      const totalIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+      const todayServices = filteredServices.filter(s => {
+        const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
+        const isToday = serviceDate === today;
+        console.log(`loadStats: Service ${s.id} - date: ${s.date}, datetime: ${s.datetime}, serviceDate: ${serviceDate}, isToday: ${isToday}`);
+        return isToday;
+      });
+      const todayExpenses = filteredExpenses.filter(e => {
+        const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];
+        return expenseDate === today;
+      });
+      
+      console.log('loadStats: Today services:', todayServices.length);
+      console.log('loadStats: Today expenses:', todayExpenses.length);
+      
+      // Calculate total income (gross amount)
+      const totalIncomeBase = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
+      
+      // Calculate tips
+      const totalTips = todayServices.reduce((sum, s) => sum + parseFloat(s.tip || 0), 0);
+      
+      // For both TAXISTA and PATRON: Income includes tips
+      const totalIncome = totalIncomeBase + totalTips;
       
       // Calculate total expenses
       const totalExpenses = todayExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
       
-      // Calculate net amount (income + tips - commissions - expenses)
+      // Calculate commissions
       const totalCommissions = todayServices.reduce((sum, s) => sum + parseFloat(s.commission || 0), 0);
-      const totalTips = todayServices.reduce((sum, s) => sum + parseFloat(s.tip || 0), 0);
-      const netAmount = totalIncome + totalTips - totalCommissions - totalExpenses;
+      
+      // Calculate net amount (income - commissions - expenses)
+      // Income already includes tips for both roles
+      const netAmount = totalIncome - totalCommissions - totalExpenses;
       
       this.stats = {
         servicesCount: todayServices.length,
@@ -146,6 +189,8 @@ class DashboardView {
         netAmount,
         recentServices: filteredServices.slice(-5).reverse()
       };
+      
+      console.log('loadStats: Calculated stats:', this.stats);
       
       return this.stats;
     } catch (error) {
@@ -170,20 +215,34 @@ class DashboardView {
    * @returns {Array} Filtered data
    */
   filterByRole(data, user) {
-    if (!user || !data) return [];
+    console.log('filterByRole: Input data:', data);
+    console.log('filterByRole: User:', user);
+    
+    if (!user || !data) {
+      console.log('filterByRole: No user or data, returning empty array');
+      return [];
+    }
     
     // TAXISTA: only their own data
     if (user.rol === 'TAXISTA') {
-      return data.filter(item => item.userId === user.id);
+      console.log('filterByRole: Filtering for TAXISTA, userId:', user.id);
+      const filtered = data.filter(item => {
+        console.log('filterByRole: Checking item:', item.id, 'userId:', item.userId, 'matches:', item.userId === user.id);
+        return item.userId === user.id;
+      });
+      console.log('filterByRole: Filtered result:', filtered);
+      return filtered;
     }
     
     // PATRON: aggregated data from all associated taxistas
     if (user.rol === 'PATRON') {
+      console.log('filterByRole: PATRON, returning all data');
       // For now, return all data
       // In a real implementation, this would filter by associated taxistas
       return data;
     }
     
+    console.log('filterByRole: No role match, returning all data');
     return data;
   }
 
@@ -191,7 +250,12 @@ class DashboardView {
    * Display statistics in the UI
    */
   displayStats() {
-    if (!this.stats) return;
+    if (!this.stats) {
+      console.warn('displayStats: No stats available');
+      return;
+    }
+    
+    console.log('displayStats: Updating with stats:', this.stats);
     
     const statServices = document.getElementById('stat-services');
     const statIncome = document.getElementById('stat-income');
@@ -199,6 +263,15 @@ class DashboardView {
     const statCommissions = document.getElementById('stat-commissions');
     const statExpenses = document.getElementById('stat-expenses');
     const statNet = document.getElementById('stat-net');
+    
+    console.log('displayStats: DOM elements found:', {
+      statServices: !!statServices,
+      statIncome: !!statIncome,
+      statTips: !!statTips,
+      statCommissions: !!statCommissions,
+      statExpenses: !!statExpenses,
+      statNet: !!statNet
+    });
     
     if (statServices) {
       statServices.textContent = this.stats.servicesCount;
@@ -234,6 +307,8 @@ class DashboardView {
         statNet.style.color = 'var(--ion-color-medium)';
       }
     }
+    
+    console.log('displayStats: Stats updated successfully');
   }
 
   /**
@@ -253,13 +328,12 @@ class DashboardView {
     container.innerHTML = this.stats.recentServices.map(service => {
       const paymentIcon = this.getPaymentIcon(service.paymentType);
       const timeAgo = this.getTimeAgo(service.createdAt);
-      const serviceId = service.id ? String(service.id).slice(-4) : 'N/A';
       
       return `
         <div class="activity-item">
           <div class="activity-icon" style="background: var(--ion-color-success-tint);">${paymentIcon}</div>
           <div class="activity-content">
-            <div class="activity-title">Servicio #${serviceId}</div>
+            <div class="activity-title">Servicio #${service.id ? service.id.slice(-4) : 'N/A'}</div>
             <div class="activity-subtitle">${timeAgo} • €${service.totalAmount}</div>
           </div>
           <ion-badge color="success">Completado</ion-badge>
@@ -387,18 +461,28 @@ class DashboardView {
     let buttons = '';
     
     if (user.rol === 'PATRON') {
+      // Count pending requests
+      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
+      const pendingRequests = requests.filter(r => 
+        r.patronId === user.id && 
+        r.estado === 'pendiente'
+      );
+      const pendingCount = pendingRequests.length;
+      
+      // Create badge HTML if there are pending requests
+      const badgeHTML = pendingCount > 0 
+        ? `<ion-badge color="danger" style="margin-left: 8px;">${pendingCount}</ion-badge>` 
+        : '';
+      
       buttons = `
         <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
           <ion-icon slot="start" name="people"></ion-icon>
           Gestionar Flota
+          ${badgeHTML}
         </ion-button>
         <ion-button expand="block" color="success" onclick="window.app.showReports()">
           <ion-icon slot="start" name="bar-chart"></ion-icon>
           Ver Reportes
-        </ion-button>
-        <ion-button expand="block" color="tertiary" onclick="window.app.showBalanceSettings()">
-          <ion-icon slot="start" name="settings"></ion-icon>
-          Ajustes de Balance
         </ion-button>
       `;
     } else {
@@ -406,10 +490,6 @@ class DashboardView {
         <ion-button expand="block" color="primary" onclick="window.app.showTaxistaPanel()">
           <ion-icon slot="start" name="person-circle"></ion-icon>
           Mi Panel Personal
-        </ion-button>
-        <ion-button expand="block" color="success" onclick="window.app.showBalanceLiquidacion()">
-          <ion-icon slot="start" name="cash"></ion-icon>
-          Balance y Liquidación
         </ion-button>
         <ion-button expand="block" color="tertiary" onclick="window.app.showReports()">
           <ion-icon slot="start" name="bar-chart"></ion-icon>
@@ -441,173 +521,8 @@ class DashboardView {
     const container = document.getElementById('fleet-info');
     if (!container) return;
     
-    try {
-      // Get all users and requests
-      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-      const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
-      
-      // Filter associated taxistas
-      const associatedTaxistas = users.filter(u => 
-        u.rol === 'TAXISTA' && 
-        u.estado === 'asociado' && 
-        u.patronId === user.id
-      );
-      
-      // Count pending requests
-      const pendingRequests = requests.filter(r => 
-        r.estado === 'pendiente' && r.patronId === user.id
-      );
-      
-      // Get services for today
-      const services = await this.reconcileAdapter.getServices();
-      const today = new Date().toISOString().split('T')[0];
-      
-      // Calculate today's stats
-      const todayServices = services.filter(s => {
-        const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-        return serviceDate === today && associatedTaxistas.some(t => t.id === s.userId);
-      });
-      const todayIncome = todayServices.reduce((sum, s) => sum + parseFloat(s.amount || 0), 0);
-      
-      // Build HTML
-      let html = `
-        <!-- Invitation Code Card -->
-        <ion-card color="primary">
-          <ion-card-header>
-            <ion-card-subtitle style="color: rgba(255,255,255,0.8);">Tu Código de Invitación</ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content style="text-align: center;">
-            <div style="font-size: 32px; font-weight: bold; color: white; background: rgba(255,255,255,0.2); padding: 16px; border-radius: 12px; letter-spacing: 4px;">
-              ${user.codigoInvitacion || 'No disponible'}
-            </div>
-            <p style="font-size: 12px; color: rgba(255,255,255,0.8); margin-top: 12px;">
-              Comparte este código con nuevos taxistas para que se unan a tu flota
-            </p>
-          </ion-card-content>
-        </ion-card>
-        
-        <!-- Fleet Stats -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px;">
-          <ion-card style="margin: 0;">
-            <ion-card-content style="text-align: center; padding: 16px;">
-              <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-primary);">${associatedTaxistas.length}</div>
-              <div style="font-size: 12px; color: var(--ion-color-medium);">Taxistas</div>
-            </ion-card-content>
-          </ion-card>
-          <ion-card style="margin: 0;">
-            <ion-card-content style="text-align: center; padding: 16px;">
-              <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-warning);">${pendingRequests.length}</div>
-              <div style="font-size: 12px; color: var(--ion-color-medium);">Solicitudes</div>
-            </ion-card-content>
-          </ion-card>
-          <ion-card style="margin: 0;">
-            <ion-card-content style="text-align: center; padding: 16px;">
-              <div style="font-size: 28px; font-weight: bold; color: var(--ion-color-success);">${todayServices.length}</div>
-              <div style="font-size: 12px; color: var(--ion-color-medium);">Servicios Hoy</div>
-            </ion-card-content>
-          </ion-card>
-          <ion-card style="margin: 0;">
-            <ion-card-content style="text-align: center; padding: 16px;">
-              <div style="font-size: 20px; font-weight: bold; color: var(--ion-color-tertiary);">€${todayIncome.toFixed(2)}</div>
-              <div style="font-size: 12px; color: var(--ion-color-medium);">Ingresos Hoy</div>
-            </ion-card-content>
-          </ion-card>
-        </div>
-      `;
-      
-      // Show pending requests alert if any
-      if (pendingRequests.length > 0) {
-        html += `
-          <ion-card color="warning">
-            <ion-card-content>
-              <div style="display: flex; align-items: center; justify-content: space-between;">
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <ion-icon name="alert-circle" style="font-size: 32px;"></ion-icon>
-                  <div>
-                    <div style="font-weight: bold;">Tienes ${pendingRequests.length} solicitud${pendingRequests.length > 1 ? 'es' : ''} pendiente${pendingRequests.length > 1 ? 's' : ''}</div>
-                    <div style="font-size: 12px; opacity: 0.9;">Revisa y aprueba las solicitudes de unión</div>
-                  </div>
-                </div>
-                <ion-button fill="solid" color="light" onclick="window.app.showFleetManagement()">
-                  Ver
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
-        `;
-      }
-      
-      // Show fleet list or empty state
-      if (associatedTaxistas.length === 0) {
-        html += `
-          <ion-card>
-            <ion-card-content style="text-align: center; padding: 40px 20px;">
-              <ion-icon name="people" style="font-size: 64px; color: var(--ion-color-medium);"></ion-icon>
-              <h2 style="margin-top: 16px;">No tienes taxistas en tu flota</h2>
-              <p style="color: var(--ion-color-medium); margin-bottom: 20px;">
-                Comparte tu código de invitación para que se unan
-              </p>
-              <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
-                <ion-icon slot="start" name="add-circle"></ion-icon>
-                Gestionar Flota
-              </ion-button>
-            </ion-card-content>
-          </ion-card>
-        `;
-      } else {
-        const taxistaList = associatedTaxistas.slice(0, 3).map(taxista => {
-          const taxistaServices = services.filter(s => {
-            const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-            return s.userId === taxista.id && serviceDate === today;
-          });
-          const todayIncome = taxistaServices.reduce((sum, s) => 
-            sum + parseFloat(s.amount || 0), 0
-          );
-          
-          return `
-            <ion-item button onclick="window.app.viewTaxistaDetails(${taxista.id})">
-              <ion-avatar slot="start">
-                <div style="background: var(--ion-color-success); color: white; display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; font-weight: bold; font-size: 14px;">
-                  ${taxista.numeroTaxista?.slice(-2) || '??'}
-                </div>
-              </ion-avatar>
-              <ion-label>
-                <h2>${taxista.nombre}</h2>
-                <p>${taxista.numeroTaxista || 'Sin número'}</p>
-                <p style="font-size: 11px; color: var(--ion-color-success);">
-                  Hoy: ${taxistaServices.length} servicios • €${todayIncome.toFixed(2)}
-                </p>
-              </ion-label>
-              <ion-badge color="success" slot="end">Activo</ion-badge>
-            </ion-item>
-          `;
-        }).join('');
-        
-        html += `
-          <ion-card>
-            <ion-card-header>
-              <ion-card-title>Tu Flota</ion-card-title>
-            </ion-card-header>
-            <ion-card-content style="padding: 0;">
-              <ion-list>
-                ${taxistaList}
-              </ion-list>
-              <div style="padding: 16px;">
-                <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
-                  <ion-icon slot="start" name="people"></ion-icon>
-                  Ver Todos (${associatedTaxistas.length})
-                </ion-button>
-              </div>
-            </ion-card-content>
-          </ion-card>
-        `;
-      }
-      
-      container.innerHTML = html;
-    } catch (error) {
-      console.error('Error displaying fleet info:', error);
-      container.innerHTML = '';
-    }
+    // For PATRON users, clear the fleet info section
+    container.innerHTML = '';
   }
 }
 

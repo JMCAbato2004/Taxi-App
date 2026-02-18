@@ -5,7 +5,7 @@
 
 // Initialize adapters
 const authAdapter = new AuthAdapter();
-const reconcileAdapter = new ReconcileAdapter();
+const reconcileAdapter = new ReconcileAdapter(authAdapter);
 const rgpdAdapter = new RGPDAdapter();
 
 // Initialize data sync
@@ -128,7 +128,7 @@ function initializeComponents() {
 
   // Initialize ReconciliationView
   if (window.ReconciliationView) {
-    reconciliationView = new ReconciliationView(reconcileAdapter);
+    reconciliationView = new ReconciliationView(reconcileAdapter, authAdapter);
   }
 
   // Initialize ReconciliationHistoryView
@@ -159,137 +159,9 @@ function checkAuthStatus() {
   const user = authAdapter.getCurrentUser();
   
   if (user) {
-    // Start session monitoring
-    startSessionMonitoring();
     showDashboard();
   } else {
-    // Stop session monitoring if active
-    if (window.sessionService && window.sessionService.isActive()) {
-      window.sessionService.stop();
-    }
     showWelcome();
-  }
-}
-
-/**
- * Start session monitoring with automatic timeout
- */
-function startSessionMonitoring() {
-  if (!window.sessionService) {
-    console.warn('SessionService not available');
-    return;
-  }
-  
-  // Stop any existing session
-  if (window.sessionService.isActive()) {
-    window.sessionService.stop();
-  }
-  
-  // Start new session with callbacks
-  window.sessionService.start({
-    onTimeout: async () => {
-      // Session timed out - logout user
-      console.log('Session timeout - logging out user');
-      
-      ToastManager.showWarning('Tu sesión ha expirado por inactividad');
-      
-      // Perform logout
-      try {
-        await authAdapter.logout();
-        
-        // Clear session data
-        window.sessionService.clearSession();
-        
-        // Return to welcome screen
-        showWelcome();
-        
-        // Clear all views
-        clearAllViews();
-        
-        // Switch to home tab
-        const tabs = document.querySelector('ion-tabs');
-        if (tabs) {
-          tabs.select('home');
-        }
-      } catch (error) {
-        console.error('Error during session timeout logout:', error);
-      }
-    },
-    
-    onWarning: async (remainingTime) => {
-      // Show warning before timeout
-      const minutes = Math.ceil(remainingTime / 60000);
-      
-      console.log(`Session timeout warning - ${minutes} minutes remaining`);
-      
-      // Show alert to user
-      const alert = document.createElement('ion-alert');
-      alert.header = 'Sesión por Expirar';
-      alert.message = `Tu sesión expirará en ${minutes} minuto${minutes > 1 ? 's' : ''} por inactividad. ¿Deseas continuar?`;
-      alert.buttons = [
-        {
-          text: 'Cerrar Sesión',
-          role: 'destructive',
-          handler: async () => {
-            await handleLogout();
-          }
-        },
-        {
-          text: 'Continuar',
-          handler: () => {
-            // Extend session
-            window.sessionService.extendSession();
-            ToastManager.showSuccess('Sesión extendida');
-          }
-        }
-      ];
-      
-      document.body.appendChild(alert);
-      await alert.present();
-    },
-    
-    onActivity: (remainingTime) => {
-      // Optional: Log activity (only in development)
-      if (window.logger && window.logger.isDevelopment) {
-        const minutes = Math.ceil(remainingTime / 60000);
-        window.logger.debug(`User activity detected - ${minutes} minutes remaining`);
-      }
-    }
-  });
-  
-  console.log('Session monitoring started');
-}
-
-/**
- * Clear all views on logout
- */
-function clearAllViews() {
-  // Clear service list
-  const servicesContent = document.getElementById('services-content');
-  if (servicesContent) {
-    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
-    sanitizer.setInnerHTML(servicesContent, html);
-  }
-  
-  // Clear expense list
-  const expensesContent = document.getElementById('expenses-content');
-  if (expensesContent) {
-    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
-    sanitizer.setInnerHTML(expensesContent, html);
-  }
-  
-  // Clear reconciliation
-  const reconciliationContent = document.getElementById('reconciliation-content');
-  if (reconciliationContent) {
-    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
-    sanitizer.setInnerHTML(reconciliationContent, html);
-  }
-  
-  // Clear history
-  const historyContent = document.getElementById('reconciliation-history-content');
-  if (historyContent) {
-    const html = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
-    sanitizer.setInnerHTML(historyContent, html);
   }
 }
 
@@ -365,13 +237,6 @@ async function showDashboard() {
     await loadDashboardData();
   }
 
-  // Show security monitoring button only for patrons
-  const user = authAdapter.getCurrentUser();
-  const securityBtn = document.getElementById('security-monitoring-btn');
-  if (securityBtn) {
-    securityBtn.style.display = (user && user.rol === 'PATRON') ? 'block' : 'none';
-  }
-
   // Render service and expense lists
   if (serviceListView) {
     await serviceListView.render();
@@ -427,30 +292,25 @@ function updateRecentActivity(services) {
   const container = document.getElementById('recent-activity');
   
   if (services.length === 0) {
-    const html = '<p style="text-align: center; color: var(--ion-color-medium);">No hay actividad reciente</p>';
-    sanitizer.setInnerHTML(container, html);
+    container.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium);">No hay actividad reciente</p>';
     return;
   }
   
-  const activityItems = services.map(service => {
+  container.innerHTML = services.map(service => {
     const paymentIcon = getPaymentIcon(service.paymentType);
     const timeAgo = getTimeAgo(service.createdAt);
-    const safeId = sanitizer.escapeHTML(service.id.slice(-4));
-    const safeAmount = sanitizer.sanitizeNumber(service.totalAmount, { min: 0, max: 999999, decimals: 2 });
     
     return `
       <div class="activity-item">
         <div class="activity-icon" style="background: #d1fae5;">${paymentIcon}</div>
         <div class="activity-content">
-          <div class="activity-title">Servicio #${safeId}</div>
-          <div class="activity-subtitle">${timeAgo} • €${safeAmount}</div>
+          <div class="activity-title">Servicio #${service.id.slice(-4)}</div>
+          <div class="activity-subtitle">${timeAgo} • €${service.totalAmount}</div>
         </div>
         <ion-badge color="success">Completado</ion-badge>
       </div>
     `;
   }).join('');
-  
-  sanitizer.setInnerHTML(container, activityItems);
 }
 
 /**
@@ -572,10 +432,6 @@ customElements.whenDefined('ion-modal').then(() => {
     showChangePasswordModal();
   });
   
-  document.getElementById('security-monitoring-btn')?.addEventListener('click', async () => {
-    await showSecurityMonitoringModal();
-  });
-  
   document.getElementById('privacy-btn')?.addEventListener('click', () => {
     window.open('../politica-privacidad.html', '_blank');
   });
@@ -597,11 +453,33 @@ customElements.whenDefined('ion-modal').then(() => {
   // Listen for service saved event
   window.addEventListener('service-saved', async () => {
     console.log('service-saved event received');
+    console.log('serviceListView exists:', !!serviceListView);
+    console.log('dashboardView exists:', !!dashboardView);
+    
+    // Always refresh service list if it exists
     if (serviceListView) {
-      await serviceListView.refresh();
+      console.log('Refreshing service list...');
+      try {
+        await serviceListView.refresh();
+        console.log('Service list refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing service list:', error);
+      }
+    } else {
+      console.warn('serviceListView not initialized');
     }
+    
+    // Refresh dashboard if it exists
     if (dashboardView) {
-      await dashboardView.render();
+      console.log('Refreshing dashboard...');
+      try {
+        await dashboardView.render();
+        console.log('Dashboard refreshed successfully');
+      } catch (error) {
+        console.error('Error refreshing dashboard:', error);
+      }
+    } else {
+      console.warn('dashboardView not initialized');
     }
   });
   
@@ -632,6 +510,11 @@ customElements.whenDefined('ion-modal').then(() => {
   // Listen for edit expense event
   window.addEventListener('edit-expense', async (e) => {
     await showExpenseFormModal(e.detail);
+  });
+
+  // Services segment change
+  document.getElementById('services-segment')?.addEventListener('ionChange', (e) => {
+    handleServicesSegmentChange(e.detail.value);
   });
 
   // Balance segment change
@@ -683,7 +566,7 @@ async function handleRegisterSuccess() {
  * Show register modal
  */
 async function showRegisterModal() {
-  const registerModal = new RegisterModal(authAdapter);
+  const registerModal = new RegisterModal(authAdapter, emailVerificationService);
   await registerModal.show();
 }
 
@@ -697,20 +580,7 @@ async function handleLogout() {
     async () => {
       try {
         await LoadingManager.show('Cerrando sesión...');
-        
-        // Stop session monitoring
-        if (window.sessionService && window.sessionService.isActive()) {
-          window.sessionService.stop();
-        }
-        
-        // Logout from auth adapter
         await authAdapter.logout();
-        
-        // Clear session data
-        if (window.sessionService) {
-          window.sessionService.clearSession();
-        }
-        
         await LoadingManager.hide();
         
         ToastManager.showSuccess('Sesión cerrada');
@@ -720,8 +590,26 @@ async function handleLogout() {
           dashboardView.renderWelcome();
         }
         
-        // Clear all views
-        clearAllViews();
+        // Clear service and expense lists
+        const servicesContent = document.getElementById('services-content');
+        if (servicesContent) {
+          servicesContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus servicios</p>';
+        }
+        
+        const expensesContent = document.getElementById('expenses-content');
+        if (expensesContent) {
+          expensesContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver tus gastos</p>';
+        }
+        
+        const reconciliationContent = document.getElementById('reconciliation-content');
+        if (reconciliationContent) {
+          reconciliationContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver conciliaciones</p>';
+        }
+        
+        const historyContent = document.getElementById('reconciliation-history-content');
+        if (historyContent) {
+          historyContent.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium); padding: 20px;">Inicia sesión para ver el historial</p>';
+        }
         
         // Switch to home tab
         const tabs = document.querySelector('ion-tabs');
@@ -842,7 +730,9 @@ async function clearAllData() {
  * Show FAB action sheet
  */
 async function showFabActionSheet() {
-  await ActionSheetManager.show('Nueva Acción', [
+  const user = authAdapter.getCurrentUser();
+  
+  const actions = [
     {
       text: 'Nuevo Servicio',
       icon: 'car',
@@ -852,18 +742,27 @@ async function showFabActionSheet() {
       text: 'Nuevo Gasto',
       icon: 'wallet',
       handler: () => showExpenseFormModal()
-    },
-    {
+    }
+  ];
+  
+  // Only show "Ver Reportes" for PATRON role
+  // TAXISTA can access reports from dashboard button
+  if (user && user.rol === 'PATRON') {
+    actions.push({
       text: 'Ver Reportes',
       icon: 'bar-chart',
-      handler: () => ToastManager.showInfo('Reportes - Próximamente')
-    },
-    {
-      text: 'Cancelar',
-      icon: 'close',
-      role: 'cancel'
-    }
-  ]);
+      handler: () => window.app.showReports()
+    });
+  }
+  
+  // Add cancel button
+  actions.push({
+    text: 'Cancelar',
+    icon: 'close',
+    role: 'cancel'
+  });
+  
+  await ActionSheetManager.show('Nueva Acción', actions);
 }
 
 /**
@@ -899,61 +798,37 @@ async function showChangePasswordModal() {
 }
 
 /**
- * Show security monitoring modal
+ * Handle services segment change
  */
-async function showSecurityMonitoringModal() {
-  const modal = document.createElement('ion-modal');
-  modal.innerHTML = `
-    <ion-header>
-      <ion-toolbar color="primary">
-        <ion-title>🔒 Monitoreo de Seguridad</ion-title>
-        <ion-buttons slot="end">
-          <ion-button id="close-security-monitoring-modal">
-            <ion-icon name="close"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-    <ion-content class="ion-padding" id="security-monitoring-content">
-      <div style="text-align: center; padding: 40px;">
-        <ion-spinner name="circles"></ion-spinner>
-        <p style="margin-top: 16px; color: var(--ion-color-medium);">Cargando dashboard...</p>
-      </div>
-    </ion-content>
-  `;
-  
-  document.body.appendChild(modal);
-  await modal.componentOnReady();
-  await modal.present();
-  
-  // Close button
-  document.getElementById('close-security-monitoring-modal')?.addEventListener('click', async () => {
-    await modal.dismiss();
-    modal.remove();
-  });
-  
-  // Render security monitoring view
-  const securityMonitoringView = new SecurityMonitoringView();
-  await securityMonitoringView.render();
+function handleServicesSegmentChange(value) {
+  const servicesContent = document.getElementById('services-content');
+  const expensesContent = document.getElementById('expenses-content');
+
+  // Hide all
+  if (servicesContent) servicesContent.style.display = 'none';
+  if (expensesContent) expensesContent.style.display = 'none';
+
+  // Show selected
+  if (value === 'services' && servicesContent) {
+    servicesContent.style.display = 'block';
+  } else if (value === 'expenses' && expensesContent) {
+    expensesContent.style.display = 'block';
+  }
 }
 
 /**
  * Handle balance segment change
  */
 function handleBalanceSegmentChange(value) {
-  const expensesContent = document.getElementById('expenses-content');
   const reconciliationContent = document.getElementById('reconciliation-content');
   const historyContent = document.getElementById('reconciliation-history-content');
 
   // Hide all
-  if (expensesContent) expensesContent.style.display = 'none';
   if (reconciliationContent) reconciliationContent.style.display = 'none';
   if (historyContent) historyContent.style.display = 'none';
 
   // Show selected
-  if (value === 'expenses' && expensesContent) {
-    expensesContent.style.display = 'block';
-  } else if (value === 'reconciliation' && reconciliationContent) {
+  if (value === 'reconciliation' && reconciliationContent) {
     reconciliationContent.style.display = 'block';
   } else if (value === 'history' && historyContent) {
     historyContent.style.display = 'block';
@@ -964,6 +839,8 @@ console.log('App.js loaded');
 
 // Export app functions for global access
 window.app = {
+  authAdapter: authAdapter, // Export authAdapter for use in modals
+  
   showReports: async () => {
     if (reportsView) {
       await reportsView.show();
@@ -997,9 +874,9 @@ window.app = {
     }
   },
   
-  showBalanceSettings: async () => {
-    const modal = new BalanceSettingsModal();
-    await modal.show();
+  showBalanceSettings: async (taxistaId = null) => {
+    const modal = new BalanceSettingsModal(window.app.authAdapter);
+    await modal.show(taxistaId);
   },
   
   showDataSync: async () => {
@@ -1037,6 +914,18 @@ window.app = {
   },
   
   removeTaxista: async (taxistaId) => {
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('removeTaxista', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
+    
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     const taxista = users.find(u => u.id === taxistaId);
     
@@ -1074,11 +963,30 @@ window.app = {
   },
   
   approveRequest: async (requestId) => {
+    console.log('approveRequest called with:', requestId);
+    
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('approveRequest', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
+    
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     
+    console.log('All requests:', requests);
+    console.log('All users:', users);
+    
     // Convert requestId to number if it's a string
     const id = typeof requestId === 'string' ? parseInt(requestId, 10) : requestId;
+    
+    console.log('Looking for request with id:', id);
     
     const request = requests.find(r => r.id === id);
     if (!request) {
@@ -1087,32 +995,90 @@ window.app = {
       return;
     }
     
+    console.log('Request found:', request);
+    
     // Update request status
     request.estado = 'aprobada';
     request.fechaAprobacion = new Date().toISOString();
     
+    console.log('Looking for taxista with id:', request.taxistaId);
+    
     // Update taxista
     const taxista = users.find(u => u.id === request.taxistaId);
     if (taxista) {
-      taxista.patronId = authAdapter.getCurrentUser().id;
+      console.log('Taxista found:', taxista);
+      const currentUser = authAdapter.getCurrentUser();
+      console.log('Current user (patron):', currentUser);
+      
+      taxista.patronId = currentUser.id;
       taxista.estado = 'asociado';
+      
+      console.log('Taxista updated:', taxista);
+    } else {
+      console.error('Taxista not found with id:', request.taxistaId);
     }
     
     // Save changes
     localStorage.setItem('taxi_join_requests', JSON.stringify(requests));
     localStorage.setItem('taxi_users', JSON.stringify(users));
     
+    console.log('Changes saved to localStorage');
+    
     ToastManager.showSuccess('Solicitud aprobada');
     
     // Refresh fleet management
+    console.log('fleetManagementView exists?', !!fleetManagementView);
+    
     if (fleetManagementView) {
       const user = authAdapter.getCurrentUser();
+      console.log('Reloading fleet for user:', user);
+      
+      // Reload both tabs
       await fleetManagementView.loadFleet(user);
       await fleetManagementView.loadRequests(user);
+      
+      // Switch to fleet tab to show the new taxista
+      const modal = fleetManagementView.currentModal;
+      if (modal) {
+        const segment = modal.querySelector('#fleet-segment');
+        if (segment) {
+          segment.value = 'fleet';
+          // Trigger the change event manually
+          const fleetContent = modal.querySelector('#fleet-tab-content');
+          const requestsContent = modal.querySelector('#requests-tab-content');
+          if (fleetContent && requestsContent) {
+            fleetContent.style.display = 'block';
+            requestsContent.style.display = 'none';
+          }
+        }
+      }
+      
+      console.log('Fleet reloaded and switched to fleet tab');
+    } else {
+      console.warn('fleetManagementView not available, dispatching event instead');
+      window.dispatchEvent(new CustomEvent('taxista-updated'));
+    }
+    
+    // Refresh dashboard to update pending requests banner
+    if (dashboardView) {
+      console.log('Refreshing dashboard to update banner...');
+      await dashboardView.render();
     }
   },
   
   rejectRequest: async (requestId) => {
+    // CSRF Protection
+    try {
+      if (window.csrfProtectionService) {
+        const csrfToken = window.csrfProtectionService.getToken();
+        window.csrfProtectionService.validateOperation('rejectRequest', { csrfToken });
+      }
+    } catch (error) {
+      console.error('CSRF validation failed:', error);
+      ToastManager.showError('Operación bloqueada por seguridad. Recarga la página.');
+      return;
+    }
+    
     const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
     const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
     
@@ -1147,6 +1113,12 @@ window.app = {
       const user = authAdapter.getCurrentUser();
       await fleetManagementView.loadFleet(user);
       await fleetManagementView.loadRequests(user);
+    }
+    
+    // Refresh dashboard to update pending requests banner
+    if (dashboardView) {
+      console.log('Refreshing dashboard to update banner...');
+      await dashboardView.render();
     }
   },
   

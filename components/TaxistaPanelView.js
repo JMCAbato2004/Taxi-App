@@ -362,7 +362,7 @@ class TaxistaPanelView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Servicios Recientes</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Servicios Recientes</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 ${this.renderRecentServices(recentServices, sourceIcons)}
@@ -374,7 +374,7 @@ class TaxistaPanelView {
           <ion-col size="12" size-md="6">
             <ion-card>
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Resumen por Origen</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Resumen por Origen</ion-card-title>
               </ion-card-header>
               <ion-card-content>
                 ${this.renderSourceBreakdown(stats.bySource, sourceIcons, sourceLabels)}
@@ -383,29 +383,29 @@ class TaxistaPanelView {
             
             <ion-card style="margin-top: 16px;">
               <ion-card-header>
-                <ion-card-title style="font-size: 16px;">Balance del Período</ion-card-title>
+                <ion-card-title style="font-size: 16px; color: var(--ion-text-color);">Balance del Período</ion-card-title>
               </ion-card-header>
               <ion-card-content>
-                <div style="background: var(--ion-color-light); padding: 16px; border-radius: 8px;">
+                <div style="background: var(--ion-color-step-100); padding: 16px; border-radius: 8px;">
                   <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span>Ingresos Brutos:</span>
+                    <span style="color: var(--ion-text-color);">Ingresos Brutos:</span>
                     <span style="font-weight: bold; color: var(--ion-color-success);">€${stats.grossEarnings.toFixed(2)}</span>
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span>Propinas:</span>
+                    <span style="color: var(--ion-text-color);">Propinas:</span>
                     <span style="font-weight: bold; color: var(--ion-color-success);">+€${stats.tips.toFixed(2)}</span>
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                    <span>Comisiones:</span>
+                    <span style="color: var(--ion-text-color);">Comisiones:</span>
                     <span style="font-weight: bold; color: var(--ion-color-danger);">-€${stats.commissions.toFixed(2)}</span>
                   </div>
                   <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
-                    <span>Gastos:</span>
+                    <span style="color: var(--ion-text-color);">Gastos:</span>
                     <span style="font-weight: bold; color: var(--ion-color-danger);">-€${stats.totalExpenses.toFixed(2)}</span>
                   </div>
-                  <div style="border-top: 2px solid var(--ion-color-medium); padding-top: 12px;">
+                  <div style="border-top: 2px solid var(--ion-color-step-250); padding-top: 12px;">
                     <div style="display: flex; justify-content: space-between;">
-                      <span style="font-size: 18px; font-weight: bold;">Total Neto:</span>
+                      <span style="font-size: 18px; font-weight: bold; color: var(--ion-text-color);">Total Neto:</span>
                       <span style="font-size: 18px; font-weight: bold; color: var(--ion-color-primary);">€${stats.netEarnings.toFixed(2)}</span>
                     </div>
                   </div>
@@ -441,10 +441,10 @@ class TaxistaPanelView {
           const baseAmount = service.amount || 0;
           
           return `
-            <ion-item lines="full" style="--background: var(--ion-color-light); margin-bottom: 8px; border-radius: 8px;">
+            <ion-item lines="full" style="--background: var(--ion-color-step-100); margin-bottom: 8px; border-radius: 8px;">
               <div slot="start" style="font-size: 24px;">${sourceIcons[service.serviceSource] || '🚕'}</div>
               <ion-label>
-                <h3 style="font-weight: 600;">${service.origin || 'Origen'} → ${service.destination || 'Destino'}</h3>
+                <h3 style="font-weight: 600; color: var(--ion-text-color);">${service.origin || 'Origen'} → ${service.destination || 'Destino'}</h3>
                 <p style="font-size: 12px; color: var(--ion-color-medium);">${dateStr} ${timeStr}</p>
               </ion-label>
               <div slot="end" style="text-align: right;">
@@ -465,7 +465,7 @@ class TaxistaPanelView {
     if (Object.keys(bySource).length === 0) {
       return `
         <div style="text-align: center; padding: 20px;">
-          <p style="color: var(--ion-color-medium);">No hay servicios hoy</p>
+          <p style="color: var(--ion-color-medium);">No hay servicios en este período</p>
         </div>
       `;
     }
@@ -473,10 +473,10 @@ class TaxistaPanelView {
     return `
       <ion-list style="background: transparent;">
         ${Object.entries(bySource).map(([source, data]) => `
-          <ion-item lines="full" style="--background: var(--ion-color-light); margin-bottom: 8px; border-radius: 8px;">
+          <ion-item lines="full" style="--background: var(--ion-color-step-100); margin-bottom: 8px; border-radius: 8px;">
             <div slot="start" style="font-size: 24px;">${sourceIcons[source] || '📋'}</div>
             <ion-label>
-              <h3 style="font-weight: 600; text-transform: capitalize;">${sourceLabels[source] || source}</h3>
+              <h3 style="font-weight: 600; text-transform: capitalize; color: var(--ion-text-color);">${sourceLabels[source] || source}</h3>
               <p style="font-size: 12px; color: var(--ion-color-medium);">${data.count} servicio${data.count !== 1 ? 's' : ''}</p>
             </ion-label>
             <div slot="end" style="text-align: right;">

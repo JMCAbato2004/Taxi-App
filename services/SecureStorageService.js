@@ -1,244 +1,175 @@
 /**
- * SecureStorageService - Encrypted data storage using IndexedDB
- * Provides secure storage for sensitive data with encryption
+ * SecureStorageService - Encrypted Storage Management
+ * Provides encrypted storage for sensitive data using AES-GCM
  * 
- * Security Features:
- * - AES-256-GCM encryption
- * - IndexedDB for persistent storage
- * - Automatic key derivation
- * - Secure key storage
- * - Data integrity verification
+ * IMPORTANT: This is a frontend implementation for demonstration.
+ * In production, sensitive data should be:
+ * 1. Stored in httpOnly cookies (tokens)
+ * 2. Kept on backend with minimal exposure to frontend
+ * 3. Use sessionStorage instead of localStorage when possible
+ * 
+ * Features:
+ * - AES-GCM encryption for all stored data
+ * - Automatic key derivation from user session
+ * - Encrypted tokens and user data
+ * - Automatic cleanup on logout
+ * - Session-based encryption keys
  */
 
 class SecureStorageService {
   constructor() {
-    this.dbName = 'TaxiAppSecureDB';
-    this.dbVersion = 1;
-    this.storeName = 'secureData';
-    this.db = null;
-    this.encryptionKey = null;
+    // Storage keys
+    this.STORAGE_PREFIX = 'taxi_secure_';
+    this.SESSION_KEY_NAME = 'session_key';
     
-    // Initialize
-    this.init();
+    // Encryption settings
+    this.ALGORITHM = 'AES-GCM';
+    this.KEY_LENGTH = 256;
+    
+    // Session key (generated per session, stored in memory only)
+    this.sessionKey = null;
+    
+    // Initialize session key
+    this.initializeSessionKey();
   }
 
   /**
-   * Initialize the service
+   * Initialize or restore session key
+   * Session key is stored in sessionStorage (cleared when browser closes)
    */
-  async init() {
+  async initializeSessionKey() {
     try {
-      await this.initDB();
-      await this.initEncryptionKey();
-    } catch (error) {
-      console.error('SecureStorageService initialization error:', error);
-    }
-  }
-
-  /**
-   * Initialize IndexedDB
-   * @private
-   */
-  async initDB() {
-    return new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.dbName, this.dbVersion);
-
-      request.onerror = () => {
-        reject(new Error('Failed to open IndexedDB'));
-      };
-
-      request.onsuccess = (event) => {
-        this.db = event.target.result;
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = event.target.result;
-        
-        // Create object store if it doesn't exist
-        if (!db.objectStoreNames.contains(this.storeName)) {
-          const objectStore = db.createObjectStore(this.storeName, { keyPath: 'key' });
-          objectStore.createIndex('timestamp', 'timestamp', { unique: false });
-        }
-      };
-    });
-  }
-
-  /**
-   * Initialize or retrieve encryption key
-   * @private
-   */
-  async initEncryptionKey() {
-    try {
-      // Try to get existing key from localStorage
-      const storedKey = localStorage.getItem('taxi_encryption_key');
+      // Try to restore from sessionStorage
+      const storedKey = sessionStorage.getItem(this.SESSION_KEY_NAME);
       
       if (storedKey) {
-        // Import existing key
-        const keyData = this.base64ToArrayBuffer(storedKey);
-        this.encryptionKey = await crypto.subtle.importKey(
+        // Import stored key
+        const keyData = this._hexToUint8Array(storedKey);
+        this.sessionKey = await crypto.subtle.importKey(
           'raw',
           keyData,
-          { name: 'AES-GCM' },
+          { name: this.ALGORITHM, length: this.KEY_LENGTH },
           true,
           ['encrypt', 'decrypt']
         );
       } else {
-        // Generate new key
-        this.encryptionKey = await crypto.subtle.generateKey(
-          { name: 'AES-GCM', length: 256 },
-          true,
-          ['encrypt', 'decrypt']
-        );
-        
-        // Export and store key
-        const exportedKey = await crypto.subtle.exportKey('raw', this.encryptionKey);
-        const keyBase64 = this.arrayBufferToBase64(exportedKey);
-        localStorage.setItem('taxi_encryption_key', keyBase64);
+        // Generate new session key
+        await this.generateNewSessionKey();
       }
     } catch (error) {
-      console.error('Encryption key initialization error:', error);
-      throw error;
+      console.error('Error initializing session key:', error);
+      // Generate new key on error
+      await this.generateNewSessionKey();
     }
   }
 
   /**
-   * Encrypt data
-   * @private
-   * @param {any} data - Data to encrypt
-   * @returns {Promise<Object>} Encrypted data with IV
+   * Generate a new session key
    */
-  async encrypt(data) {
+  async generateNewSessionKey() {
     try {
-      // Convert data to string
-      const dataStr = JSON.stringify(data);
-      const dataBuffer = new TextEncoder().encode(dataStr);
-
-      // Generate random IV (Initialization Vector)
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-
-      // Encrypt
-      const encryptedBuffer = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv: iv },
-        this.encryptionKey,
-        dataBuffer
+      // Generate new AES key
+      this.sessionKey = await crypto.subtle.generateKey(
+        { name: this.ALGORITHM, length: this.KEY_LENGTH },
+        true,
+        ['encrypt', 'decrypt']
       );
 
-      return {
-        encrypted: this.arrayBufferToBase64(encryptedBuffer),
-        iv: this.arrayBufferToBase64(iv)
-      };
+      // Export and store in sessionStorage
+      const exportedKey = await crypto.subtle.exportKey('raw', this.sessionKey);
+      const keyHex = this._arrayBufferToHex(exportedKey);
+      sessionStorage.setItem(this.SESSION_KEY_NAME, keyHex);
     } catch (error) {
-      console.error('Encryption error:', error);
-      throw new Error('Failed to encrypt data');
+      console.error('Error generating session key:', error);
+      throw new Error('Error al generar clave de sesión');
     }
   }
 
   /**
-   * Decrypt data
-   * @private
-   * @param {string} encryptedData - Encrypted data (base64)
-   * @param {string} ivBase64 - IV (base64)
-   * @returns {Promise<any>} Decrypted data
-   */
-  async decrypt(encryptedData, ivBase64) {
-    try {
-      // Convert from base64
-      const encryptedBuffer = this.base64ToArrayBuffer(encryptedData);
-      const iv = this.base64ToArrayBuffer(ivBase64);
-
-      // Decrypt
-      const decryptedBuffer = await crypto.subtle.decrypt(
-        { name: 'AES-GCM', iv: iv },
-        this.encryptionKey,
-        encryptedBuffer
-      );
-
-      // Convert back to object
-      const dataStr = new TextDecoder().decode(decryptedBuffer);
-      return JSON.parse(dataStr);
-    } catch (error) {
-      console.error('Decryption error:', error);
-      throw new Error('Failed to decrypt data');
-    }
-  }
-
-  /**
-   * Store encrypted data
+   * Encrypt and store data
    * @param {string} key - Storage key
-   * @param {any} value - Value to store
-   * @returns {Promise<void>}
+   * @param {any} data - Data to store (will be JSON stringified)
+   * @returns {Promise<boolean>} Success status
    */
-  async setItem(key, value) {
+  async setItem(key, data) {
     try {
-      if (!this.db) {
-        await this.initDB();
+      if (!this.sessionKey) {
+        await this.initializeSessionKey();
       }
 
+      // Convert data to JSON string
+      const jsonData = JSON.stringify(data);
+      
+      // Generate random IV
+      const iv = crypto.getRandomValues(new Uint8Array(12));
+      
       // Encrypt data
-      const { encrypted, iv } = await this.encrypt(value);
+      const encoder = new TextEncoder();
+      const encrypted = await crypto.subtle.encrypt(
+        { name: this.ALGORITHM, iv: iv },
+        this.sessionKey,
+        encoder.encode(jsonData)
+      );
 
-      // Store in IndexedDB
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const objectStore = transaction.objectStore(this.storeName);
-
-      const record = {
-        key: key,
-        encrypted: encrypted,
-        iv: iv,
+      // Store encrypted data with IV
+      const storageData = {
+        iv: this._arrayBufferToHex(iv),
+        data: this._arrayBufferToHex(encrypted),
         timestamp: Date.now()
       };
 
-      return new Promise((resolve, reject) => {
-        const request = objectStore.put(record);
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to store data'));
-      });
+      localStorage.setItem(
+        this.STORAGE_PREFIX + key,
+        JSON.stringify(storageData)
+      );
+
+      return true;
     } catch (error) {
-      console.error('setItem error:', error);
-      throw error;
+      console.error('Error storing encrypted data:', error);
+      return false;
     }
   }
 
   /**
    * Retrieve and decrypt data
    * @param {string} key - Storage key
-   * @returns {Promise<any>} Decrypted value or null
+   * @returns {Promise<any>} Decrypted data or null
    */
   async getItem(key) {
     try {
-      if (!this.db) {
-        await this.initDB();
+      if (!this.sessionKey) {
+        await this.initializeSessionKey();
       }
 
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const objectStore = transaction.objectStore(this.storeName);
+      // Get encrypted data
+      const storedData = localStorage.getItem(this.STORAGE_PREFIX + key);
+      
+      if (!storedData) {
+        return null;
+      }
 
-      return new Promise((resolve, reject) => {
-        const request = objectStore.get(key);
-        
-        request.onsuccess = async (event) => {
-          const record = event.target.result;
-          
-          if (!record) {
-            resolve(null);
-            return;
-          }
+      const { iv, data } = JSON.parse(storedData);
+      
+      // Convert hex to Uint8Array
+      const ivArray = this._hexToUint8Array(iv);
+      const encryptedArray = this._hexToUint8Array(data);
 
-          try {
-            // Decrypt data
-            const decrypted = await this.decrypt(record.encrypted, record.iv);
-            resolve(decrypted);
-          } catch (error) {
-            console.error('Decryption failed:', error);
-            resolve(null);
-          }
-        };
-        
-        request.onerror = () => reject(new Error('Failed to retrieve data'));
-      });
+      // Decrypt data
+      const decrypted = await crypto.subtle.decrypt(
+        { name: this.ALGORITHM, iv: ivArray },
+        this.sessionKey,
+        encryptedArray
+      );
+
+      // Convert to string and parse JSON
+      const decoder = new TextDecoder();
+      const jsonData = decoder.decode(decrypted);
+      
+      return JSON.parse(jsonData);
     } catch (error) {
-      console.error('getItem error:', error);
+      console.error('Error retrieving encrypted data:', error);
+      // If decryption fails, remove corrupted data
+      this.removeItem(key);
       return null;
     }
   }
@@ -246,194 +177,256 @@ class SecureStorageService {
   /**
    * Remove item from storage
    * @param {string} key - Storage key
-   * @returns {Promise<void>}
    */
-  async removeItem(key) {
-    try {
-      if (!this.db) {
-        await this.initDB();
+  removeItem(key) {
+    localStorage.removeItem(this.STORAGE_PREFIX + key);
+  }
+
+  /**
+   * Clear all secure storage
+   */
+  clearAll() {
+    // Remove all items with our prefix
+    const keys = Object.keys(localStorage);
+    keys.forEach(key => {
+      if (key.startsWith(this.STORAGE_PREFIX)) {
+        localStorage.removeItem(key);
       }
+    });
 
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const objectStore = transaction.objectStore(this.storeName);
-
-      return new Promise((resolve, reject) => {
-        const request = objectStore.delete(key);
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to remove data'));
-      });
-    } catch (error) {
-      console.error('removeItem error:', error);
-      throw error;
-    }
+    // Clear session key
+    sessionStorage.removeItem(this.SESSION_KEY_NAME);
+    this.sessionKey = null;
   }
 
   /**
-   * Clear all data
-   * @returns {Promise<void>}
-   */
-  async clear() {
-    try {
-      if (!this.db) {
-        await this.initDB();
-      }
-
-      const transaction = this.db.transaction([this.storeName], 'readwrite');
-      const objectStore = transaction.objectStore(this.storeName);
-
-      return new Promise((resolve, reject) => {
-        const request = objectStore.clear();
-        
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(new Error('Failed to clear data'));
-      });
-    } catch (error) {
-      console.error('clear error:', error);
-      throw error;
-    }
-  }
-
-  /**
-   * Get all keys
-   * @returns {Promise<Array<string>>}
-   */
-  async keys() {
-    try {
-      if (!this.db) {
-        await this.initDB();
-      }
-
-      const transaction = this.db.transaction([this.storeName], 'readonly');
-      const objectStore = transaction.objectStore(this.storeName);
-
-      return new Promise((resolve, reject) => {
-        const request = objectStore.getAllKeys();
-        
-        request.onsuccess = (event) => resolve(event.target.result);
-        request.onerror = () => reject(new Error('Failed to get keys'));
-      });
-    } catch (error) {
-      console.error('keys error:', error);
-      return [];
-    }
-  }
-
-  /**
-   * Store user data securely
-   * @param {Object} user - User object
-   * @returns {Promise<void>}
-   */
-  async storeUserData(user) {
-    await this.setItem('current_user', user);
-  }
-
-  /**
-   * Get user data
-   * @returns {Promise<Object|null>}
-   */
-  async getUserData() {
-    return await this.getItem('current_user');
-  }
-
-  /**
-   * Store auth token
+   * Store authentication token securely
    * @param {string} token - Auth token
-   * @returns {Promise<void>}
+   * @returns {Promise<boolean>} Success status
    */
   async storeAuthToken(token) {
-    await this.setItem('auth_token', token);
+    return await this.setItem('auth_token', token);
   }
 
   /**
-   * Get auth token
-   * @returns {Promise<string|null>}
+   * Get authentication token
+   * @returns {Promise<string|null>} Auth token or null
    */
   async getAuthToken() {
     return await this.getItem('auth_token');
   }
 
   /**
-   * Store refresh token
-   * @param {string} token - Refresh token
-   * @returns {Promise<void>}
+   * Store user data securely
+   * @param {Object} user - User object
+   * @returns {Promise<boolean>} Success status
    */
-  async storeRefreshToken(token) {
-    await this.setItem('refresh_token', token);
+  async storeUserData(user) {
+    // Remove sensitive fields before storing
+    const { passwordHash, passwordSalt, ...safeUser } = user;
+    return await this.setItem('user_data', safeUser);
   }
 
   /**
-   * Get refresh token
-   * @returns {Promise<string|null>}
+   * Get user data
+   * @returns {Promise<Object|null>} User object or null
    */
-  async getRefreshToken() {
-    return await this.getItem('refresh_token');
+  async getUserData() {
+    return await this.getItem('user_data');
+  }
+
+  /**
+   * Store permissions securely
+   * @param {Array<string>} permissions - User permissions
+   * @returns {Promise<boolean>} Success status
+   */
+  async storePermissions(permissions) {
+    return await this.setItem('permissions', permissions);
+  }
+
+  /**
+   * Get permissions
+   * @returns {Promise<Array<string>|null>} Permissions array or null
+   */
+  async getPermissions() {
+    return await this.getItem('permissions');
+  }
+
+  /**
+   * Store complete auth data
+   * @param {Object} authData - { user, token, permissions }
+   * @returns {Promise<boolean>} Success status
+   */
+  async storeAuthData(authData) {
+    try {
+      await this.storeUserData(authData.user);
+      await this.storeAuthToken(authData.token);
+      await this.storePermissions(authData.permissions || []);
+      return true;
+    } catch (error) {
+      console.error('Error storing auth data:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Get complete auth data
+   * @returns {Promise<Object|null>} Auth data or null
+   */
+  async getAuthData() {
+    try {
+      const user = await this.getUserData();
+      const token = await this.getAuthToken();
+      const permissions = await this.getPermissions();
+
+      if (!user || !token) {
+        return null;
+      }
+
+      return { user, token, permissions: permissions || [] };
+    } catch (error) {
+      console.error('Error getting auth data:', error);
+      return null;
+    }
   }
 
   /**
    * Clear all auth data
-   * @returns {Promise<void>}
    */
   async clearAuthData() {
-    await this.removeItem('current_user');
-    await this.removeItem('auth_token');
-    await this.removeItem('refresh_token');
+    this.removeItem('auth_token');
+    this.removeItem('user_data');
+    this.removeItem('permissions');
   }
 
   /**
-   * Convert ArrayBuffer to Base64
-   * @private
+   * Check if user is authenticated (has valid encrypted session)
+   * @returns {Promise<boolean>} True if authenticated
    */
-  arrayBufferToBase64(buffer) {
-    const bytes = new Uint8Array(buffer);
-    let binary = '';
-    for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
-    }
-    return btoa(binary);
+  async isAuthenticated() {
+    const token = await this.getAuthToken();
+    const user = await this.getUserData();
+    return !!(token && user);
   }
 
   /**
-   * Convert Base64 to ArrayBuffer
-   * @private
+   * Store data with expiration
+   * @param {string} key - Storage key
+   * @param {any} data - Data to store
+   * @param {number} expiryMinutes - Expiry time in minutes
+   * @returns {Promise<boolean>} Success status
    */
-  base64ToArrayBuffer(base64) {
-    const binary = atob(base64);
-    const bytes = new Uint8Array(binary.length);
-    for (let i = 0; i < binary.length; i++) {
-      bytes[i] = binary.charCodeAt(i);
+  async setItemWithExpiry(key, data, expiryMinutes) {
+    const expiryTime = Date.now() + (expiryMinutes * 60 * 1000);
+    const dataWithExpiry = {
+      data: data,
+      expiry: expiryTime
+    };
+    return await this.setItem(key, dataWithExpiry);
+  }
+
+  /**
+   * Get data with expiration check
+   * @param {string} key - Storage key
+   * @returns {Promise<any>} Data or null if expired
+   */
+  async getItemWithExpiry(key) {
+    const stored = await this.getItem(key);
+    
+    if (!stored) {
+      return null;
     }
-    return bytes.buffer;
+
+    // Check if expired
+    if (Date.now() > stored.expiry) {
+      this.removeItem(key);
+      return null;
+    }
+
+    return stored.data;
   }
 
   /**
    * Migrate data from localStorage to secure storage
-   * @param {string} localStorageKey - localStorage key
-   * @param {string} secureKey - Secure storage key
+   * @param {string} oldKey - Old localStorage key
+   * @param {string} newKey - New secure storage key
    * @returns {Promise<boolean>} Success status
    */
-  async migrateFromLocalStorage(localStorageKey, secureKey) {
+  async migrateFromLocalStorage(oldKey, newKey) {
     try {
-      const data = localStorage.getItem(localStorageKey);
-      if (!data) return false;
-
-      const parsed = JSON.parse(data);
-      await this.setItem(secureKey, parsed);
+      const oldData = localStorage.getItem(oldKey);
       
-      // Optionally remove from localStorage
-      // localStorage.removeItem(localStorageKey);
+      if (!oldData) {
+        return false;
+      }
+
+      // Parse and store securely
+      const data = JSON.parse(oldData);
+      await this.setItem(newKey, data);
+      
+      // Remove old data
+      localStorage.removeItem(oldKey);
       
       return true;
     } catch (error) {
-      console.error('Migration error:', error);
+      console.error('Error migrating data:', error);
       return false;
     }
   }
+
+  /**
+   * Get storage statistics
+   * @returns {Object} Storage stats
+   */
+  getStorageStats() {
+    const keys = Object.keys(localStorage);
+    const secureKeys = keys.filter(k => k.startsWith(this.STORAGE_PREFIX));
+    
+    let totalSize = 0;
+    secureKeys.forEach(key => {
+      const item = localStorage.getItem(key);
+      totalSize += item ? item.length : 0;
+    });
+
+    return {
+      itemCount: secureKeys.length,
+      totalSize: totalSize,
+      totalSizeKB: (totalSize / 1024).toFixed(2),
+      hasSessionKey: !!this.sessionKey
+    };
+  }
+
+  /**
+   * Convert ArrayBuffer to hex string
+   * @private
+   */
+  _arrayBufferToHex(buffer) {
+    const byteArray = new Uint8Array(buffer);
+    return Array.from(byteArray)
+      .map(byte => byte.toString(16).padStart(2, '0'))
+      .join('');
+  }
+
+  /**
+   * Convert hex string to Uint8Array
+   * @private
+   */
+  _hexToUint8Array(hex) {
+    const bytes = new Uint8Array(hex.length / 2);
+    for (let i = 0; i < hex.length; i += 2) {
+      bytes[i / 2] = parseInt(hex.substr(i, 2), 16);
+    }
+    return bytes;
+  }
 }
+
+// Create singleton instance
+const secureStorageService = new SecureStorageService();
 
 // Export for use in other modules
 if (typeof window !== 'undefined') {
   window.SecureStorageService = SecureStorageService;
+  window.secureStorageService = secureStorageService;
 }
 
 console.log('SecureStorageService loaded');

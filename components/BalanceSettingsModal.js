@@ -4,14 +4,16 @@
  */
 
 class BalanceSettingsModal {
-  constructor() {
-    this.settings = this.loadSettings();
+  constructor(authAdapter) {
+    this.authAdapter = authAdapter;
+    this.selectedTaxistaId = null;
+    this.settings = null;
   }
 
   /**
-   * Load settings from localStorage
+   * Load settings for a specific taxista
    */
-  loadSettings() {
+  loadSettings(taxistaId) {
     const defaultSettings = {
       patronPercentage: 30,
       tipDistribution: 'taxista',
@@ -19,34 +21,62 @@ class BalanceSettingsModal {
       expenseDistribution: 'taxista'
     };
 
-    const saved = localStorage.getItem('taxi_balance_settings');
-    return saved ? { ...defaultSettings, ...JSON.parse(saved) } : defaultSettings;
+    const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+    return allSettings[taxistaId] ? { ...defaultSettings, ...allSettings[taxistaId] } : defaultSettings;
   }
 
   /**
-   * Save settings to localStorage
+   * Save settings for a specific taxista
    */
-  saveSettings() {
-    localStorage.setItem('taxi_balance_settings', JSON.stringify(this.settings));
+  saveSettings(taxistaId, settings) {
+    const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+    allSettings[taxistaId] = settings;
+    localStorage.setItem('taxi_balance_settings_per_taxista', JSON.stringify(allSettings));
+  }
+
+  /**
+   * Get all taxistas associated with current patron
+   */
+  getAssociatedTaxistas() {
+    const currentUser = this.authAdapter.getCurrentUser();
+    if (!currentUser || currentUser.rol !== 'PATRON') return [];
+    
+    const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+    return users.filter(u => 
+      u.rol === 'TAXISTA' && 
+      u.estado === 'asociado' && 
+      u.patronId === currentUser.id
+    );
   }
 
   /**
    * Show the modal
    */
-  async show() {
-    const modal = await this.createModal();
+  async show(taxistaId = null) {
+    const modal = await this.createModal(taxistaId);
     await modal.present();
   }
 
   /**
    * Create the modal
    */
-  async createModal() {
+  async createModal(taxistaId = null) {
+    const taxistas = this.getAssociatedTaxistas();
+    
+    if (taxistas.length === 0) {
+      ToastManager.showError('No tienes taxistas asociados');
+      return null;
+    }
+    
+    // Select specified taxista or first taxista by default
+    this.selectedTaxistaId = taxistaId || taxistas[0].id;
+    this.settings = this.loadSettings(this.selectedTaxistaId);
+    
     this.modal = document.createElement('ion-modal');
     this.modal.innerHTML = `
       <ion-header>
         <ion-toolbar color="primary">
-          <ion-title>⚙️ Ajustes de Balance</ion-title>
+          <ion-title>⚙️ Ajustes de Balance Individual</ion-title>
           <ion-buttons slot="end">
             <ion-button onclick="this.closest('ion-modal').dismiss()">
               <ion-icon name="close"></ion-icon>
@@ -55,6 +85,26 @@ class BalanceSettingsModal {
         </ion-toolbar>
       </ion-header>
       <ion-content class="ion-padding">
+        <!-- Taxista Selector -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>👤 Seleccionar Taxista</ion-card-title>
+            <ion-card-subtitle>Configura los ajustes individuales para cada taxista</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <ion-item>
+              <ion-label position="stacked">Taxista</ion-label>
+              <ion-select id="taxista-selector" value="${this.selectedTaxistaId}">
+                ${taxistas.map(t => `
+                  <ion-select-option value="${t.id}">
+                    ${t.nombre} ${t.numeroTaxista ? `(${t.numeroTaxista})` : ''}
+                  </ion-select-option>
+                `).join('')}
+              </ion-select>
+            </ion-item>
+          </ion-card-content>
+        </ion-card>
+
         <!-- Distribución de Ingresos -->
         <ion-card>
           <ion-card-header>
@@ -223,6 +273,15 @@ class BalanceSettingsModal {
    * Set up event listeners
    */
   setupEventListeners(modal) {
+    // Taxista selector
+    const taxistaSelector = modal.querySelector('#taxista-selector');
+    taxistaSelector.addEventListener('ionChange', (e) => {
+      this.selectedTaxistaId = e.detail.value;
+      this.settings = this.loadSettings(this.selectedTaxistaId);
+      this.updateFormValues(modal);
+      this.updatePreview(modal);
+    });
+    
     const patronInput = modal.querySelector('#patron-percentage');
     const taxistaInput = modal.querySelector('#taxista-percentage');
 
@@ -238,6 +297,17 @@ class BalanceSettingsModal {
         this.updatePreview(modal);
       });
     });
+  }
+
+  /**
+   * Update form values when taxista changes
+   */
+  updateFormValues(modal) {
+    modal.querySelector('#patron-percentage').value = this.settings.patronPercentage;
+    modal.querySelector('#taxista-percentage').value = 100 - this.settings.patronPercentage;
+    modal.querySelector('#tip-distribution').value = this.settings.tipDistribution;
+    modal.querySelector('#commission-distribution').value = this.settings.commissionDistribution;
+    modal.querySelector('#expense-distribution').value = this.settings.expenseDistribution;
   }
 
   /**
@@ -355,6 +425,11 @@ class BalanceSettingsModal {
         return;
       }
       
+      if (!this.selectedTaxistaId) {
+        ToastManager.showError('No hay taxista seleccionado');
+        return;
+      }
+      
       const patronPercentageInput = this.modal.querySelector('#patron-percentage');
       const tipDistributionInput = this.modal.querySelector('#tip-distribution');
       const commissionDistributionInput = this.modal.querySelector('#commission-distribution');
@@ -366,16 +441,21 @@ class BalanceSettingsModal {
         return;
       }
       
-      this.settings = {
+      const settings = {
         patronPercentage: parseInt(patronPercentageInput.value) || 30,
         tipDistribution: tipDistributionInput.value,
         commissionDistribution: commissionDistributionInput.value,
         expenseDistribution: expenseDistributionInput.value
       };
 
-      this.saveSettings();
+      this.saveSettings(this.selectedTaxistaId, settings);
       
-      ToastManager.showSuccess('Ajustes guardados correctamente');
+      // Get taxista name for confirmation message
+      const taxistas = this.getAssociatedTaxistas();
+      const taxista = taxistas.find(t => t.id === this.selectedTaxistaId);
+      const taxistaName = taxista ? taxista.nombre : 'taxista';
+      
+      ToastManager.showSuccess(`Ajustes guardados para ${taxistaName}`);
       
       // Dispatch event to refresh balance views
       window.dispatchEvent(new CustomEvent('balance-settings-updated'));

@@ -3,11 +3,12 @@
  * Connects the Ionic PWA interface to the JavaScript reconciliation modules
  */
 class ReconcileAdapter {
-  constructor() {
+  constructor(authAdapter = null) {
     // Will be initialized with actual reconciliation services when integrated
     this.storageManager = null;
     this.roleService = null;
     this.calculationEngine = null;
+    this.authAdapter = authAdapter;
   }
 
   /**
@@ -28,18 +29,57 @@ class ReconcileAdapter {
    */
   async getServices() {
     try {
+      console.log('ReconcileAdapter.getServices: Loading services from localStorage...');
+      
       // TODO: Integrate with actual storageManager.getServices()
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
       
-      // Filter by role (will use roleService when integrated)
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) return [];
-
-      if (currentUser.rol === 'TAXISTA') {
-        return services.filter(s => s.userId === currentUser.id);
+      console.log('ReconcileAdapter.getServices: Loaded services:', services.length);
+      console.log('ReconcileAdapter.getServices: Services:', services);
+      
+      // Get current user from AuthAdapter (supports encrypted storage)
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
+      console.log('ReconcileAdapter.getServices: Current user:', currentUser ? currentUser.id : 'none');
+      
+      if (!currentUser) {
+        console.log('ReconcileAdapter.getServices: No user found, returning empty array');
+        return [];
       }
 
-      // PATRON sees all services from associated taxistas
+      if (currentUser.rol === 'TAXISTA') {
+        console.log('ReconcileAdapter.getServices: Filtering for TAXISTA');
+        const filtered = services.filter(s => s.userId === currentUser.id);
+        console.log('ReconcileAdapter.getServices: Filtered services:', filtered.length);
+        return filtered;
+      }
+
+      // PATRON sees services from associated taxistas only
+      if (currentUser.rol === 'PATRON') {
+        console.log('ReconcileAdapter.getServices: Filtering for PATRON');
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const associatedTaxistas = users.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === currentUser.id
+        );
+        const taxistaIds = associatedTaxistas.map(t => t.id);
+        console.log('ReconcileAdapter.getServices: Associated taxista IDs:', taxistaIds);
+        
+        const filtered = services.filter(s => taxistaIds.includes(s.userId));
+        console.log('ReconcileAdapter.getServices: Filtered services for PATRON:', filtered.length);
+        return filtered;
+      }
+
+      console.log('ReconcileAdapter.getServices: Unknown role, returning all services');
       return services;
     } catch (error) {
       console.error('Get services error:', error);
@@ -54,20 +94,50 @@ class ReconcileAdapter {
    */
   async createService(serviceData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      console.log('ReconcileAdapter.createService: Starting with data:', serviceData);
+      
+      // Try to get user from AuthAdapter first, fallback to localStorage
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
+      console.log('ReconcileAdapter.createService: Current user:', currentUser ? currentUser.id : 'none');
+      
       if (!currentUser) throw new Error('Usuario no autenticado');
+
+      // Create datetime field for compatibility (combines date and time)
+      const datetime = serviceData.date && serviceData.time 
+        ? `${serviceData.date}T${serviceData.time}:00`
+        : new Date().toISOString();
 
       const service = {
         id: 'service-' + Date.now(),
         ...serviceData,
+        datetime: datetime, // Add datetime field for compatibility
         userId: currentUser.id,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
+      console.log('ReconcileAdapter.createService: Service object created:', service);
+
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      console.log('ReconcileAdapter.createService: Existing services count:', services.length);
+      
       services.push(service);
       localStorage.setItem('taxi_services', JSON.stringify(services));
+      
+      console.log('ReconcileAdapter.createService: Service saved. Total services now:', services.length);
+      console.log('ReconcileAdapter.createService: Verifying save...');
+      
+      const verifyServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+      console.log('ReconcileAdapter.createService: Verified services count:', verifyServices.length);
 
       return service;
     } catch (error) {
@@ -91,11 +161,23 @@ class ReconcileAdapter {
         throw new Error('Servicio no encontrado');
       }
 
-      services[index] = {
+      // Update datetime field if date or time changed
+      const updatedService = {
         ...services[index],
         ...updates,
         updatedAt: new Date().toISOString()
       };
+
+      // Recalculate datetime if date or time was updated
+      if (updates.date || updates.time) {
+        const date = updates.date || updatedService.date;
+        const time = updates.time || updatedService.time;
+        if (date && time) {
+          updatedService.datetime = `${date}T${time}:00`;
+        }
+      }
+
+      services[index] = updatedService;
 
       localStorage.setItem('taxi_services', JSON.stringify(services));
       return services[index];
@@ -129,15 +211,35 @@ class ReconcileAdapter {
     try {
       const expenses = JSON.parse(localStorage.getItem('taxi_expenses') || '[]');
       
-      // Filter by role
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      // Get current user from AuthAdapter (supports encrypted storage)
+      let currentUser = null;
+      if (this.authAdapter) {
+        currentUser = this.authAdapter.getCurrentUser();
+      }
+      
+      // Fallback to localStorage if AuthAdapter not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+      }
+      
       if (!currentUser) return [];
 
       if (currentUser.rol === 'TAXISTA') {
         return expenses.filter(e => e.userId === currentUser.id);
       }
 
-      // PATRON sees all expenses from associated taxistas
+      // PATRON sees expenses from associated taxistas only
+      if (currentUser.rol === 'PATRON') {
+        const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        const associatedTaxistas = users.filter(u => 
+          u.rol === 'TAXISTA' && 
+          u.estado === 'asociado' && 
+          u.patronId === currentUser.id
+        );
+        const taxistaIds = associatedTaxistas.map(t => t.id);
+        return expenses.filter(e => taxistaIds.includes(e.userId));
+      }
+
       return expenses;
     } catch (error) {
       console.error('Get expenses error:', error);
@@ -152,8 +254,27 @@ class ReconcileAdapter {
    */
   async createExpense(expenseData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) throw new Error('Usuario no autenticado');
+      console.log('ReconcileAdapter.createExpense: Starting...');
+      console.log('ReconcileAdapter.createExpense: authAdapter available?', !!this.authAdapter);
+      
+      // Try to get user from authAdapter first
+      let currentUser = null;
+      if (this.authAdapter) {
+        // Use async method to ensure we get the user from secure storage
+        currentUser = await this.authAdapter.getCurrentUserAsync();
+        console.log('ReconcileAdapter.createExpense: User from authAdapter:', currentUser);
+      }
+      
+      // Fallback to localStorage if authAdapter is not available
+      if (!currentUser) {
+        currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
+        console.log('ReconcileAdapter.createExpense: User from localStorage:', currentUser);
+      }
+      
+      if (!currentUser) {
+        console.error('ReconcileAdapter.createExpense: No user found!');
+        throw new Error('Usuario no autenticado');
+      }
 
       const expense = {
         id: 'expense-' + Date.now(),
@@ -167,6 +288,7 @@ class ReconcileAdapter {
       expenses.push(expense);
       localStorage.setItem('taxi_expenses', JSON.stringify(expenses));
 
+      console.log('ReconcileAdapter.createExpense: Expense created successfully:', expense.id);
       return expense;
     } catch (error) {
       console.error('Create expense error:', error);
@@ -228,15 +350,36 @@ class ReconcileAdapter {
       const reconciliations = JSON.parse(localStorage.getItem('taxi_reconciliations') || '[]');
       
       // Filter by role
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) return [];
+      const currentUser = this.authAdapter ? this.authAdapter.getCurrentUser() : null;
+      if (!currentUser) {
+        console.log('No current user found for getReconciliations');
+        return [];
+      }
+
+      console.log('Getting reconciliations for user:', currentUser.id, 'role:', currentUser.rol);
+      console.log('Total reconciliations in storage:', reconciliations.length);
 
       if (currentUser.rol === 'TAXISTA') {
-        return reconciliations.filter(r => r.userId === currentUser.id);
+        const filtered = reconciliations.filter(r => r.userId === currentUser.id);
+        console.log('Filtered reconciliations for TAXISTA:', filtered.length);
+        return filtered;
       }
 
       // PATRON sees all reconciliations from associated taxistas
-      return reconciliations;
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const associatedTaxistas = users.filter(u => 
+        u.rol === 'TAXISTA' && 
+        u.estado === 'asociado' && 
+        u.patronId === currentUser.id
+      );
+      
+      const taxistaIds = associatedTaxistas.map(t => t.id);
+      const filtered = reconciliations.filter(r => 
+        r.userId === currentUser.id || taxistaIds.includes(r.userId)
+      );
+      
+      console.log('Filtered reconciliations for PATRON:', filtered.length);
+      return filtered;
     } catch (error) {
       console.error('Get reconciliations error:', error);
       return [];
@@ -250,8 +393,11 @@ class ReconcileAdapter {
    */
   async saveReconciliation(reconciliationData) {
     try {
-      const currentUser = JSON.parse(localStorage.getItem('taxi_auth_current_user') || 'null');
-      if (!currentUser) throw new Error('Usuario no autenticado');
+      const currentUser = this.authAdapter ? this.authAdapter.getCurrentUser() : null;
+      if (!currentUser) {
+        console.error('No current user found');
+        throw new Error('Usuario no autenticado');
+      }
 
       const reconciliation = {
         id: 'reconciliation-' + Date.now(),
@@ -265,6 +411,7 @@ class ReconcileAdapter {
       reconciliations.push(reconciliation);
       localStorage.setItem('taxi_reconciliations', JSON.stringify(reconciliations));
 
+      console.log('Reconciliation saved successfully:', reconciliation.id);
       return reconciliation;
     } catch (error) {
       console.error('Save reconciliation error:', error);

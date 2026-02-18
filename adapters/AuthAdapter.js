@@ -14,15 +14,14 @@ class AuthAdapter {
     // Will be initialized with actual auth services when integrated
     this.authService = null;
     this.roleService = null;
-    this.secureStorageService = null;
+    this.secureStorageService = window.secureStorageService || null;
+    this.csrfProtectionService = window.csrfProtectionService || null;
+    this.loginAttemptService = window.loginAttemptService || null;
+    this.tokenService = window.tokenService || null;
     this.currentUser = null;
     this.currentToken = null;
     
-    // Initialize security services
-    this.passwordService = new PasswordService();
-    this.tokenService = new TokenService();
-    
-    // Storage keys for fallback localStorage
+    // Storage keys for fallback localStorage (legacy)
     this.STORAGE_KEY_USER = 'taxi_auth_current_user';
     this.STORAGE_KEY_TOKEN = 'taxi_auth_current_token';
     this.STORAGE_KEY_PERMISSIONS = 'taxi_auth_permissions';
@@ -52,19 +51,48 @@ class AuthAdapter {
    * Restore session from localStorage (fallback)
    * @private
    */
-  restoreSession() {
+  async restoreSession() {
     try {
+      // Try secure storage first
+      if (this.secureStorageService) {
+        const authData = await this.secureStorageService.getAuthData();
+        if (authData) {
+          this.currentUser = authData.user;
+          this.currentToken = authData.token;
+          console.log('Session restored from secure storage');
+          return;
+        }
+      }
+      
+      // Fallback to localStorage (legacy)
       const storedUser = localStorage.getItem(this.STORAGE_KEY_USER);
       const storedToken = localStorage.getItem(this.STORAGE_KEY_TOKEN);
       
       if (storedUser && storedToken) {
         this.currentUser = JSON.parse(storedUser);
         this.currentToken = storedToken;
+        
+        // Migrate to secure storage
+        if (this.secureStorageService) {
+          const permissions = JSON.parse(localStorage.getItem(this.STORAGE_KEY_PERMISSIONS) || '[]');
+          await this.secureStorageService.storeAuthData({
+            user: this.currentUser,
+            token: this.currentToken,
+            permissions: permissions
+          });
+          
+          // Clear old localStorage data
+          this.clearLocalStorage();
+          console.log('Session migrated to secure storage');
+        }
       }
     } catch (error) {
       console.error('Error restoring session:', error);
       // Clear potentially corrupted data
       this.clearLocalStorage();
+      if (this.secureStorageService) {
+        await this.secureStorageService.clearAuthData();
+      }
     }
   }
   
@@ -91,37 +119,36 @@ class AuthAdapter {
   /**
    * Login with credentials
    * Requirements: 1.3, 1.8, 1.9
-   * @param {Object} credentials - { email, password, csrf_token }
+   * @param {Object} credentials - { email, password }
    * @returns {Promise<Object>} AuthResult with user data
    */
   async login(credentials) {
     try {
-      // Validate CSRF token if CSRFService is available
-      if (window.csrfService && credentials.csrf_token) {
-        const { valid, data } = window.csrfService.validateAndRemoveToken(credentials);
-        if (!valid) {
-          throw new Error('Token de seguridad inválido. Por favor, recarga la página.');
+      // Check if login is allowed (brute force protection)
+      if (this.loginAttemptService) {
+        const attemptCheck = this.loginAttemptService.canAttemptLogin(credentials.email);
+        
+        if (!attemptCheck.allowed) {
+          throw new Error(attemptCheck.reason);
         }
-        credentials = data; // Use cleaned data without CSRF token
+        
+        // Show warning if approaching limit
+        if (attemptCheck.warning) {
+          console.warn(attemptCheck.warning);
+        }
+        
+        // Apply progressive delay
+        await this.loginAttemptService.applyProgressiveDelay(credentials.email);
       }
       
-      // Check rate limiting BEFORE attempting login
-      if (window.rateLimitService) {
-        const lockoutStatus = window.rateLimitService.isLockedOut(credentials.email);
-        if (lockoutStatus.locked) {
-          const minutes = Math.ceil(lockoutStatus.remainingTime / 60000);
-          throw new Error(`Cuenta bloqueada temporalmente. Intenta de nuevo en ${minutes} minutos.`);
-        }
+      // Generate new CSRF token on login
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.generateNewToken();
       }
       
       // If authService is available, use it
       if (this.authService) {
         const authResult = await this.authService.login(credentials);
-        
-        // Clear rate limit attempts on successful login
-        if (window.rateLimitService) {
-          window.rateLimitService.clearAttempts(credentials.email);
-        }
         
         // Store user and token
         this.currentUser = authResult.user;
@@ -148,62 +175,82 @@ class AuthAdapter {
       const user = users.find(u => u.email === credentials.email);
 
       if (!user) {
-        // Record failed attempt for rate limiting
-        if (window.rateLimitService) {
-          window.rateLimitService.recordAttempt(credentials.email);
+        // Record failed attempt
+        if (this.loginAttemptService) {
+          this.loginAttemptService.recordFailedAttempt(credentials.email, {
+            userAgent: navigator.userAgent
+          });
         }
         throw new Error('Usuario no encontrado');
       }
 
-      // Verify password using PasswordService
-      if (user.passwordHash) {
-        const isValid = await this.passwordService.verifyPassword(
-          credentials.password,
-          user.passwordHash
-        );
-        
-        if (!isValid) {
-          // Record failed attempt for rate limiting
-          if (window.rateLimitService) {
-            window.rateLimitService.recordAttempt(credentials.email);
-          }
-          throw new Error('Contraseña incorrecta');
+      // Verify password using CryptoService
+      if (!user.passwordHash || !user.passwordSalt) {
+        throw new Error('Cuenta no configurada correctamente. Por favor, contacta al administrador.');
+      }
+
+      const isValidPassword = await window.cryptoService.verifyPassword(
+        credentials.password,
+        user.passwordHash,
+        user.passwordSalt
+      );
+
+      if (!isValidPassword) {
+        // Record failed attempt
+        if (this.loginAttemptService) {
+          this.loginAttemptService.recordFailedAttempt(credentials.email, {
+            userAgent: navigator.userAgent
+          });
         }
-      } else {
-        // Legacy user without hashed password - for migration only
-        console.warn('User has no password hash - migration needed');
-        // In production, force password reset
+        throw new Error('Contraseña incorrecta');
       }
       
-      // Clear rate limit attempts on successful login
-      if (window.rateLimitService) {
-        window.rateLimitService.clearAttempts(credentials.email);
+      // Password is valid - record successful login
+      if (this.loginAttemptService) {
+        this.loginAttemptService.recordSuccessfulLogin(credentials.email);
       }
       
       // Update last login
       user.lastLogin = new Date().toISOString();
-      localStorage.setItem('taxi_users', JSON.stringify(users));
-
-      this.currentUser = user;
       
-      // Generate JWT tokens
-      const accessToken = this.tokenService.generateAccessToken(user);
-      const refreshToken = this.tokenService.generateRefreshToken(user);
-      this.currentToken = accessToken;
+      // Remove password fields before storing
+      const { passwordHash, passwordSalt, ...userWithoutPassword } = user;
+      
+      // Update user in storage
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = user;
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+      }
+
+      this.currentUser = userWithoutPassword;
+      
+      // Generate tokens with expiration using TokenService
+      let tokenPair;
+      if (this.tokenService) {
+        tokenPair = this.tokenService.generateTokenPair(userWithoutPassword);
+        await this.tokenService.storeTokens(tokenPair);
+        this.currentToken = tokenPair.accessToken;
+      } else {
+        // Fallback to simple token
+        this.currentToken = 'token-' + user.id + '-' + Date.now();
+      }
       
       // Determine permissions based on role
       const permissions = user.rol === 'PATRON' 
         ? ['VIEW_ALL_DRIVERS', 'VIEW_AGGREGATED_DATA', 'MANAGE_ASSOCIATIONS', 'VIEW_OWN_DATA', 'EDIT_OWN_PROFILE']
         : ['VIEW_OWN_DATA', 'INPUT_OPERATIONAL_DATA', 'EDIT_OWN_PROFILE'];
       
-      // Store in localStorage
-      this.storeInLocalStorage(user, accessToken, permissions);
+      // Store in secure storage (without password fields)
+      await this.storeInSecureStorage(userWithoutPassword, this.currentToken, permissions);
       
       return {
         success: true,
-        user: user,
-        token: accessToken,
-        refreshToken: refreshToken,
+        user: userWithoutPassword,
+        token: this.currentToken,
+        accessToken: tokenPair?.accessToken,
+        refreshToken: tokenPair?.refreshToken,
+        expiresAt: tokenPair?.accessTokenExpiresAt,
         permissions: permissions
       };
     } catch (error) {
@@ -215,36 +262,16 @@ class AuthAdapter {
   /**
    * Register a new user
    * Requirements: 1.6, 1.8, 1.9
-   * @param {Object} userData - { nombre, email, telefono, password, rol, csrf_token }
+   * @param {Object} userData - { nombre, email, telefono, password, rol }
+   * @param {boolean} passwordAlreadyHashed - If true, skip password validation and hashing
    * @returns {Promise<Object>} User object
    */
-  async register(userData) {
+  async register(userData, passwordAlreadyHashed = false) {
     try {
-      // Validate CSRF token if CSRFService is available
-      if (window.csrfService && userData.csrf_token) {
-        const { valid, data } = window.csrfService.validateAndRemoveToken(userData);
-        if (!valid) {
-          throw new Error('Token de seguridad inválido. Por favor, recarga la página.');
-        }
-        userData = data; // Use cleaned data without CSRF token
-      }
-      
-      // Validate password strength
-      const strength = this.passwordService.checkPasswordStrength(userData.password);
-      if (strength.score < 3) {
-        throw new Error('La contraseña es demasiado débil. ' + strength.feedback.join(', '));
-      }
-
       // If authService is available, use it
       if (this.authService) {
-        // Hash password before sending
-        const passwordHash = await this.passwordService.hashPassword(userData.password);
-        
         // Register the user
-        const user = await this.authService.register({
-          ...userData,
-          passwordHash
-        });
+        const user = await this.authService.register(userData);
         
         // Auto-login after registration
         const loginResult = await this.login({
@@ -255,10 +282,28 @@ class AuthAdapter {
         return loginResult.user;
       }
       
-      // Fallback: simulate registration for development
-      // Hash the password
-      const passwordHash = await this.passwordService.hashPassword(userData.password);
+      let hash, salt;
       
+      if (passwordAlreadyHashed) {
+        // Password is already hashed (from email verification flow)
+        // Extract hash and salt from the hashed password object
+        const hashedData = userData.password;
+        hash = hashedData.hash;
+        salt = hashedData.salt;
+      } else {
+        // Validate password strength
+        const passwordValidation = window.cryptoService.validatePasswordStrength(userData.password);
+        if (!passwordValidation.valid) {
+          throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
+        }
+        
+        // Hash password using CryptoService
+        const hashResult = await window.cryptoService.hashPassword(userData.password);
+        hash = hashResult.hash;
+        salt = hashResult.salt;
+      }
+      
+      // Fallback: simulate registration for development
       const user = {
         id: 'user-' + Date.now(),
         email: userData.email,
@@ -269,22 +314,32 @@ class AuthAdapter {
         codigoInvitacion: userData.rol === 'PATRON' ? this.generateInvitationCode() : null,
         estado: 'independiente',
         activo: true,
-        passwordHash: passwordHash, // Store hashed password
-        fechaCreacion: new Date().toISOString()
+        fechaCreacion: new Date().toISOString(),
+        passwordHash: hash,
+        passwordSalt: salt
       };
 
       // Save user to taxi_users
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      
+      // Check if email already exists
+      if (users.some(u => u.email === userData.email)) {
+        throw new Error('El email ya está registrado');
+      }
+      
       users.push(user);
       localStorage.setItem('taxi_users', JSON.stringify(users));
 
       // Auto-login after registration
-      const loginResult = await this.login({
-        email: userData.email,
-        password: userData.password
-      });
+      // Remove password fields before storing in session
+      const { passwordHash, passwordSalt, ...userWithoutPassword } = user;
+      
+      this.currentUser = userWithoutPassword;
+      this.currentToken = 'demo-token-' + Date.now();
+      
+      await this.storeInSecureStorage(userWithoutPassword, this.currentToken, ['VIEW_OWN_DATA']);
 
-      return loginResult.user;
+      return userWithoutPassword;
     } catch (error) {
       console.error('Registration error:', error);
       throw new Error('Error al registrarse: ' + (error.message || 'Error desconocido'));
@@ -303,7 +358,17 @@ class AuthAdapter {
         await this.authService.logout();
       }
       
-      // Clear secure storage if available
+      // Clear tokens
+      if (this.tokenService) {
+        await this.tokenService.clearTokens();
+      }
+      
+      // Clear CSRF token
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.clearToken();
+      }
+      
+      // Clear secure storage
       if (this.secureStorageService) {
         await this.secureStorageService.clearAuthData();
       }
@@ -312,7 +377,7 @@ class AuthAdapter {
       this.currentUser = null;
       this.currentToken = null;
       
-      // Clear localStorage
+      // Clear localStorage (legacy)
       this.clearLocalStorage();
     } catch (error) {
       console.error('Logout error:', error);
@@ -320,12 +385,21 @@ class AuthAdapter {
       this.currentUser = null;
       this.currentToken = null;
       this.clearLocalStorage();
+      if (this.secureStorageService) {
+        await this.secureStorageService.clearAuthData();
+      }
+      if (this.csrfProtectionService) {
+        this.csrfProtectionService.clearToken();
+      }
+      if (this.tokenService) {
+        await this.tokenService.clearTokens();
+      }
       throw new Error('Error al cerrar sesión: ' + (error.message || 'Error desconocido'));
     }
   }
 
   /**
-   * Get current authenticated user
+   * Get current authenticated user (synchronous)
    * @returns {Object|null} Current user or null
    */
   getCurrentUser() {
@@ -333,7 +407,7 @@ class AuthAdapter {
       return this.currentUser;
     }
 
-    // Try to load from storage
+    // Fallback to localStorage for sync access
     const stored = localStorage.getItem(this.STORAGE_KEY_USER);
     if (stored) {
       try {
@@ -347,13 +421,39 @@ class AuthAdapter {
 
     return null;
   }
+  
+  /**
+   * Get current authenticated user from secure storage (async)
+   * @returns {Promise<Object|null>} Current user or null
+   */
+  async getCurrentUserAsync() {
+    if (this.currentUser) {
+      return this.currentUser;
+    }
+
+    // Try to load from secure storage
+    if (this.secureStorageService) {
+      try {
+        const user = await this.secureStorageService.getUserData();
+        if (user) {
+          this.currentUser = user;
+          return this.currentUser;
+        }
+      } catch (error) {
+        console.error('Error loading user from secure storage:', error);
+      }
+    }
+
+    // Fallback to localStorage
+    return this.getCurrentUser();
+  }
 
   /**
    * Update current user data
    * @param {Object} updates - Object with fields to update
-   * @returns {Object} Updated user
+   * @returns {Promise<Object>} Updated user
    */
-  updateCurrentUser(updates) {
+  async updateCurrentUser(updates) {
     if (!this.currentUser) {
       throw new Error('No hay usuario autenticado');
     }
@@ -361,13 +461,13 @@ class AuthAdapter {
     // Merge updates with current user
     this.currentUser = { ...this.currentUser, ...updates };
 
-    // Save to localStorage
-    localStorage.setItem(this.STORAGE_KEY_USER, JSON.stringify(this.currentUser));
-
-    // Save to secure storage if available
+    // Save to secure storage
     if (this.secureStorageService) {
-      this.secureStorageService.setUserData(this.currentUser);
+      await this.secureStorageService.storeUserData(this.currentUser);
     }
+    
+    // Fallback to localStorage
+    localStorage.setItem(this.STORAGE_KEY_USER, JSON.stringify(this.currentUser));
 
     return this.currentUser;
   }
@@ -470,16 +570,51 @@ class AuthAdapter {
         return;
       }
       
-      // Fallback: basic validation for development
-      if (!currentPassword || !newPassword) {
-        throw new Error('Las contraseñas son obligatorias');
+      // Get current user
+      const user = this.getCurrentUser();
+      if (!user) {
+        throw new Error('No hay usuario autenticado');
       }
-
-      if (newPassword.length < 8) {
-        throw new Error('La nueva contraseña debe tener al menos 8 caracteres');
+      
+      // Get full user data from storage
+      const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const fullUser = users.find(u => u.id === user.id);
+      
+      if (!fullUser) {
+        throw new Error('Usuario no encontrado');
       }
-
-      // Simulate success
+      
+      // Verify current password
+      const isValidPassword = await window.cryptoService.verifyPassword(
+        currentPassword,
+        fullUser.passwordHash,
+        fullUser.passwordSalt
+      );
+      
+      if (!isValidPassword) {
+        throw new Error('La contraseña actual es incorrecta');
+      }
+      
+      // Validate new password strength
+      const passwordValidation = window.cryptoService.validatePasswordStrength(newPassword);
+      if (!passwordValidation.valid) {
+        throw new Error('Contraseña débil: ' + passwordValidation.feedback.join(', '));
+      }
+      
+      // Hash new password
+      const { hash, salt } = await window.cryptoService.hashPassword(newPassword);
+      
+      // Update user in storage
+      fullUser.passwordHash = hash;
+      fullUser.passwordSalt = salt;
+      fullUser.passwordChangedAt = new Date().toISOString();
+      
+      const userIndex = users.findIndex(u => u.id === user.id);
+      if (userIndex !== -1) {
+        users[userIndex] = fullUser;
+        localStorage.setItem('taxi_users', JSON.stringify(users));
+      }
+      
       return true;
     } catch (error) {
       console.error('Change password error:', error);
@@ -568,27 +703,47 @@ class AuthAdapter {
   }
   
   /**
-   * Generate a cryptographically secure invitation code for patrons
+   * Generate a unique invitation code for patrons
    * @private
    * @returns {string} 6-character invitation code
    */
   generateInvitationCode() {
-    // Use crypto.getRandomValues() for cryptographic security
-    const array = new Uint8Array(6);
-    crypto.getRandomValues(array);
-    
     const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // Exclude similar looking characters
     let code = '';
-    
-    for (let i = 0; i < array.length; i++) {
-      code += chars.charAt(array[i] % chars.length);
+    for (let i = 0; i < 6; i++) {
+      code += chars.charAt(Math.floor(Math.random() * chars.length));
     }
-    
     return code;
   }
   
   /**
-   * Store user, token, and permissions in localStorage
+   * Store user, token, and permissions in secure storage
+   * @private
+   * @param {Object} user - User object
+   * @param {string} token - Auth token
+   * @param {Array<string>} permissions - User permissions
+   */
+  async storeInSecureStorage(user, token, permissions) {
+    try {
+      if (this.secureStorageService) {
+        await this.secureStorageService.storeAuthData({
+          user: user,
+          token: token,
+          permissions: permissions || []
+        });
+      } else {
+        // Fallback to localStorage
+        this.storeInLocalStorage(user, token, permissions);
+      }
+    } catch (error) {
+      console.error('Error storing in secure storage:', error);
+      // Fallback to localStorage on error
+      this.storeInLocalStorage(user, token, permissions);
+    }
+  }
+  
+  /**
+   * Store user, token, and permissions in localStorage (legacy fallback)
    * @private
    * @param {Object} user - User object
    * @param {string} token - Auth token
@@ -659,6 +814,92 @@ class AuthAdapter {
     }
     
     return null;
+  }
+  
+  /**
+   * Get CSRF token for protected operations
+   * @returns {string|null} CSRF token or null
+   */
+  getCSRFToken() {
+    if (this.csrfProtectionService) {
+      return this.csrfProtectionService.getToken();
+    }
+    return null;
+  }
+  
+  /**
+   * Validate CSRF token for operation
+   * @param {string} token - Token to validate
+   * @returns {boolean} True if valid
+   */
+  validateCSRFToken(token) {
+    if (this.csrfProtectionService) {
+      return this.csrfProtectionService.validateToken(token);
+    }
+    // If CSRF service not available, allow operation (backward compatibility)
+    return true;
+  }
+  
+  /**
+   * Validate current session token
+   * @returns {Promise<boolean>} True if valid
+   */
+  async validateToken() {
+    if (!this.tokenService) {
+      // Fallback: assume valid if user exists
+      return !!this.getCurrentUser();
+    }
+    
+    const accessToken = await this.tokenService.getAccessToken();
+    
+    if (!accessToken) {
+      return false;
+    }
+    
+    const validation = this.tokenService.validateToken(accessToken);
+    
+    if (!validation.valid) {
+      // Try to refresh token
+      if (validation.expired) {
+        console.log('Access token expired, attempting refresh');
+        const refreshed = await this.tokenService.refreshAccessToken();
+        return !!refreshed;
+      }
+      return false;
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Refresh access token if needed
+   * @returns {Promise<boolean>} True if refreshed or still valid
+   */
+  async refreshTokenIfNeeded() {
+    if (!this.tokenService) {
+      return true; // No token service, assume valid
+    }
+    
+    const accessToken = await this.tokenService.getAccessToken();
+    
+    if (!accessToken) {
+      return false;
+    }
+    
+    // Check if needs refresh
+    if (this.tokenService.needsRefresh(accessToken)) {
+      console.log('Token needs refresh, refreshing...');
+      const refreshed = await this.tokenService.refreshAccessToken();
+      
+      if (refreshed) {
+        this.currentToken = refreshed.accessToken;
+        return true;
+      }
+      
+      return false;
+    }
+    
+    return true;
   }
 }
 

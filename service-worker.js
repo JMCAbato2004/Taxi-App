@@ -3,21 +3,25 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v28';
-const RUNTIME_CACHE = 'taxi-runtime-v6';
+const CACHE_NAME = 'taxi-pwa-v31-root';
+const RUNTIME_CACHE = 'taxi-runtime-v9-root';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
   '/',
-  '/index-ionic.html',
-  '/ionic-pwa/styles/theme.css',
-  '/ionic-pwa/utils/ToastManager.js',
-  '/ionic-pwa/utils/LoadingManager.js',
-  '/ionic-pwa/utils/ActionSheetManager.js',
-  '/ionic-pwa/adapters/AuthAdapter.js',
-  '/ionic-pwa/adapters/ReconcileAdapter.js',
-  '/ionic-pwa/adapters/RGPDAdapter.js',
+  '/index.html',
+  '/app.js',
   '/manifest.json',
+  '/favicon.ico',
+  '/styles/theme.css',
+  '/adapters/AuthAdapter.js',
+  '/adapters/ReconcileAdapter.js',
+  '/services/SecureStorageService.js',
+  '/services/TokenService.js',
+  '/services/CryptoService.js',
+  '/services/CSRFProtectionService.js',
+  '/services/LoginAttemptService.js',
+  '/services/EmailVerificationService.js',
   'https://cdn.jsdelivr.net/npm/@ionic/core/css/ionic.bundle.css',
   'https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.esm.js'
 ];

@@ -8,6 +8,7 @@ class BalanceLiquidacionView {
     this.authAdapter = authAdapter;
     this.reconcileAdapter = reconcileAdapter;
     this.currentPeriod = 'month';
+    this.selectedTaxistaId = null; // For PATRON to select which taxista to view
     this.platformConfig = {
       emisora: { name: 'Emisora', icon: '📻', color: 'primary' },
       calle: { name: 'Calle', icon: '🚶', color: 'success' },
@@ -35,6 +36,37 @@ class BalanceLiquidacionView {
    * Create modal element
    */
   async createModal(user) {
+    // Get associated taxistas if user is PATRON
+    let taxistaSelector = '';
+    if (user.rol === 'PATRON') {
+      const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+      const associatedTaxistas = allUsers.filter(u => 
+        u.rol === 'TAXISTA' && 
+        u.estado === 'asociado' && 
+        u.patronId === user.id
+      );
+      
+      if (associatedTaxistas.length > 0) {
+        // Set first taxista as default
+        this.selectedTaxistaId = associatedTaxistas[0].id;
+        
+        taxistaSelector = `
+          <ion-toolbar>
+            <ion-item lines="none">
+              <ion-label position="stacked" style="color: white;">Seleccionar Taxista</ion-label>
+              <ion-select id="taxista-selector" value="${this.selectedTaxistaId}" interface="popover" style="color: white;">
+                ${associatedTaxistas.map(t => `
+                  <ion-select-option value="${t.id}">
+                    ${t.nombre} ${t.numeroTaxista ? `(${t.numeroTaxista})` : ''}
+                  </ion-select-option>
+                `).join('')}
+              </ion-select>
+            </ion-item>
+          </ion-toolbar>
+        `;
+      }
+    }
+    
     const modal = document.createElement('ion-modal');
     modal.innerHTML = `
       <ion-header>
@@ -46,6 +78,7 @@ class BalanceLiquidacionView {
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
+        ${taxistaSelector}
         <ion-toolbar>
           <ion-segment id="balance-period-segment" value="month">
             <ion-segment-button value="today">
@@ -69,6 +102,18 @@ class BalanceLiquidacionView {
 
     document.body.appendChild(modal);
     await modal.componentOnReady();
+
+    // Set up taxista selector change handler (only for PATRON)
+    if (user.rol === 'PATRON') {
+      const taxistaSelect = modal.querySelector('#taxista-selector');
+      if (taxistaSelect) {
+        taxistaSelect.addEventListener('ionChange', async (e) => {
+          this.selectedTaxistaId = e.detail.value;
+          console.log('Selected taxista:', this.selectedTaxistaId);
+          await this.loadBalance(user, this.currentPeriod);
+        });
+      }
+    }
 
     // Set up segment change handler
     const segment = modal.querySelector('#balance-period-segment');
@@ -101,20 +146,31 @@ class BalanceLiquidacionView {
   async loadBalance(user, period) {
     try {
       const services = await this.reconcileAdapter.getServices();
+      const expenses = await this.reconcileAdapter.getExpenses();
       
       // Filter by period
       const filteredServices = this.filterByPeriod(services, period);
+      const filteredExpenses = this.filterByPeriod(expenses, period);
       
-      // Filter by role
+      // Filter by role and selected taxista
       const userServices = this.filterByRole(filteredServices, user);
+      const userExpenses = this.filterByRole(filteredExpenses, user);
+      
+      // Get the taxista user object for configuration
+      let taxistaUser = user;
+      if (user.rol === 'PATRON' && this.selectedTaxistaId) {
+        const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+        taxistaUser = allUsers.find(u => u.id === this.selectedTaxistaId) || user;
+      }
       
       // Calculate totals and platform breakdown
       const totals = this.calculateTotals(userServices);
       const platformStats = this.calculatePlatformStats(userServices);
-      const distribution = this.calculateDistribution(totals, user);
+      const expenseTotals = this.calculateExpenseTotals(userExpenses);
+      const distribution = this.calculateDistribution(totals, expenseTotals, taxistaUser);
       
       // Render balance
-      this.renderBalance(totals, platformStats, distribution, user, period);
+      this.renderBalance(totals, platformStats, distribution, taxistaUser, period);
     } catch (error) {
       console.error('Error loading balance:', error);
       ToastManager.showError('Error al cargar balance');
@@ -160,7 +216,12 @@ class BalanceLiquidacionView {
     }
     
     if (user.rol === 'PATRON') {
-      // For patrons, get services from associated taxistas
+      // If a specific taxista is selected, filter by that taxista
+      if (this.selectedTaxistaId) {
+        return data.filter(item => item.userId === this.selectedTaxistaId);
+      }
+      
+      // Otherwise, get services from all associated taxistas
       const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const associatedTaxistas = users.filter(u => 
         u.rol === 'TAXISTA' && 
@@ -231,23 +292,42 @@ class BalanceLiquidacionView {
   /**
    * Calculate distribution between patron and taxista
    */
-  calculateDistribution(totals, user) {
-    // Load balance settings
-    const settings = JSON.parse(localStorage.getItem('taxi_balance_settings') || '{}');
+  /**
+   * Calculate expense totals
+   */
+  calculateExpenseTotals(expenses) {
+    const total = expenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+    
+    return {
+      total,
+      count: expenses.length
+    };
+  }
+
+  /**
+   * Calculate distribution between patron and taxista
+   */
+  calculateDistribution(totals, expenseTotals, user) {
+    // Load balance settings for the specific taxista
+    const balanceSettingsPerTaxista = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
     const defaultSettings = {
       patronPercentage: 30,
       tipDistribution: 'taxista',
       commissionDistribution: 'taxista',
       expenseDistribution: 'taxista'
     };
-    const balanceSettings = { ...defaultSettings, ...settings };
+    
+    // Get settings for this specific taxista
+    const balanceSettings = balanceSettingsPerTaxista[user.id] || defaultSettings;
     
     const patronPercent = balanceSettings.patronPercentage;
     const taxistaPercent = 100 - patronPercent;
     
+    // Calculate base gross amounts
     const patronGross = (totals.gross * patronPercent) / 100;
     const taxistaGross = (totals.gross * taxistaPercent) / 100;
     
+    // Distribute tips according to settings
     let patronTips = 0, taxistaTips = 0;
     if (balanceSettings.tipDistribution === 'patron') {
       patronTips = totals.tips;
@@ -258,6 +338,7 @@ class BalanceLiquidacionView {
       taxistaTips = (totals.tips * taxistaPercent) / 100;
     }
     
+    // Distribute commissions according to settings
     let patronCommissions = 0, taxistaCommissions = 0;
     if (balanceSettings.commissionDistribution === 'patron') {
       patronCommissions = totals.commissions;
@@ -268,18 +349,35 @@ class BalanceLiquidacionView {
       taxistaCommissions = (totals.commissions * taxistaPercent) / 100;
     }
     
+    // Distribute expenses according to settings
+    let patronExpenses = 0, taxistaExpenses = 0;
+    if (balanceSettings.expenseDistribution === 'patron') {
+      patronExpenses = expenseTotals.total;
+    } else if (balanceSettings.expenseDistribution === 'taxista') {
+      taxistaExpenses = expenseTotals.total;
+    } else {
+      patronExpenses = (expenseTotals.total * patronPercent) / 100;
+      taxistaExpenses = (expenseTotals.total * taxistaPercent) / 100;
+    }
+    
+    // Calculate final net amounts
+    const patronNet = patronGross + patronTips - patronCommissions - patronExpenses;
+    const taxistaNet = taxistaGross + taxistaTips - taxistaCommissions - taxistaExpenses;
+    
     return {
       patron: {
         gross: patronGross,
         tips: patronTips,
         commissions: patronCommissions,
-        net: patronGross + patronTips - patronCommissions
+        expenses: patronExpenses,
+        net: patronNet
       },
       taxista: {
         gross: taxistaGross,
         tips: taxistaTips,
         commissions: taxistaCommissions,
-        net: taxistaGross + taxistaTips - taxistaCommissions
+        expenses: taxistaExpenses,
+        net: taxistaNet
       },
       settings: balanceSettings
     };
@@ -341,8 +439,85 @@ class BalanceLiquidacionView {
       <!-- Distribution -->
       <ion-card>
         <ion-card-header>
-          <div style="display: flex; justify-between; align-items: center;">
-            <ion-card-title>⚖️ Distribución del Balance</ion-card-title>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <ion-card-title>⚖️ Distribución Final</ion-card-title>
+            <ion-button size="small" fill="outline" onclick="window.app.showBalanceSettings('${user.id}')">
+              <ion-icon name="settings" slot="icon-only"></ion-icon>
+            </ion-button>
+          </div>
+          <ion-card-subtitle>Desglose detallado según configuración (${distribution.settings.patronPercentage}% Patrón / ${100 - distribution.settings.patronPercentage}% Taxista)</ion-card-subtitle>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-grid>
+            <ion-row>
+              <ion-col size="6">
+                <div style="background: rgba(5, 150, 105, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-primary);">
+                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: var(--ion-color-primary);">💼 Patrón</h4>
+                  <div style="font-size: 12px; color: var(--ion-text-color);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Ingresos (${distribution.settings.patronPercentage}%):</span>
+                      <span style="font-weight: 600; color: var(--ion-color-success);">+€${distribution.patron.gross.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Propinas:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-tertiary);">+€${distribution.patron.tips.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Comisiones:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-danger);">-€${distribution.patron.commissions.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Gastos:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-warning);">-€${distribution.patron.expenses.toFixed(2)}</span>
+                    </div>
+                    <div style="border-top: 2px solid var(--ion-color-primary); padding-top: 6px; margin-top: 6px;">
+                      <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 700;">Total Patrón:</span>
+                        <span style="font-weight: 800; font-size: 16px; color: var(--ion-color-primary);">€${distribution.patron.net.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-col>
+              <ion-col size="6">
+                <div style="background: rgba(16, 185, 129, 0.15); padding: 12px; border-radius: 8px; border: 2px solid var(--ion-color-success);">
+                  <h4 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; color: var(--ion-color-success);">🚕 Taxista</h4>
+                  <div style="font-size: 12px; color: var(--ion-text-color);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Ingresos (${100 - distribution.settings.patronPercentage}%):</span>
+                      <span style="font-weight: 600; color: var(--ion-color-success);">+€${distribution.taxista.gross.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Propinas:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-tertiary);">+€${distribution.taxista.tips.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Comisiones:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-danger);">-€${distribution.taxista.commissions.toFixed(2)}</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                      <span style="font-weight: 500;">Gastos:</span>
+                      <span style="font-weight: 600; color: var(--ion-color-warning);">-€${distribution.taxista.expenses.toFixed(2)}</span>
+                    </div>
+                    <div style="border-top: 2px solid var(--ion-color-success); padding-top: 6px; margin-top: 6px;">
+                      <div style="display: flex; justify-content: space-between;">
+                        <span style="font-weight: 700;">Total Taxista:</span>
+                        <span style="font-weight: 800; font-size: 16px; color: var(--ion-color-success);">€${distribution.taxista.net.toFixed(2)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Platform Breakdown -->
+      ${Object.keys(platformStats).length > 0 ? `
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>📱 Desglose por Plataforma</ion-card-title>
             <ion-button size="small" fill="outline" onclick="window.app.showBalanceSettings()">
               <ion-icon name="settings" slot="icon-only"></ion-icon>
             </ion-button>

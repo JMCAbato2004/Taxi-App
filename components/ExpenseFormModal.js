@@ -186,40 +186,11 @@ class ExpenseFormModal {
   }
 
   /**
-   * Validate form using ValidationSchemas
+   * Validate form
    */
   validateForm() {
     let isValid = true;
 
-    // Use ValidationSchemas if available
-    if (window.validationSchemas) {
-      const validation = window.validationSchemas.validateExpense({
-        date: document.getElementById('expense-date').value,
-        amount: parseFloat(document.getElementById('expense-amount').value),
-        category: document.getElementById('expense-category').value,
-        description: document.getElementById('expense-concept').value.trim()
-      });
-      
-      if (!validation.valid) {
-        // Show errors
-        if (validation.errors.date) {
-          this.showError('date-error', validation.errors.date[0]);
-          isValid = false;
-        }
-        if (validation.errors.description) {
-          this.showError('concept-error', validation.errors.description[0]);
-          isValid = false;
-        }
-        if (validation.errors.amount) {
-          this.showError('amount-error', validation.errors.amount[0]);
-          isValid = false;
-        }
-      }
-      
-      return isValid;
-    }
-
-    // Fallback validation
     // Validate date
     const date = document.getElementById('expense-date').value;
     if (!date) {
@@ -270,7 +241,7 @@ class ExpenseFormModal {
   }
 
   /**
-   * Handle form submission with CSRF protection
+   * Handle form submission
    */
   async handleSubmit() {
     // Validate form
@@ -280,7 +251,7 @@ class ExpenseFormModal {
     }
 
     // Collect form data
-    let expenseData = {
+    const expenseData = {
       date: document.getElementById('expense-date').value,
       concept: document.getElementById('expense-concept').value.trim(),
       amount: parseFloat(document.getElementById('expense-amount').value),
@@ -288,11 +259,6 @@ class ExpenseFormModal {
       paidBy: document.getElementById('expense-paid-by').value,
       notes: document.getElementById('expense-notes').value.trim()
     };
-
-    // Add CSRF token
-    if (window.csrfService) {
-      expenseData = window.csrfService.addTokenToData(expenseData);
-    }
 
     try {
       await LoadingManager.show(this.isEditMode ? 'Guardando...' : 'Creando...');

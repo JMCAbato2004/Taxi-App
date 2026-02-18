@@ -197,39 +197,11 @@ class ChangePasswordModal {
   }
 
   /**
-   * Validate form using ValidationSchemas
+   * Validate form
    */
   validateForm() {
     let isValid = true;
 
-    // Use ValidationSchemas if available
-    if (window.validationSchemas) {
-      const validation = window.validationSchemas.validatePasswordChange({
-        currentPassword: document.getElementById('current-password').value,
-        newPassword: document.getElementById('new-password').value,
-        confirmPassword: document.getElementById('confirm-password').value
-      });
-      
-      if (!validation.valid) {
-        // Show errors
-        if (validation.errors.currentPassword) {
-          this.showError('current-password-error', validation.errors.currentPassword[0]);
-          isValid = false;
-        }
-        if (validation.errors.newPassword) {
-          this.showError('new-password-error', validation.errors.newPassword[0]);
-          isValid = false;
-        }
-        if (validation.errors.confirmPassword) {
-          this.showError('confirm-password-error', validation.errors.confirmPassword[0]);
-          isValid = false;
-        }
-      }
-      
-      return isValid;
-    }
-
-    // Fallback validation
     // Validate current password
     const currentPassword = document.getElementById('current-password').value;
     if (!currentPassword) {

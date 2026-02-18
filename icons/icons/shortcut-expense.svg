@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo -->
+  <rect width="96" height="96" rx="16" fill="#EF4444"/>
+  
+  <!-- Recibo/Ticket -->
+  <g transform="translate(48,48)">
+    <!-- Papel del recibo -->
+    <rect x="-15" y="-20" width="30" height="40" rx="2" fill="white"/>
+    
+    <!-- Líneas del recibo -->
+    <line x1="-10" y1="-15" x2="10" y2="-15" stroke="#6B7280" stroke-width="1"/>
+    <line x1="-10" y1="-10" x2="10" y2="-10" stroke="#6B7280" stroke-width="1"/>
+    <line x1="-10" y1="-5" x2="5" y2="-5" stroke="#6B7280" stroke-width="1"/>
+    <line x1="-10" y1="0" x2="8" y2="0" stroke="#6B7280" stroke-width="1"/>
+    <line x1="-10" y1="5" x2="10" y2="5" stroke="#6B7280" stroke-width="1"/>
+    
+    <!-- Símbolo € -->
+    <text x="0" y="15" text-anchor="middle" fill="#EF4444" font-family="Arial, sans-serif" font-size="12" font-weight="bold">€</text>
+    
+    <!-- Perforaciones del recibo -->
+    <circle cx="-18" cy="-15" r="1" fill="#E5E7EB"/>
+    <circle cx="-18" cy="-5" r="1" fill="#E5E7EB"/>
+    <circle cx="-18" cy="5" r="1" fill="#E5E7EB"/>
+    <circle cx="-18" cy="15" r="1" fill="#E5E7EB"/>
+  </g>
+</svg>
