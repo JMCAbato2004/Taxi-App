@@ -173,9 +173,19 @@ class ReportsView {
           u.estado === 'asociado' && 
           u.patronId === user.id
         );
-        console.log('ReportsView.loadReports: Associated taxistas:', relevantTaxistas.length);
         
-        // Get services from associated taxistas
+        // Add patron as a "taxista" for stats
+        const patronAsTaxista = {
+          ...user,
+          nombre: user.nombre + ' (Patrón)',
+          numeroTaxista: 'PATRON',
+          isPatron: true
+        };
+        relevantTaxistas = [patronAsTaxista, ...relevantTaxistas];
+        
+        console.log('ReportsView.loadReports: Associated taxistas (including patron):', relevantTaxistas.length);
+        
+        // Get services from associated taxistas + patron's own services
         const taxistaIds = relevantTaxistas.map(t => t.id);
         relevantServices = allServices.filter(s => taxistaIds.includes(s.userId));
         
@@ -186,7 +196,7 @@ class ReportsView {
           return serviceDate >= this.startDate && serviceDate <= this.endDate;
         });
         
-        console.log('ReportsView.loadReports: Filtered services for PATRON:', relevantServices.length);
+        console.log('ReportsView.loadReports: Filtered services for PATRON (including own):', relevantServices.length);
       } else if (user.rol === 'TAXISTA') {
         console.log('ReportsView.loadReports: TAXISTA mode');
         // Only own services
@@ -899,6 +909,15 @@ class ReportsView {
           u.estado === 'asociado' && 
           u.patronId === user.id
         );
+        
+        // Add patron as a "taxista" for stats
+        const patronAsTaxista = {
+          ...user,
+          nombre: user.nombre + ' (Patrón)',
+          numeroTaxista: 'PATRON',
+          isPatron: true
+        };
+        relevantTaxistas = [patronAsTaxista, ...relevantTaxistas];
         
         const taxistaIds = relevantTaxistas.map(t => t.id);
         relevantServices = allServices.filter(s => {
