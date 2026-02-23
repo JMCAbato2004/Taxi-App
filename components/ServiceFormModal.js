@@ -41,7 +41,7 @@ class ServiceFormModal {
    */
   getModalContent() {
     const title = this.isEditMode ? 'Editar Servicio' : 'Nuevo Servicio';
-    const submitText = this.isEditMode ? 'Guardar' : 'Crear';
+    const submitText = this.isEditMode ? 'Guardar Cambios' : 'Crear Servicio';
 
     return `
       <ion-header>
@@ -85,16 +85,7 @@ class ServiceFormModal {
             </ion-input>
           </ion-item>
 
-          <!-- Origin and Destination -->
-          <ion-item>
-            <ion-label position="stacked">Origen (Opcional)</ion-label>
-            <ion-input 
-              type="text" 
-              id="service-origin" 
-              placeholder="Dirección de origen">
-            </ion-input>
-          </ion-item>
-
+          <!-- Destination only -->
           <ion-item>
             <ion-label position="stacked">Destino (Opcional)</ion-label>
             <ion-input 
@@ -181,29 +172,6 @@ class ServiceFormModal {
             </ion-card-content>
           </ion-card>
 
-          <!-- Client Information -->
-          <ion-list-header style="margin-top: 16px;">
-            <ion-label>Información del Cliente (Opcional)</ion-label>
-          </ion-list-header>
-
-          <ion-item>
-            <ion-label position="stacked">Nombre del Cliente</ion-label>
-            <ion-input 
-              type="text" 
-              id="service-client-name" 
-              placeholder="Juan Pérez">
-            </ion-input>
-          </ion-item>
-
-          <ion-item>
-            <ion-label position="stacked">Teléfono</ion-label>
-            <ion-input 
-              type="tel" 
-              id="service-client-phone" 
-              placeholder="+34 666 123 456">
-            </ion-input>
-          </ion-item>
-
           <!-- Payment Method -->
           <ion-list-header style="margin-top: 16px;">
             <ion-label>Método de Pago</ion-label>
@@ -229,14 +197,27 @@ class ServiceFormModal {
             </ion-textarea>
           </ion-item>
 
-          <!-- Submit Button -->
-          <ion-button 
-            expand="block" 
-            type="submit" 
-            id="submit-service-btn"
-            style="margin-top: 20px;">
-            ${submitText}
-          </ion-button>
+          <!-- Action Buttons - Ergonomic Design -->
+          <div style="display: flex; gap: 12px; margin-top: 24px; padding-bottom: 16px;">
+            <ion-button 
+              id="cancel-service-btn"
+              expand="block" 
+              fill="outline"
+              color="medium"
+              style="flex: 1; height: 56px; font-size: 16px; font-weight: 600;">
+              <ion-icon name="close-circle-outline" slot="start"></ion-icon>
+              Cancelar
+            </ion-button>
+            <ion-button 
+              expand="block" 
+              type="submit" 
+              id="submit-service-btn"
+              color="success"
+              style="flex: 2; height: 56px; font-size: 16px; font-weight: 600;">
+              <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+              ${submitText}
+            </ion-button>
+          </div>
         </form>
       </ion-content>
     `;
@@ -248,6 +229,11 @@ class ServiceFormModal {
   attachEventListeners() {
     // Close button
     document.getElementById('close-service-modal')?.addEventListener('click', () => {
+      this.close();
+    });
+
+    // Cancel button
+    document.getElementById('cancel-service-btn')?.addEventListener('click', () => {
       this.close();
     });
 
@@ -324,14 +310,11 @@ class ServiceFormModal {
 
     document.getElementById('service-date').value = this.service.date || '';
     document.getElementById('service-time').value = this.service.time || '';
-    document.getElementById('service-origin').value = this.service.origin || '';
     document.getElementById('service-destination').value = this.service.destination || '';
     document.getElementById('service-source').value = this.service.serviceSource || 'emisora';
     document.getElementById('service-amount').value = this.service.amount || '';
     document.getElementById('service-commission').value = this.service.commission || '';
     document.getElementById('service-tip').value = this.service.tip || '';
-    document.getElementById('service-client-name').value = this.service.clientName || '';
-    document.getElementById('service-client-phone').value = this.service.clientPhone || '';
     document.getElementById('service-payment-method').value = this.service.paymentMethod || 'efectivo';
     document.getElementById('service-notes').value = this.service.notes || '';
 
@@ -403,7 +386,6 @@ class ServiceFormModal {
     const serviceData = {
       date: document.getElementById('service-date').value,
       time: document.getElementById('service-time').value,
-      origin: document.getElementById('service-origin').value || 'No especificado',
       destination: document.getElementById('service-destination').value || 'No especificado',
       serviceSource: document.getElementById('service-source').value,
       amount: amount,
@@ -411,8 +393,6 @@ class ServiceFormModal {
       tip: tip,
       netAmount: netAmount,
       totalAmount: netAmount, // For compatibility
-      clientName: document.getElementById('service-client-name').value,
-      clientPhone: document.getElementById('service-client-phone').value,
       paymentMethod: document.getElementById('service-payment-method').value,
       notes: document.getElementById('service-notes').value,
       status: 'completado'
