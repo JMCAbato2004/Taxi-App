@@ -62,7 +62,7 @@ class ReconcileAdapter {
         return filtered;
       }
 
-      // PATRON sees services from associated taxistas only
+      // PATRON sees services from associated taxistas AND their own services
       if (currentUser.rol === 'PATRON') {
         console.log('ReconcileAdapter.getServices: Filtering for PATRON');
         const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
@@ -74,8 +74,11 @@ class ReconcileAdapter {
         const taxistaIds = associatedTaxistas.map(t => t.id);
         console.log('ReconcileAdapter.getServices: Associated taxista IDs:', taxistaIds);
         
-        const filtered = services.filter(s => taxistaIds.includes(s.userId));
-        console.log('ReconcileAdapter.getServices: Filtered services for PATRON:', filtered.length);
+        // Include patron's own services + associated taxistas' services
+        const filtered = services.filter(s => 
+          taxistaIds.includes(s.userId) || s.userId === currentUser.id
+        );
+        console.log('ReconcileAdapter.getServices: Filtered services for PATRON (including own):', filtered.length);
         return filtered;
       }
 
