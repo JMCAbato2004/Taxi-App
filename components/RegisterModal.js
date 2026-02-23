@@ -448,6 +448,8 @@ class RegisterModal {
    * @param {string} field - Field name
    */
   clearFieldError(field) {
+    if (!this.modal) return; // Guard clause
+    
     const errorElement = this.modal.querySelector(`#${field}-error`);
     const itemElement = this.modal.querySelector(`#${field}-item`);
     

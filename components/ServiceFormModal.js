@@ -360,17 +360,17 @@ class ServiceFormModal {
       
       ToastManager.show('Obteniendo ubicación...', 'primary');
 
-      // Get current position
+      // Get current position with more permissive settings for localhost
       const position = await new Promise((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 0
+          enableHighAccuracy: false, // Less strict for localhost
+          timeout: 15000,
+          maximumAge: 60000 // Accept cached location up to 1 minute old
         });
       });
 
-      const { latitude, longitude } = position.coords;
-      console.log('Location captured:', latitude, longitude);
+      const { latitude, longitude, accuracy } = position.coords;
+      console.log('Location captured:', latitude, longitude, 'accuracy:', accuracy);
 
       // Try to reverse geocode using Nominatim (OpenStreetMap)
       try {
@@ -394,7 +394,7 @@ class ServiceFormModal {
           destinationInput.setAttribute('data-lat', latitude);
           destinationInput.setAttribute('data-lon', longitude);
           
-          ToastManager.showSuccess('Ubicación capturada');
+          ToastManager.showSuccess(`Ubicación capturada (±${Math.round(accuracy)}m)`);
         } else {
           throw new Error('Geocoding failed');
         }
@@ -411,21 +411,64 @@ class ServiceFormModal {
       console.error('Geolocation error:', error);
       
       let errorMessage = 'Error al obtener ubicación';
+      let showManualOption = false;
+      
       if (error.code === 1) {
-        errorMessage = 'Permiso de ubicación denegado';
+        errorMessage = 'Permiso de ubicación denegado. Activa los permisos en tu navegador.';
       } else if (error.code === 2) {
-        errorMessage = 'Ubicación no disponible';
+        // Position unavailable - common in localhost
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          errorMessage = 'Ubicación no disponible en localhost. Prueba en un dispositivo móvil o escribe la dirección manualmente.';
+        } else {
+          errorMessage = 'No se pudo determinar tu ubicación. Verifica tu conexión GPS/WiFi.';
+        }
+        showManualOption = true;
       } else if (error.code === 3) {
-        errorMessage = 'Tiempo de espera agotado';
+        errorMessage = 'Tiempo de espera agotado. Intenta de nuevo.';
       }
       
       ToastManager.showError(errorMessage);
+      
+      // If on localhost, offer to use a demo location
+      if (showManualOption && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
+        this.offerDemoLocation(destinationInput);
+      }
     } finally {
       // Restore button state
       geoBtn.disabled = false;
       const icon = geoBtn.querySelector('ion-icon');
       icon.name = 'location';
     }
+  }
+
+  /**
+   * Offer demo location for testing in localhost
+   */
+  async offerDemoLocation(destinationInput) {
+    const alert = document.createElement('ion-alert');
+    alert.header = 'Ubicación de Prueba';
+    alert.message = '¿Quieres usar una ubicación de ejemplo para probar?';
+    alert.buttons = [
+      {
+        text: 'Cancelar',
+        role: 'cancel'
+      },
+      {
+        text: 'Usar Demo',
+        handler: () => {
+          // Madrid city center as demo
+          const demoLat = 40.416775;
+          const demoLon = -3.703790;
+          destinationInput.value = 'Puerta del Sol, Madrid (Demo)';
+          destinationInput.setAttribute('data-lat', demoLat);
+          destinationInput.setAttribute('data-lon', demoLon);
+          ToastManager.show('Ubicación de prueba establecida', 'warning');
+        }
+      }
+    ];
+    
+    document.body.appendChild(alert);
+    await alert.present();
   }
 
   /**
