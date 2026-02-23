@@ -89,6 +89,25 @@ class ServiceFormModal {
             padding-top: 8px;
             padding-bottom: 8px;
           }
+          
+          /* Geolocation button styles */
+          .destination-container {
+            display: flex;
+            gap: 8px;
+            align-items: flex-end;
+          }
+          
+          .destination-input-wrapper {
+            flex: 1;
+          }
+          
+          #geolocate-btn {
+            height: 56px;
+            width: 56px;
+            margin: 0;
+            --padding-start: 0;
+            --padding-end: 0;
+          }
         </style>
         
         <form id="service-form">
@@ -120,15 +139,26 @@ class ServiceFormModal {
             </ion-input>
           </ion-item>
 
-          <!-- Destination only -->
-          <ion-item>
-            <ion-label position="stacked">Destino (Opcional)</ion-label>
-            <ion-input 
-              type="text" 
-              id="service-destination" 
-              placeholder="Dirección de destino">
-            </ion-input>
-          </ion-item>
+          <!-- Destination with Geolocation -->
+          <div class="destination-container" style="margin-bottom: 12px;">
+            <div class="destination-input-wrapper">
+              <ion-item>
+                <ion-label position="stacked">Destino (Opcional)</ion-label>
+                <ion-input 
+                  type="text" 
+                  id="service-destination" 
+                  placeholder="Dirección de destino">
+                </ion-input>
+              </ion-item>
+            </div>
+            <ion-button 
+              id="geolocate-btn" 
+              fill="solid" 
+              color="primary"
+              title="Capturar ubicación actual">
+              <ion-icon slot="icon-only" name="location"></ion-icon>
+            </ion-button>
+          </div>
 
           <!-- Service Source -->
           <ion-item>
@@ -272,6 +302,12 @@ class ServiceFormModal {
       this.close();
     });
 
+    // Geolocation button
+    document.getElementById('geolocate-btn')?.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.captureLocation();
+    });
+
     // Form submission
     const form = document.getElementById('service-form');
     if (form) {
@@ -302,6 +338,94 @@ class ServiceFormModal {
 
     // Initial preview update
     this.updateNetAmountPreview();
+  }
+
+  /**
+   * Capture current location and reverse geocode to address
+   */
+  async captureLocation() {
+    const geoBtn = document.getElementById('geolocate-btn');
+    const destinationInput = document.getElementById('service-destination');
+    
+    if (!navigator.geolocation) {
+      ToastManager.showError('Geolocalización no disponible en este dispositivo');
+      return;
+    }
+
+    try {
+      // Show loading state
+      geoBtn.disabled = true;
+      const originalIcon = geoBtn.querySelector('ion-icon');
+      originalIcon.name = 'hourglass-outline';
+      
+      ToastManager.show('Obteniendo ubicación...', 'primary');
+
+      // Get current position
+      const position = await new Promise((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
+        });
+      });
+
+      const { latitude, longitude } = position.coords;
+      console.log('Location captured:', latitude, longitude);
+
+      // Try to reverse geocode using Nominatim (OpenStreetMap)
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`,
+          {
+            headers: {
+              'User-Agent': 'TaxiApp/1.0'
+            }
+          }
+        );
+
+        if (response.ok) {
+          const data = await response.json();
+          const address = data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+          
+          // Set the address in the input
+          destinationInput.value = address;
+          
+          // Store coordinates as data attributes for future use
+          destinationInput.setAttribute('data-lat', latitude);
+          destinationInput.setAttribute('data-lon', longitude);
+          
+          ToastManager.showSuccess('Ubicación capturada');
+        } else {
+          throw new Error('Geocoding failed');
+        }
+      } catch (geocodeError) {
+        console.warn('Reverse geocoding failed, using coordinates:', geocodeError);
+        // Fallback: just use coordinates
+        destinationInput.value = `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+        destinationInput.setAttribute('data-lat', latitude);
+        destinationInput.setAttribute('data-lon', longitude);
+        ToastManager.showSuccess('Coordenadas capturadas');
+      }
+
+    } catch (error) {
+      console.error('Geolocation error:', error);
+      
+      let errorMessage = 'Error al obtener ubicación';
+      if (error.code === 1) {
+        errorMessage = 'Permiso de ubicación denegado';
+      } else if (error.code === 2) {
+        errorMessage = 'Ubicación no disponible';
+      } else if (error.code === 3) {
+        errorMessage = 'Tiempo de espera agotado';
+      }
+      
+      ToastManager.showError(errorMessage);
+    } finally {
+      // Restore button state
+      geoBtn.disabled = false;
+      const icon = geoBtn.querySelector('ion-icon');
+      icon.name = 'location';
+    }
   }
 
   /**
@@ -418,10 +542,17 @@ class ServiceFormModal {
     const tip = parseFloat(document.getElementById('service-tip').value) || 0;
     const netAmount = amount + tip - commission;
 
+    const destinationInput = document.getElementById('service-destination');
+    const destination = destinationInput.value || 'No especificado';
+    
+    // Get coordinates if available
+    const latitude = destinationInput.getAttribute('data-lat');
+    const longitude = destinationInput.getAttribute('data-lon');
+
     const serviceData = {
       date: document.getElementById('service-date').value,
       time: document.getElementById('service-time').value,
-      destination: document.getElementById('service-destination').value || 'No especificado',
+      destination: destination,
       serviceSource: document.getElementById('service-source').value,
       amount: amount,
       commission: commission,
@@ -432,6 +563,14 @@ class ServiceFormModal {
       notes: document.getElementById('service-notes').value,
       status: 'completado'
     };
+    
+    // Add coordinates if available
+    if (latitude && longitude) {
+      serviceData.location = {
+        latitude: parseFloat(latitude),
+        longitude: parseFloat(longitude)
+      };
+    }
 
     try {
       await LoadingManager.show(this.isEditMode ? 'Guardando cambios...' : 'Creando servicio...');
