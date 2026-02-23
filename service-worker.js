@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v35-dev-codes';
-const RUNTIME_CACHE = 'taxi-runtime-v13-dev-codes';
+const CACHE_NAME = 'taxi-pwa-v36-experimental';
+const RUNTIME_CACHE = 'taxi-runtime-v14-experimental';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
