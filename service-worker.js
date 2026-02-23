@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v39-patron-reports-fix';
-const RUNTIME_CACHE = 'taxi-runtime-v17-patron-reports-fix';
+const CACHE_NAME = 'taxi-pwa-v40-geolocation';
+const RUNTIME_CACHE = 'taxi-runtime-v18-geolocation';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
