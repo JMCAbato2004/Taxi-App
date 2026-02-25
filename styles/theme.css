@@ -937,3 +937,25 @@ body.dark ion-alert .alert-title,
 body.dark ion-alert .alert-message {
   color: var(--ion-color-light) !important;
 }
+
+/* ===== TOAST CUSTOMIZATION ===== */
+/* Ensure toasts don't block the tab bar */
+ion-toast.custom-toast {
+  --max-width: 90%;
+  margin-top: 60px; /* Space from top */
+}
+
+/* Ensure toasts are above content but below modals */
+ion-toast {
+  z-index: 20000;
+}
+
+/* Tab bar should be above toasts at bottom */
+ion-tab-bar {
+  z-index: 21000;
+}
+
+/* FAB button should be visible */
+ion-fab {
+  z-index: 22000;
+}
