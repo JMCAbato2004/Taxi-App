@@ -222,6 +222,17 @@ function showWelcome() {
     document.getElementById('welcome-section').style.display = 'block';
     document.getElementById('dashboard-section').style.display = 'none';
   }
+  
+  // Hide FAB button when not authenticated
+  if (fabButton) {
+    fabButton.hide();
+  }
+  
+  // Hide tab navigation when not authenticated
+  const tabBar = document.querySelector('ion-tab-bar');
+  if (tabBar) {
+    tabBar.style.display = 'none';
+  }
 }
 
 /**
@@ -235,6 +246,17 @@ async function showDashboard() {
     document.getElementById('welcome-section').style.display = 'none';
     document.getElementById('dashboard-section').style.display = 'block';
     await loadDashboardData();
+  }
+  
+  // Show FAB button when authenticated
+  if (fabButton) {
+    fabButton.show();
+  }
+  
+  // Show tab navigation when authenticated
+  const tabBar = document.querySelector('ion-tab-bar');
+  if (tabBar) {
+    tabBar.style.display = 'flex';
   }
 
   // Render service and expense lists
