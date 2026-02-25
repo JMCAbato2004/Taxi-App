@@ -177,45 +177,54 @@ class ServiceFormModal {
             <ion-label>Importes</ion-label>
           </ion-list-header>
 
-          <ion-item>
-            <ion-label position="stacked">Importe del Servicio *</ion-label>
+          <ion-item style="--min-height: 80px;">
+            <ion-label position="stacked" style="font-size: 16px; margin-bottom: 8px;">Importe del Servicio *</ion-label>
             <ion-input 
               type="number" 
               id="service-amount" 
-              placeholder="0.00"
-              step="0.01"
+              placeholder="2100 = 21,00€"
+              inputmode="numeric"
               min="0"
-              required>
+              required
+              style="font-size: 28px; font-weight: 600; color: var(--ion-color-primary);">
             </ion-input>
+            <div slot="end" style="font-size: 24px; color: var(--ion-color-medium); margin-left: 8px;">€</div>
           </ion-item>
+          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
+            💡 Introduce el importe sin decimales: <strong>2100</strong> = <strong>21,00€</strong>
+          </p>
           <div class="error-message" id="amount-error"></div>
 
-          <ion-item>
-            <ion-label position="stacked">Comisión (Opcional)</ion-label>
+          <ion-item style="--min-height: 70px;">
+            <ion-label position="stacked" style="font-size: 15px;">Comisión (Opcional)</ion-label>
             <ion-input 
               type="number" 
               id="service-commission" 
-              placeholder="0.00"
-              step="0.01"
-              min="0">
+              placeholder="0"
+              inputmode="numeric"
+              min="0"
+              style="font-size: 22px; font-weight: 500;">
             </ion-input>
+            <div slot="end" style="font-size: 20px; color: var(--ion-color-medium);">€</div>
           </ion-item>
-          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px;">
-            Comisión de la plataforma
+          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
+            Comisión de la plataforma (ej: 150 = 1,50€)
           </p>
 
-          <ion-item>
-            <ion-label position="stacked">Propina (Opcional)</ion-label>
+          <ion-item style="--min-height: 70px;">
+            <ion-label position="stacked" style="font-size: 15px;">Propina (Opcional)</ion-label>
             <ion-input 
               type="number" 
               id="service-tip" 
-              placeholder="0.00"
-              step="0.01"
-              min="0">
+              placeholder="0"
+              inputmode="numeric"
+              min="0"
+              style="font-size: 22px; font-weight: 500;">
             </ion-input>
+            <div slot="end" style="font-size: 20px; color: var(--ion-color-medium);">€</div>
           </ion-item>
-          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px;">
-            Propina del cliente
+          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
+            Propina del cliente (ej: 200 = 2,00€)
           </p>
 
           <!-- Net Amount Preview -->
@@ -472,20 +481,40 @@ class ServiceFormModal {
   }
 
   /**
+   * Convert cents to euros (2100 -> 21.00)
+   */
+  centsToEuros(cents) {
+    const value = parseInt(cents) || 0;
+    return value / 100;
+  }
+
+  /**
+   * Format euros for display (21.00 -> "21,00")
+   */
+  formatEuros(euros) {
+    return euros.toFixed(2).replace('.', ',');
+  }
+
+  /**
    * Update net amount preview in real-time
    */
   updateNetAmountPreview() {
-    const amount = parseFloat(document.getElementById('service-amount')?.value) || 0;
-    const commission = parseFloat(document.getElementById('service-commission')?.value) || 0;
-    const tip = parseFloat(document.getElementById('service-tip')?.value) || 0;
+    // Get values in cents and convert to euros
+    const amountCents = parseInt(document.getElementById('service-amount')?.value) || 0;
+    const commissionCents = parseInt(document.getElementById('service-commission')?.value) || 0;
+    const tipCents = parseInt(document.getElementById('service-tip')?.value) || 0;
+
+    const amount = this.centsToEuros(amountCents);
+    const commission = this.centsToEuros(commissionCents);
+    const tip = this.centsToEuros(tipCents);
 
     const netAmount = amount + tip - commission;
 
-    // Update preview elements
-    document.getElementById('preview-base').textContent = '€' + amount.toFixed(2);
-    document.getElementById('preview-commission').textContent = '€' + commission.toFixed(2);
-    document.getElementById('preview-tip').textContent = '€' + tip.toFixed(2);
-    document.getElementById('preview-net').textContent = '€' + netAmount.toFixed(2);
+    // Update preview elements with formatted values
+    document.getElementById('preview-base').textContent = this.formatEuros(amount) + '€';
+    document.getElementById('preview-commission').textContent = this.formatEuros(commission) + '€';
+    document.getElementById('preview-tip').textContent = this.formatEuros(tip) + '€';
+    document.getElementById('preview-net').textContent = this.formatEuros(netAmount) + '€';
 
     // Show/hide commission and tip text
     const commissionText = document.getElementById('preview-commission-text');
@@ -514,9 +543,12 @@ class ServiceFormModal {
     document.getElementById('service-time').value = this.service.time || '';
     document.getElementById('service-destination').value = this.service.destination || '';
     document.getElementById('service-source').value = this.service.serviceSource || 'emisora';
-    document.getElementById('service-amount').value = this.service.amount || '';
-    document.getElementById('service-commission').value = this.service.commission || '';
-    document.getElementById('service-tip').value = this.service.tip || '';
+    
+    // Convert euros to cents for display
+    document.getElementById('service-amount').value = this.service.amount ? Math.round(this.service.amount * 100) : '';
+    document.getElementById('service-commission').value = this.service.commission ? Math.round(this.service.commission * 100) : '';
+    document.getElementById('service-tip').value = this.service.tip ? Math.round(this.service.tip * 100) : '';
+    
     document.getElementById('service-payment-method').value = this.service.paymentMethod || 'efectivo';
     document.getElementById('service-notes').value = this.service.notes || '';
 
@@ -537,9 +569,9 @@ class ServiceFormModal {
       isValid = false;
     }
 
-    // Validate amount
-    const amount = parseFloat(document.getElementById('service-amount').value);
-    if (!amount || amount <= 0) {
+    // Validate amount (in cents)
+    const amountCents = parseInt(document.getElementById('service-amount').value);
+    if (!amountCents || amountCents <= 0) {
       this.showError('amount-error', 'El importe debe ser mayor que 0');
       isValid = false;
     }
@@ -579,10 +611,14 @@ class ServiceFormModal {
       return;
     }
 
-    // Collect form data
-    const amount = parseFloat(document.getElementById('service-amount').value) || 0;
-    const commission = parseFloat(document.getElementById('service-commission').value) || 0;
-    const tip = parseFloat(document.getElementById('service-tip').value) || 0;
+    // Collect form data - convert cents to euros
+    const amountCents = parseInt(document.getElementById('service-amount').value) || 0;
+    const commissionCents = parseInt(document.getElementById('service-commission').value) || 0;
+    const tipCents = parseInt(document.getElementById('service-tip').value) || 0;
+    
+    const amount = this.centsToEuros(amountCents);
+    const commission = this.centsToEuros(commissionCents);
+    const tip = this.centsToEuros(tipCents);
     const netAmount = amount + tip - commission;
 
     const destinationInput = document.getElementById('service-destination');
