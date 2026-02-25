@@ -13,10 +13,18 @@ class ReconciliationDetailModal {
    * Show the modal
    */
   async show() {
-    this.modal = await this.createModal();
-    document.body.appendChild(this.modal);
-    await this.modal.present();
-    this.attachEventListeners();
+    try {
+      console.log('ReconciliationDetailModal: Creating modal...');
+      this.modal = await this.createModal();
+      console.log('ReconciliationDetailModal: Modal created, presenting...');
+      document.body.appendChild(this.modal);
+      await this.modal.present();
+      console.log('ReconciliationDetailModal: Modal presented');
+      this.attachEventListeners();
+    } catch (error) {
+      console.error('ReconciliationDetailModal: Error showing modal:', error);
+      ToastManager.showError('Error al abrir el modal');
+    }
   }
 
   /**
