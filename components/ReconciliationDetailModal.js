@@ -14,12 +14,9 @@ class ReconciliationDetailModal {
    */
   async show() {
     try {
-      console.log('ReconciliationDetailModal: Creating modal...');
       this.modal = await this.createModal();
-      console.log('ReconciliationDetailModal: Modal created, presenting...');
       document.body.appendChild(this.modal);
       await this.modal.present();
-      console.log('ReconciliationDetailModal: Modal presented');
       this.attachEventListeners();
     } catch (error) {
       console.error('ReconciliationDetailModal: Error showing modal:', error);
@@ -50,6 +47,18 @@ class ReconciliationDetailModal {
       minute: '2-digit'
     });
 
+    // Handle different summary structures
+    const totalServices = summary?.totalServices || services?.length || 0;
+    const grossIncome = summary?.grossIncome || summary?.totalIncome || 0;
+    const totalExpenses = summary?.totalExpenses || 0;
+    const netIncome = summary?.netIncome || (grossIncome - totalExpenses);
+
+    // Handle distribution
+    const driverAmount = distribution?.driverAmount || distribution?.taxistaAmount || 0;
+    const ownerAmount = distribution?.ownerAmount || distribution?.patronAmount || 0;
+    const driverPercentage = config?.driverPercentage || config?.taxistaPercentage || 0;
+    const ownerPercentage = config?.ownerPercentage || config?.patronPercentage || 0;
+
     return `
       <ion-header>
         <ion-toolbar color="primary">
@@ -66,7 +75,7 @@ class ReconciliationDetailModal {
         <!-- Header Info -->
         <ion-card>
           <ion-card-header>
-            <ion-card-title>${config.clientName}</ion-card-title>
+            <ion-card-title>${config.clientName || 'Sin nombre'}</ion-card-title>
             <ion-card-subtitle>
               Período: ${config.startDate} - ${config.endDate}
             </ion-card-subtitle>
@@ -87,19 +96,19 @@ class ReconciliationDetailModal {
             <ion-list>
               <ion-item>
                 <ion-label>Total Servicios</ion-label>
-                <ion-note slot="end">${summary.totalServices}</ion-note>
+                <ion-note slot="end">${totalServices}</ion-note>
               </ion-item>
               <ion-item>
                 <ion-label>Ingresos Brutos</ion-label>
-                <ion-note slot="end" color="success">€${summary.grossIncome.toFixed(2)}</ion-note>
+                <ion-note slot="end" color="success">€${grossIncome.toFixed(2)}</ion-note>
               </ion-item>
               <ion-item>
                 <ion-label>Total Gastos</ion-label>
-                <ion-note slot="end" color="danger">€${summary.totalExpenses.toFixed(2)}</ion-note>
+                <ion-note slot="end" color="danger">€${totalExpenses.toFixed(2)}</ion-note>
               </ion-item>
               <ion-item>
                 <ion-label><strong>Ingresos Netos</strong></ion-label>
-                <ion-note slot="end" color="primary"><strong>€${summary.netIncome.toFixed(2)}</strong></ion-note>
+                <ion-note slot="end" color="primary"><strong>€${netIncome.toFixed(2)}</strong></ion-note>
               </ion-item>
             </ion-list>
           </ion-card-content>
@@ -116,20 +125,20 @@ class ReconciliationDetailModal {
                 <ion-icon name="person" slot="start" color="success"></ion-icon>
                 <ion-label>
                   <h3>Conductor</h3>
-                  <p>${config.driverPercentage}% de ingresos netos</p>
+                  <p>${driverPercentage}% de ingresos netos</p>
                 </ion-label>
                 <ion-note slot="end" color="success">
-                  <strong>€${distribution.driverAmount.toFixed(2)}</strong>
+                  <strong>€${driverAmount.toFixed(2)}</strong>
                 </ion-note>
               </ion-item>
               <ion-item>
                 <ion-icon name="business" slot="start" color="primary"></ion-icon>
                 <ion-label>
                   <h3>Propietario</h3>
-                  <p>${config.ownerPercentage}% de ingresos netos</p>
+                  <p>${ownerPercentage}% de ingresos netos</p>
                 </ion-label>
                 <ion-note slot="end" color="primary">
-                  <strong>€${distribution.ownerAmount.toFixed(2)}</strong>
+                  <strong>€${ownerAmount.toFixed(2)}</strong>
                 </ion-note>
               </ion-item>
             </ion-list>
@@ -139,10 +148,10 @@ class ReconciliationDetailModal {
         <!-- Services -->
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Servicios (${services.length})</ion-card-title>
+            <ion-card-title>Servicios (${services?.length || 0})</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            ${services.length > 0 ? `
+            ${services && services.length > 0 ? `
               <ion-list>
                 ${services.slice(0, 5).map(service => `
                   <ion-item>
@@ -150,7 +159,7 @@ class ReconciliationDetailModal {
                       <h3>${service.date} ${service.time || ''}</h3>
                       <p>${service.destination || 'Sin destino'}</p>
                     </ion-label>
-                    <ion-note slot="end">€${service.netAmount.toFixed(2)}</ion-note>
+                    <ion-note slot="end">€${(service.netAmount || service.amount || 0).toFixed(2)}</ion-note>
                   </ion-item>
                 `).join('')}
                 ${services.length > 5 ? `
@@ -168,10 +177,10 @@ class ReconciliationDetailModal {
         <!-- Expenses -->
         <ion-card>
           <ion-card-header>
-            <ion-card-title>Gastos (${expenses.length})</ion-card-title>
+            <ion-card-title>Gastos (${expenses?.length || 0})</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            ${expenses.length > 0 ? `
+            ${expenses && expenses.length > 0 ? `
               <ion-list>
                 ${expenses.slice(0, 5).map(expense => `
                   <ion-item>
@@ -238,9 +247,20 @@ class ReconciliationDetailModal {
       
       const { config, summary, distribution, services, expenses } = this.reconciliation;
       
+      // Handle different summary structures
+      const totalServices = summary?.totalServices || services?.length || 0;
+      const grossIncome = summary?.grossIncome || summary?.totalIncome || 0;
+      const totalExpenses = summary?.totalExpenses || 0;
+      const netIncome = summary?.netIncome || (grossIncome - totalExpenses);
+      
+      // Handle distribution
+      const driverAmount = distribution?.driverAmount || distribution?.taxistaAmount || 0;
+      const ownerAmount = distribution?.ownerAmount || distribution?.patronAmount || 0;
+      const driverPercentage = config?.driverPercentage || config?.taxistaPercentage || 0;
+      const ownerPercentage = config?.ownerPercentage || config?.patronPercentage || 0;
+      
       let yPos = 20;
       const lineHeight = 7;
-      const pageWidth = doc.internal.pageSize.width;
       const margin = 20;
 
       // Title
@@ -252,7 +272,7 @@ class ReconciliationDetailModal {
       // Client and Period
       doc.setFontSize(12);
       doc.setFont(undefined, 'normal');
-      doc.text(`Cliente: ${config.clientName}`, margin, yPos);
+      doc.text(`Cliente: ${config.clientName || 'Sin nombre'}`, margin, yPos);
       yPos += lineHeight;
       doc.text(`Período: ${config.startDate} - ${config.endDate}`, margin, yPos);
       yPos += lineHeight;
@@ -267,14 +287,14 @@ class ReconciliationDetailModal {
       
       doc.setFontSize(11);
       doc.setFont(undefined, 'normal');
-      doc.text(`Total Servicios: ${summary.totalServices}`, margin, yPos);
+      doc.text(`Total Servicios: ${totalServices}`, margin, yPos);
       yPos += lineHeight;
-      doc.text(`Ingresos Brutos: €${summary.grossIncome.toFixed(2)}`, margin, yPos);
+      doc.text(`Ingresos Brutos: €${grossIncome.toFixed(2)}`, margin, yPos);
       yPos += lineHeight;
-      doc.text(`Total Gastos: €${summary.totalExpenses.toFixed(2)}`, margin, yPos);
+      doc.text(`Total Gastos: €${totalExpenses.toFixed(2)}`, margin, yPos);
       yPos += lineHeight;
       doc.setFont(undefined, 'bold');
-      doc.text(`Ingresos Netos: €${summary.netIncome.toFixed(2)}`, margin, yPos);
+      doc.text(`Ingresos Netos: €${netIncome.toFixed(2)}`, margin, yPos);
       yPos += lineHeight * 2;
 
       // Distribution Section
@@ -284,13 +304,13 @@ class ReconciliationDetailModal {
       
       doc.setFontSize(11);
       doc.setFont(undefined, 'normal');
-      doc.text(`Conductor (${config.driverPercentage}%): €${distribution.driverAmount.toFixed(2)}`, margin, yPos);
+      doc.text(`Conductor (${driverPercentage}%): €${driverAmount.toFixed(2)}`, margin, yPos);
       yPos += lineHeight;
-      doc.text(`Propietario (${config.ownerPercentage}%): €${distribution.ownerAmount.toFixed(2)}`, margin, yPos);
+      doc.text(`Propietario (${ownerPercentage}%): €${ownerAmount.toFixed(2)}`, margin, yPos);
       yPos += lineHeight * 2;
 
       // Services Section
-      if (services.length > 0) {
+      if (services && services.length > 0) {
         doc.setFontSize(14);
         doc.setFont(undefined, 'bold');
         doc.text(`Servicios (${services.length})`, margin, yPos);
@@ -299,13 +319,13 @@ class ReconciliationDetailModal {
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
         
-        services.forEach((service, index) => {
+        services.forEach(service => {
           if (yPos > 270) {
             doc.addPage();
             yPos = 20;
           }
           
-          const serviceText = `${service.date} - ${service.destination || 'Sin destino'} - €${service.netAmount.toFixed(2)}`;
+          const serviceText = `${service.date} - ${service.destination || 'Sin destino'} - €${(service.netAmount || service.amount || 0).toFixed(2)}`;
           doc.text(serviceText, margin + 5, yPos);
           yPos += lineHeight;
         });
@@ -314,7 +334,7 @@ class ReconciliationDetailModal {
       }
 
       // Expenses Section
-      if (expenses.length > 0) {
+      if (expenses && expenses.length > 0) {
         if (yPos > 250) {
           doc.addPage();
           yPos = 20;
@@ -328,7 +348,7 @@ class ReconciliationDetailModal {
         doc.setFontSize(10);
         doc.setFont(undefined, 'normal');
         
-        expenses.forEach((expense, index) => {
+        expenses.forEach(expense => {
           if (yPos > 270) {
             doc.addPage();
             yPos = 20;
@@ -341,7 +361,7 @@ class ReconciliationDetailModal {
       }
 
       // Save PDF
-      const fileName = `conciliacion_${config.clientName.replace(/\s+/g, '_')}_${config.startDate}_${config.endDate}.pdf`;
+      const fileName = `conciliacion_${(config.clientName || 'sin_nombre').replace(/\s+/g, '_')}_${config.startDate}_${config.endDate}.pdf`;
       doc.save(fileName);
 
       await LoadingManager.hide();

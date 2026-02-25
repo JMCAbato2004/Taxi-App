@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v46-reconciliation-detail';
-const RUNTIME_CACHE = 'taxi-runtime-v24-reconciliation-detail';
+const CACHE_NAME = 'taxi-pwa-v47-reconciliation-fix';
+const RUNTIME_CACHE = 'taxi-runtime-v25-reconciliation-fix';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [

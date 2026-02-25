@@ -553,9 +553,7 @@ customElements.whenDefined('ion-modal').then(() => {
 
   // Listen for view reconciliation details event
   window.addEventListener('view-reconciliation-details', async (e) => {
-    console.log('view-reconciliation-details event received:', e.detail);
     if (window.ReconciliationDetailModal) {
-      console.log('ReconciliationDetailModal class found, creating instance...');
       const modal = new ReconciliationDetailModal(e.detail);
       await modal.show();
     } else {
