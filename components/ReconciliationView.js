@@ -41,7 +41,7 @@ class ReconciliationView {
     // Build client name field based on user role
     let clientNameField = '';
     if (user && user.rol === 'PATRON') {
-      // Get associated taxistas
+      // Get associated taxistas (including patron as taxista)
       const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const associatedTaxistas = allUsers.filter(u => 
         u.rol === 'TAXISTA' && 
@@ -49,23 +49,35 @@ class ReconciliationView {
         u.patronId === user.id
       );
       
-      if (associatedTaxistas.length > 0) {
+      // Add patron as a taxista option
+      const patronAsTaxista = {
+        id: user.id,
+        nombre: user.nombre + ' (Patrón)',
+        numeroTaxista: 'PATRON'
+      };
+      
+      const allTaxistas = [patronAsTaxista, ...associatedTaxistas];
+      
+      if (allTaxistas.length > 0) {
         clientNameField = `
           <ion-item>
-            <ion-label position="stacked">Seleccionar Taxista *</ion-label>
-            <ion-select id="client-name" interface="popover" placeholder="Selecciona un taxista">
-              ${associatedTaxistas.map(t => `
+            <ion-label position="stacked">Nombre del Taxista *</ion-label>
+            <ion-select id="client-name" interface="action-sheet" placeholder="Selecciona un taxista">
+              ${allTaxistas.map(t => `
                 <ion-select-option value="${t.nombre}">
                   ${t.nombre} ${t.numeroTaxista ? `(${t.numeroTaxista})` : ''}
                 </ion-select-option>
               `).join('')}
             </ion-select>
           </ion-item>
+          <p style="font-size: 12px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px;">
+            💡 Selecciona el taxista para generar su liquidación
+          </p>
         `;
       } else {
         clientNameField = `
           <ion-item>
-            <ion-label position="stacked">Nombre del Cliente *</ion-label>
+            <ion-label position="stacked">Nombre del Taxista *</ion-label>
             <ion-input 
               type="text" 
               id="client-name" 
