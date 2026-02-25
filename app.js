@@ -550,6 +550,14 @@ customElements.whenDefined('ion-modal').then(() => {
       await reconciliationHistoryView.refresh();
     }
   });
+
+  // Listen for view reconciliation details event
+  window.addEventListener('view-reconciliation-details', async (e) => {
+    if (window.ReconciliationDetailModal) {
+      const modal = new ReconciliationDetailModal(e.detail);
+      await modal.show();
+    }
+  });
 });
 
 /**
