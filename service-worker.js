@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v41-geo-fixes';
-const RUNTIME_CACHE = 'taxi-runtime-v19-geo-fixes';
+const CACHE_NAME = 'taxi-pwa-v42-money-inputs';
+const RUNTIME_CACHE = 'taxi-runtime-v20-money-inputs';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
