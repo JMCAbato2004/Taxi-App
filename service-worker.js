@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v43-hide-ui-no-auth';
-const RUNTIME_CACHE = 'taxi-runtime-v21-hide-ui-no-auth';
+const CACHE_NAME = 'taxi-pwa-v44-reconciliation-patron';
+const RUNTIME_CACHE = 'taxi-runtime-v22-reconciliation-patron';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
