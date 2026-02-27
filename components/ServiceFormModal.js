@@ -180,51 +180,48 @@ class ServiceFormModal {
           <ion-item style="--min-height: 80px;">
             <ion-label position="stacked" style="font-size: 16px; margin-bottom: 8px;">Importe del Servicio *</ion-label>
             <ion-input 
-              type="number" 
+              type="text" 
               id="service-amount" 
-              placeholder="2100 = 21,00€"
-              inputmode="numeric"
-              min="0"
+              placeholder="0,00"
+              readonly
               required
-              style="font-size: 28px; font-weight: 600; color: var(--ion-color-primary);">
+              style="font-size: 28px; font-weight: 600; color: var(--ion-color-primary); cursor: pointer;">
             </ion-input>
             <div slot="end" style="font-size: 24px; color: var(--ion-color-medium); margin-left: 8px;">€</div>
           </ion-item>
           <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
-            💡 Introduce el importe sin decimales: <strong>2100</strong> = <strong>21,00€</strong>
+            💡 Pulsa para abrir el teclado numérico
           </p>
           <div class="error-message" id="amount-error"></div>
 
           <ion-item style="--min-height: 70px;">
             <ion-label position="stacked" style="font-size: 15px;">Comisión (Opcional)</ion-label>
             <ion-input 
-              type="number" 
+              type="text" 
               id="service-commission" 
-              placeholder="0"
-              inputmode="numeric"
-              min="0"
-              style="font-size: 22px; font-weight: 500;">
+              placeholder="0,00"
+              readonly
+              style="font-size: 22px; font-weight: 500; cursor: pointer;">
             </ion-input>
             <div slot="end" style="font-size: 20px; color: var(--ion-color-medium);">€</div>
           </ion-item>
           <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
-            Comisión de la plataforma (ej: 150 = 1,50€)
+            Comisión de la plataforma
           </p>
 
           <ion-item style="--min-height: 70px;">
             <ion-label position="stacked" style="font-size: 15px;">Propina (Opcional)</ion-label>
             <ion-input 
-              type="number" 
+              type="text" 
               id="service-tip" 
-              placeholder="0"
-              inputmode="numeric"
-              min="0"
-              style="font-size: 22px; font-weight: 500;">
+              placeholder="0,00"
+              readonly
+              style="font-size: 22px; font-weight: 500; cursor: pointer;">
             </ion-input>
             <div slot="end" style="font-size: 20px; color: var(--ion-color-medium);">€</div>
           </ion-item>
           <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
-            Propina del cliente (ej: 200 = 2,00€)
+            Propina del cliente
           </p>
 
           <!-- Net Amount Preview -->
@@ -317,6 +314,9 @@ class ServiceFormModal {
       this.captureLocation();
     });
 
+    // Initialize numeric keyboards for money inputs
+    this.initializeNumericKeyboards();
+
     // Form submission
     const form = document.getElementById('service-form');
     if (form) {
@@ -347,6 +347,47 @@ class ServiceFormModal {
 
     // Initial preview update
     this.updateNetAmountPreview();
+  }
+
+  /**
+   * Initialize numeric keyboards for money inputs
+   */
+  initializeNumericKeyboards() {
+    // Amount keyboard
+    const amountInput = document.getElementById('service-amount');
+    if (amountInput) {
+      this.amountKeyboard = new NumericKeyboard(amountInput, () => {
+        this.updateNetAmountPreview();
+      });
+      
+      amountInput.addEventListener('click', () => {
+        this.amountKeyboard.show();
+      });
+    }
+
+    // Commission keyboard
+    const commissionInput = document.getElementById('service-commission');
+    if (commissionInput) {
+      this.commissionKeyboard = new NumericKeyboard(commissionInput, () => {
+        this.updateNetAmountPreview();
+      });
+      
+      commissionInput.addEventListener('click', () => {
+        this.commissionKeyboard.show();
+      });
+    }
+
+    // Tip keyboard
+    const tipInput = document.getElementById('service-tip');
+    if (tipInput) {
+      this.tipKeyboard = new NumericKeyboard(tipInput, () => {
+        this.updateNetAmountPreview();
+      });
+      
+      tipInput.addEventListener('click', () => {
+        this.tipKeyboard.show();
+      });
+    }
   }
 
   /**
@@ -481,15 +522,17 @@ class ServiceFormModal {
   }
 
   /**
-   * Convert cents to euros (2100 -> 21.00)
+   * Parse euro value from string (21,50 -> 21.50)
    */
-  centsToEuros(cents) {
-    const value = parseInt(cents) || 0;
-    return value / 100;
+  parseEuroValue(value) {
+    if (!value) return 0;
+    // Replace comma with dot and parse
+    const cleaned = value.toString().replace(',', '.');
+    return parseFloat(cleaned) || 0;
   }
 
   /**
-   * Format euros for display (21.00 -> "21,00")
+   * Format euros for display (21.50 -> "21,50")
    */
   formatEuros(euros) {
     return euros.toFixed(2).replace('.', ',');
@@ -499,14 +542,10 @@ class ServiceFormModal {
    * Update net amount preview in real-time
    */
   updateNetAmountPreview() {
-    // Get values in cents and convert to euros
-    const amountCents = parseInt(document.getElementById('service-amount')?.value) || 0;
-    const commissionCents = parseInt(document.getElementById('service-commission')?.value) || 0;
-    const tipCents = parseInt(document.getElementById('service-tip')?.value) || 0;
-
-    const amount = this.centsToEuros(amountCents);
-    const commission = this.centsToEuros(commissionCents);
-    const tip = this.centsToEuros(tipCents);
+    // Get values and parse them
+    const amount = this.parseEuroValue(document.getElementById('service-amount')?.value);
+    const commission = this.parseEuroValue(document.getElementById('service-commission')?.value);
+    const tip = this.parseEuroValue(document.getElementById('service-tip')?.value);
 
     const netAmount = amount + tip - commission;
 
@@ -544,10 +583,10 @@ class ServiceFormModal {
     document.getElementById('service-destination').value = this.service.destination || '';
     document.getElementById('service-source').value = this.service.serviceSource || 'emisora';
     
-    // Convert euros to cents for display
-    document.getElementById('service-amount').value = this.service.amount ? Math.round(this.service.amount * 100) : '';
-    document.getElementById('service-commission').value = this.service.commission ? Math.round(this.service.commission * 100) : '';
-    document.getElementById('service-tip').value = this.service.tip ? Math.round(this.service.tip * 100) : '';
+    // Format values with comma decimal
+    document.getElementById('service-amount').value = this.service.amount ? this.formatEuros(this.service.amount) : '';
+    document.getElementById('service-commission').value = this.service.commission ? this.formatEuros(this.service.commission) : '';
+    document.getElementById('service-tip').value = this.service.tip ? this.formatEuros(this.service.tip) : '';
     
     document.getElementById('service-payment-method').value = this.service.paymentMethod || 'efectivo';
     document.getElementById('service-notes').value = this.service.notes || '';
@@ -569,9 +608,9 @@ class ServiceFormModal {
       isValid = false;
     }
 
-    // Validate amount (in cents)
-    const amountCents = parseInt(document.getElementById('service-amount').value);
-    if (!amountCents || amountCents <= 0) {
+    // Validate amount
+    const amount = this.parseEuroValue(document.getElementById('service-amount').value);
+    if (!amount || amount <= 0) {
       this.showError('amount-error', 'El importe debe ser mayor que 0');
       isValid = false;
     }
@@ -611,14 +650,10 @@ class ServiceFormModal {
       return;
     }
 
-    // Collect form data - convert cents to euros
-    const amountCents = parseInt(document.getElementById('service-amount').value) || 0;
-    const commissionCents = parseInt(document.getElementById('service-commission').value) || 0;
-    const tipCents = parseInt(document.getElementById('service-tip').value) || 0;
-    
-    const amount = this.centsToEuros(amountCents);
-    const commission = this.centsToEuros(commissionCents);
-    const tip = this.centsToEuros(tipCents);
+    // Collect form data - parse euro values
+    const amount = this.parseEuroValue(document.getElementById('service-amount').value);
+    const commission = this.parseEuroValue(document.getElementById('service-commission').value);
+    const tip = this.parseEuroValue(document.getElementById('service-tip').value);
     const netAmount = amount + tip - commission;
 
     const destinationInput = document.getElementById('service-destination');
@@ -680,6 +715,17 @@ class ServiceFormModal {
    * Close the modal
    */
   async close() {
+    // Destroy keyboards
+    if (this.amountKeyboard) {
+      this.amountKeyboard.destroy();
+    }
+    if (this.commissionKeyboard) {
+      this.commissionKeyboard.destroy();
+    }
+    if (this.tipKeyboard) {
+      this.tipKeyboard.destroy();
+    }
+    
     if (this.modal) {
       await this.modal.dismiss();
       this.modal.remove();
