@@ -959,3 +959,99 @@ ion-tab-bar {
 ion-fab {
   z-index: 22000;
 }
+
+
+/* ===== LARGE TOUCH-FRIENDLY ACTION SHEETS ===== */
+
+/* Make action sheet buttons much larger and easier to tap */
+ion-action-sheet .action-sheet-button {
+  min-height: 70px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  padding: 20px 16px !important;
+}
+
+/* Make action sheet title larger */
+ion-action-sheet .action-sheet-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  padding: 24px 16px !important;
+  min-height: 60px !important;
+}
+
+/* Add more spacing between buttons */
+ion-action-sheet .action-sheet-group {
+  padding: 8px 0 !important;
+}
+
+/* Make icons in action sheets larger */
+ion-action-sheet .action-sheet-button ion-icon {
+  font-size: 28px !important;
+  margin-right: 16px !important;
+}
+
+/* Improve button hover/active states for better feedback */
+ion-action-sheet .action-sheet-button:active {
+  background: var(--ion-color-primary-tint) !important;
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* Make cancel button more prominent */
+ion-action-sheet .action-sheet-cancel {
+  min-height: 70px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin-top: 8px !important;
+}
+
+/* Add subtle borders between buttons for better visual separation */
+ion-action-sheet .action-sheet-button {
+  border-bottom: 1px solid var(--ion-border-color) !important;
+}
+
+ion-action-sheet .action-sheet-button:last-child {
+  border-bottom: none !important;
+}
+
+/* Dark mode adjustments */
+body.dark ion-action-sheet .action-sheet-button {
+  border-bottom-color: var(--ion-color-dark-shade) !important;
+}
+
+/* Add emoji/icon support with better spacing */
+ion-action-sheet .action-sheet-button-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Improve touch target size on mobile */
+@media (max-width: 768px) {
+  ion-action-sheet .action-sheet-button {
+    min-height: 75px !important;
+    font-size: 19px !important;
+  }
+  
+  ion-action-sheet .action-sheet-title {
+    font-size: 22px !important;
+    padding: 28px 16px !important;
+  }
+}
+
+/* Add subtle animation when action sheet appears */
+ion-action-sheet {
+  animation: slideUpActionSheet 0.3s ease-out;
+}
+
+@keyframes slideUpActionSheet {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
