@@ -8,6 +8,14 @@ const authAdapter = new AuthAdapter();
 const reconcileAdapter = new ReconcileAdapter(authAdapter);
 const rgpdAdapter = new RGPDAdapter();
 
+// Initialize WorkShiftAdapter
+let workShiftAdapter = null;
+if (typeof WorkShiftAdapter !== 'undefined') {
+  workShiftAdapter = new WorkShiftAdapter(authAdapter);
+  window.workShiftAdapter = workShiftAdapter; // Make it globally available
+  console.log('WorkShiftAdapter initialized');
+}
+
 // Initialize data sync
 const dataSyncView = new DataSyncView();
 
@@ -909,6 +917,31 @@ window.app = {
   showBalanceSettings: async (taxistaId = null) => {
     const modal = new BalanceSettingsModal(window.app.authAdapter);
     await modal.show(taxistaId);
+  },
+  
+  showShiftHistory: async () => {
+    if (window.ShiftHistoryView && window.workShiftAdapter) {
+      const shiftHistoryView = new window.ShiftHistoryView(
+        authAdapter,
+        window.workShiftAdapter,
+        reconcileAdapter
+      );
+      await shiftHistoryView.show();
+    } else {
+      ToastManager.showError('Historial de jornadas no disponible');
+    }
+  },
+  
+  showActiveShifts: async () => {
+    if (window.ActiveShiftsView && window.workShiftAdapter) {
+      const activeShiftsView = new window.ActiveShiftsView(
+        authAdapter,
+        window.workShiftAdapter
+      );
+      await activeShiftsView.show();
+    } else {
+      ToastManager.showError('Vista de jornadas activas no disponible');
+    }
   },
 
   showTaxistaConditions: async () => {
