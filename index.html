@@ -148,6 +148,12 @@
                                     </div>
                                 </ion-col>
                             </ion-row>
+                        </ion-grid>
+                        
+                        <!-- Work Shift Manager Container -->
+                        <div id="shift-manager-container" style="margin-bottom: 20px;">
+                            <!-- WorkShiftManager will render here -->
+                        </div>
                             <ion-row>
                                 <ion-col size="6">
                                     <div class="stat-card">
@@ -290,7 +296,7 @@
                 
                 <ion-tab-button tab="services">
                     <ion-icon name="car"></ion-icon>
-                    <ion-label>Servicios</ion-label>
+                    <ion-label>Servicios/Gastos</ion-label>
                 </ion-tab-button>
                 
                 <ion-tab-button tab="balance">
@@ -370,6 +376,14 @@
     <script src="./adapters/AuthAdapter.js"></script>
     <script src="./adapters/ReconcileAdapter.js"></script>
     <script src="./adapters/RGPDAdapter.js"></script>
+    <script src="./adapters/WorkShiftAdapter.js"></script>
+    
+    <!-- Work Shift Components -->
+    <script src="./components/WorkShiftManager.js"></script>
+    <script src="./components/ShiftHistoryView.js"></script>
+    <script src="./components/ShiftDetailModal.js"></script>
+    <script src="./components/ShiftPDFExporter.js"></script>
+    <script src="./components/ActiveShiftsView.js"></script>
     
     <!-- App Logic -->
     <script src="./app.js"></script>

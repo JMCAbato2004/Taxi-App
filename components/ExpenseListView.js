@@ -43,12 +43,6 @@ class ExpenseListView {
             <ion-segment-button value="fuel">
               <ion-label>⛽ Combustible</ion-label>
             </ion-segment-button>
-            <ion-segment-button value="maintenance">
-              <ion-label>🔧 Mantenimiento</ion-label>
-            </ion-segment-button>
-            <ion-segment-button value="insurance">
-              <ion-label>🛡️ Seguro</ion-label>
-            </ion-segment-button>
             <ion-segment-button value="other">
               <ion-label>📋 Otro</ion-label>
             </ion-segment-button>
@@ -188,7 +182,7 @@ class ExpenseListView {
             <h2>${expense.concept}</h2>
             <p>${formattedDate} • €${parseFloat(expense.amount).toFixed(2)}</p>
             ${taxistaInfo}
-            ${expense.paidBy ? `<p><ion-badge color="secondary">${this.getPaidByLabel(expense.paidBy)}</ion-badge></p>` : ''}
+            ${expense.comments ? `<p style="font-size: 11px; color: var(--ion-color-medium); font-style: italic;">${expense.comments}</p>` : ''}
           </ion-label>
           <div slot="end" class="expense-actions">
             <ion-button fill="clear" class="edit-expense-btn" data-expense-id="${expense.id}">
@@ -209,23 +203,9 @@ class ExpenseListView {
   getCategoryIcon(category) {
     const icons = {
       fuel: '⛽',
-      maintenance: '🔧',
-      insurance: '🛡️',
       other: '📋'
     };
     return icons[category] || '📋';
-  }
-
-  /**
-   * Get paid by label
-   */
-  getPaidByLabel(paidBy) {
-    const labels = {
-      shared: 'Compartido',
-      driver: 'Conductor',
-      owner: 'Propietario'
-    };
-    return labels[paidBy] || paidBy;
   }
 
   /**
@@ -375,8 +355,6 @@ class ExpenseListView {
   updateCategoryBreakdown() {
     const categories = {
       fuel: { label: '⛽ Combustible', amount: 0 },
-      maintenance: { label: '🔧 Mantenimiento', amount: 0 },
-      insurance: { label: '🛡️ Seguro', amount: 0 },
       other: { label: '📋 Otro', amount: 0 }
     };
 
