@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v51-large-action-sheets';
-const RUNTIME_CACHE = 'taxi-runtime-v29-large-action-sheets';
+const CACHE_NAME = 'taxi-pwa-v52-keyboard-contrast-fix';
+const RUNTIME_CACHE = 'taxi-runtime-v30-keyboard-contrast-fix';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [

@@ -143,7 +143,7 @@ class NumericKeyboard {
           padding: 24px;
           font-size: 28px;
           font-weight: 600;
-          color: var(--ion-text-color);
+          color: var(--ion-color-dark, #1f2937);
           cursor: pointer;
           user-select: none;
           transition: all 0.15s ease;
@@ -162,7 +162,7 @@ class NumericKeyboard {
         
         .keyboard-key.special {
           background: var(--ion-color-primary-tint);
-          color: var(--ion-color-primary-contrast);
+          color: white;
           font-size: 24px;
         }
         
@@ -172,7 +172,7 @@ class NumericKeyboard {
         
         .keyboard-key.delete {
           background: var(--ion-color-danger-tint);
-          color: var(--ion-color-danger);
+          color: white;
         }
         
         .keyboard-key.delete:active {
