@@ -499,6 +499,10 @@ class DashboardView {
       `;
     } else {
       buttons = `
+        <ion-button expand="block" color="success" onclick="window.app.showCashManager()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
+          <ion-icon slot="start" name="cash"></ion-icon>
+          💵 Gestión de Efectivo
+        </ion-button>
         <ion-button expand="block" color="primary" onclick="window.app.showTaxistaPanel()">
           <ion-icon slot="start" name="person-circle"></ion-icon>
           Mi Panel Personal

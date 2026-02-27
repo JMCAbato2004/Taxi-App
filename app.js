@@ -944,6 +944,21 @@ window.app = {
     }
   },
 
+  showCashManager: async () => {
+    const user = authAdapter.getCurrentUser();
+    if (!user || user.rol !== 'TAXISTA') {
+      ToastManager.showError('Solo disponible para taxistas');
+      return;
+    }
+    
+    if (window.CashManager) {
+      const cashManager = new window.CashManager(authAdapter, reconcileAdapter);
+      await cashManager.show();
+    } else {
+      ToastManager.showError('Gestor de efectivo no disponible');
+    }
+  },
+
   showTaxistaConditions: async () => {
     const user = window.app.authAdapter.getCurrentUser();
     if (!user || user.rol !== 'TAXISTA') {
