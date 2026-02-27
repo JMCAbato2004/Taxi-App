@@ -152,10 +152,26 @@ class CashManager {
           </ion-card-content>
         </ion-card>
 
-        <!-- Botón Reiniciar Caja -->
-        <ion-button expand="block" fill="outline" color="warning" id="reset-cash-btn" style="margin-top: 16px;">
-          <ion-icon name="refresh" slot="start"></ion-icon>
-          Reiniciar Caja (Nuevo Día)
+        <!-- Botones de Gestión -->
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <ion-button expand="block" color="primary" id="close-cash-day-btn" style="flex: 1;">
+            <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+            Cerrar Día
+          </ion-button>
+          <ion-button expand="block" fill="outline" color="warning" id="reset-cash-btn" style="flex: 1;">
+            <ion-icon name="refresh" slot="start"></ion-icon>
+            Nuevo Día
+          </ion-button>
+        </div>
+
+        <ion-button expand="block" fill="outline" color="secondary" id="view-cash-history-btn" style="margin-top: 8px;">
+          <ion-icon name="calendar" slot="start"></ion-icon>
+          Ver Historial de Caja
+        </ion-button>
+
+        <ion-button expand="block" fill="outline" color="tertiary" id="calculate-settlement-btn" style="margin-top: 8px;">
+          <ion-icon name="calculator" slot="start"></ion-icon>
+          Calcular Liquidación al Patrón
         </ion-button>
       </ion-content>
     `;
@@ -175,8 +191,20 @@ class CashManager {
       this.showAddCashExpenseModal();
     });
 
+    modal.querySelector('#close-cash-day-btn').addEventListener('click', () => {
+      this.handleCloseCashDay();
+    });
+
     modal.querySelector('#reset-cash-btn').addEventListener('click', () => {
       this.handleResetCash();
+    });
+
+    modal.querySelector('#view-cash-history-btn').addEventListener('click', () => {
+      this.showCashHistory();
+    });
+
+    modal.querySelector('#calculate-settlement-btn').addEventListener('click', () => {
+      this.showSettlementCalculator();
     });
 
     return modal;
@@ -416,6 +444,322 @@ class CashManager {
         window.ToastManager.showSuccess('Gasto eliminado');
       }
     }
+  }
+
+  /**
+   * Cerrar día de caja
+   */
+  async handleCloseCashDay() {
+    const user = await this.authAdapter.getCurrentUser();
+    const today = new Date().toISOString().split('T')[0];
+
+    // Calcular saldo final
+    const allServices = JSON.parse(localStorage.getItem('taxi_services') || '[]');
+    const cashServices = allServices.filter(s => 
+      s.userId === user.id &&
+      s.date === today &&
+      s.paymentMethod === 'efectivo'
+    );
+    const cashIncome = cashServices.reduce((sum, s) => sum + parseFloat(s.netAmount || 0), 0);
+    const cashExpenses = this.cashSession.cashExpenses || [];
+    const totalExpenses = cashExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
+    const finalBalance = this.cashSession.initialBalance + cashIncome - totalExpenses;
+
+    const confirmed = await window.AlertManager.confirm(
+      'Cerrar Día de Caja',
+      `¿Confirmas el cierre del día con un saldo final de ${this.formatEuros(finalBalance)}€?`
+    );
+
+    if (confirmed) {
+      // Cerrar sesión actual
+      this.cashSession.status = 'closed';
+      this.cashSession.endTime = new Date().toISOString();
+      this.cashSession.finalBalance = finalBalance;
+      this.cashSession.cashIncome = cashIncome;
+      this.cashSession.totalExpenses = totalExpenses;
+      this.cashSession.serviceCount = cashServices.length;
+      this.saveCashSession();
+
+      if (window.ToastManager) {
+        window.ToastManager.showSuccess(`Día cerrado. Saldo final: ${this.formatEuros(finalBalance)}€`);
+      }
+
+      // Crear nueva sesión para mañana
+      await this.loadCurrentSession();
+      await this.updateCashSummary();
+    }
+  }
+
+  /**
+   * Mostrar historial de caja
+   */
+  async showCashHistory() {
+    const user = await this.authAdapter.getCurrentUser();
+    const sessions = JSON.parse(localStorage.getItem('taxi_cash_sessions') || '[]');
+    const userSessions = sessions
+      .filter(s => s.userId === user.id && s.status === 'closed')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (userSessions.length === 0) {
+      if (window.ToastManager) {
+        window.ToastManager.showInfo('No hay historial de caja');
+      }
+      return;
+    }
+
+    const historyModal = document.createElement('ion-modal');
+    historyModal.innerHTML = `
+      <ion-header>
+        <ion-toolbar color="secondary">
+          <ion-title>Historial de Caja</ion-title>
+          <ion-buttons slot="end">
+            <ion-button id="close-history-modal">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        ${userSessions.map(session => this.renderHistoryCard(session)).join('')}
+      </ion-content>
+    `;
+
+    document.body.appendChild(historyModal);
+    historyModal.querySelector('#close-history-modal').addEventListener('click', () => {
+      historyModal.dismiss();
+    });
+
+    await historyModal.present();
+  }
+
+  /**
+   * Renderizar tarjeta de historial
+   */
+  renderHistoryCard(session) {
+    const date = new Date(session.date);
+    const dateFormatted = date.toLocaleDateString('es-ES', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+
+    return `
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title style="text-transform: capitalize; color: var(--ion-color-secondary);">
+            ${dateFormatted}
+          </ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-list>
+            <ion-item>
+              <ion-label>Saldo Inicial</ion-label>
+              <ion-note slot="end">${this.formatEuros(session.initialBalance)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Ingresos en Efectivo</ion-label>
+              <ion-note slot="end" style="color: var(--ion-color-success);">+${this.formatEuros(session.cashIncome || 0)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Gastos en Efectivo</ion-label>
+              <ion-note slot="end" style="color: var(--ion-color-danger);">-${this.formatEuros(session.totalExpenses || 0)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label><strong>Saldo Final</strong></ion-label>
+              <ion-note slot="end" style="font-size: 18px; font-weight: bold; color: var(--ion-color-primary);">
+                ${this.formatEuros(session.finalBalance || 0)}€
+              </ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Servicios</ion-label>
+              <ion-note slot="end">${session.serviceCount || 0}</ion-note>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+    `;
+  }
+
+  /**
+   * Mostrar calculadora de liquidación
+   */
+  async showSettlementCalculator() {
+    const user = await this.authAdapter.getCurrentUser();
+    const sessions = JSON.parse(localStorage.getItem('taxi_cash_sessions') || '[]');
+    const userSessions = sessions
+      .filter(s => s.userId === user.id && s.status === 'closed')
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+
+    if (userSessions.length === 0) {
+      if (window.ToastManager) {
+        window.ToastManager.showInfo('No hay días cerrados para calcular liquidación');
+      }
+      return;
+    }
+
+    const settlementModal = document.createElement('ion-modal');
+    settlementModal.innerHTML = `
+      <ion-header>
+        <ion-toolbar color="tertiary">
+          <ion-title>Calcular Liquidación al Patrón</ion-title>
+          <ion-buttons slot="end">
+            <ion-button id="close-settlement-modal">
+              <ion-icon name="close"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+        <ion-toolbar>
+          <ion-grid>
+            <ion-row>
+              <ion-col size="5">
+                <ion-item>
+                  <ion-label position="stacked">Desde</ion-label>
+                  <ion-input type="date" id="settlement-start-date"></ion-input>
+                </ion-item>
+              </ion-col>
+              <ion-col size="5">
+                <ion-item>
+                  <ion-label position="stacked">Hasta</ion-label>
+                  <ion-input type="date" id="settlement-end-date"></ion-input>
+                </ion-item>
+              </ion-col>
+              <ion-col size="2">
+                <ion-button expand="block" id="calculate-settlement-range-btn" style="margin-top: 25px;">
+                  <ion-icon name="calculator"></ion-icon>
+                </ion-button>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-toolbar>
+      </ion-header>
+      
+      <ion-content class="ion-padding">
+        <div id="settlement-result">
+          <p style="text-align: center; color: var(--ion-color-medium); padding: 40px;">
+            Selecciona un rango de fechas y pulsa calcular
+          </p>
+        </div>
+      </ion-content>
+    `;
+
+    document.body.appendChild(settlementModal);
+    
+    settlementModal.querySelector('#close-settlement-modal').addEventListener('click', () => {
+      settlementModal.dismiss();
+    });
+
+    settlementModal.querySelector('#calculate-settlement-range-btn').addEventListener('click', () => {
+      this.calculateSettlementRange(settlementModal);
+    });
+
+    await settlementModal.present();
+  }
+
+  /**
+   * Calcular liquidación por rango de fechas
+   */
+  calculateSettlementRange(modal) {
+    const startDate = modal.querySelector('#settlement-start-date').value;
+    const endDate = modal.querySelector('#settlement-end-date').value;
+
+    if (!startDate || !endDate) {
+      if (window.ToastManager) {
+        window.ToastManager.showError('Selecciona ambas fechas');
+      }
+      return;
+    }
+
+    const user = this.authAdapter.getCurrentUser();
+    const sessions = JSON.parse(localStorage.getItem('taxi_cash_sessions') || '[]');
+    const filteredSessions = sessions.filter(s => 
+      s.userId === user.id &&
+      s.status === 'closed' &&
+      s.date >= startDate &&
+      s.date <= endDate
+    );
+
+    if (filteredSessions.length === 0) {
+      modal.querySelector('#settlement-result').innerHTML = `
+        <p style="text-align: center; color: var(--ion-color-medium); padding: 40px;">
+          No hay días cerrados en este rango de fechas
+        </p>
+      `;
+      return;
+    }
+
+    // Calcular totales
+    const totalDays = filteredSessions.length;
+    const totalInitial = filteredSessions.reduce((sum, s) => sum + (s.initialBalance || 0), 0);
+    const totalIncome = filteredSessions.reduce((sum, s) => sum + (s.cashIncome || 0), 0);
+    const totalExpenses = filteredSessions.reduce((sum, s) => sum + (s.totalExpenses || 0), 0);
+    const totalFinal = filteredSessions.reduce((sum, s) => sum + (s.finalBalance || 0), 0);
+    const totalServices = filteredSessions.reduce((sum, s) => sum + (s.serviceCount || 0), 0);
+
+    // Calcular lo que se debe entregar al patrón
+    // Asumiendo que el taxista se queda con el saldo inicial y debe entregar los ingresos menos gastos
+    const amountToDeliver = totalIncome - totalExpenses;
+
+    modal.querySelector('#settlement-result').innerHTML = `
+      <ion-card style="background: linear-gradient(135deg, rgba(59, 130, 246, 0.15) 0%, rgba(37, 99, 235, 0.15) 100%); border: 2px solid var(--ion-color-tertiary);">
+        <ion-card-content>
+          <div style="text-align: center;">
+            <p style="margin: 0; font-size: 14px; color: var(--ion-color-medium); font-weight: 600;">EFECTIVO A ENTREGAR AL PATRÓN</p>
+            <h1 style="margin: 8px 0; font-size: 48px; font-weight: bold; color: var(--ion-color-tertiary);">${this.formatEuros(amountToDeliver)}€</h1>
+            <p style="margin: 0; font-size: 12px; color: var(--ion-color-medium);">${totalDays} días • ${totalServices} servicios</p>
+          </div>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Desglose del Período</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <ion-list>
+            <ion-item>
+              <ion-label>Días Trabajados</ion-label>
+              <ion-note slot="end">${totalDays}</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Total Servicios</ion-label>
+              <ion-note slot="end">${totalServices}</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Saldo Inicial Total</ion-label>
+              <ion-note slot="end">${this.formatEuros(totalInitial)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Ingresos en Efectivo</ion-label>
+              <ion-note slot="end" style="color: var(--ion-color-success);">+${this.formatEuros(totalIncome)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label>Gastos en Efectivo</ion-label>
+              <ion-note slot="end" style="color: var(--ion-color-danger);">-${this.formatEuros(totalExpenses)}€</ion-note>
+            </ion-item>
+            <ion-item>
+              <ion-label><strong>Saldo Final Total</strong></ion-label>
+              <ion-note slot="end" style="font-size: 18px; font-weight: bold;">${this.formatEuros(totalFinal)}€</ion-note>
+            </ion-item>
+          </ion-list>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card>
+        <ion-card-header>
+          <ion-card-title>Días Incluidos</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          ${filteredSessions.map(s => `
+            <ion-item>
+              <ion-label>${new Date(s.date).toLocaleDateString('es-ES')}</ion-label>
+              <ion-note slot="end">${this.formatEuros(s.finalBalance || 0)}€</ion-note>
+            </ion-item>
+          `).join('')}
+        </ion-card-content>
+      </ion-card>
+    `;
   }
 
   /**
