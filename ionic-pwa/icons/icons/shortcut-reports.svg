@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <!-- Fondo -->
+  <rect width="96" height="96" rx="16" fill="#3B82F6"/>
+  
+  <!-- Gráfico de barras -->
+  <g transform="translate(48,48)">
+    <!-- Ejes -->
+    <line x1="-20" y1="15" x2="20" y2="15" stroke="white" stroke-width="2"/>
+    <line x1="-20" y1="15" x2="-20" y2="-15" stroke="white" stroke-width="2"/>
+    
+    <!-- Barras del gráfico -->
+    <rect x="-15" y="5" width="6" height="10" fill="white"/>
+    <rect x="-7" y="-5" width="6" height="20" fill="white"/>
+    <rect x="1" y="-10" width="6" height="25" fill="white"/>
+    <rect x="9" y="0" width="6" height="15" fill="white"/>
+    
+    <!-- Línea de tendencia -->
+    <polyline points="-12,8 -4,-2 4,-7 12,3" stroke="#FCD34D" stroke-width="2" fill="none"/>
+    <circle cx="-12" cy="8" r="2" fill="#FCD34D"/>
+    <circle cx="-4" cy="-2" r="2" fill="#FCD34D"/>
+    <circle cx="4" cy="-7" r="2" fill="#FCD34D"/>
+    <circle cx="12" cy="3" r="2" fill="#FCD34D"/>
+  </g>
+</svg>

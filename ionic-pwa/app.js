@@ -8,6 +8,14 @@ const authAdapter = new AuthAdapter();
 const reconcileAdapter = new ReconcileAdapter(authAdapter);
 const rgpdAdapter = new RGPDAdapter();
 
+// Initialize WorkShiftAdapter
+let workShiftAdapter = null;
+if (typeof WorkShiftAdapter !== 'undefined') {
+  workShiftAdapter = new WorkShiftAdapter(authAdapter);
+  window.workShiftAdapter = workShiftAdapter; // Make it globally available
+  console.log('WorkShiftAdapter initialized');
+}
+
 // Initialize data sync
 const dataSyncView = new DataSyncView();
 
@@ -222,6 +230,17 @@ function showWelcome() {
     document.getElementById('welcome-section').style.display = 'block';
     document.getElementById('dashboard-section').style.display = 'none';
   }
+  
+  // Hide FAB button when not authenticated
+  if (fabButton) {
+    fabButton.hide();
+  }
+  
+  // Hide tab navigation when not authenticated
+  const tabBar = document.querySelector('ion-tab-bar');
+  if (tabBar) {
+    tabBar.style.display = 'none';
+  }
 }
 
 /**
@@ -235,6 +254,17 @@ async function showDashboard() {
     document.getElementById('welcome-section').style.display = 'none';
     document.getElementById('dashboard-section').style.display = 'block';
     await loadDashboardData();
+  }
+  
+  // Show FAB button when authenticated
+  if (fabButton) {
+    fabButton.show();
+  }
+  
+  // Show tab navigation when authenticated
+  const tabBar = document.querySelector('ion-tab-bar');
+  if (tabBar) {
+    tabBar.style.display = 'flex';
   }
 
   // Render service and expense lists
@@ -526,6 +556,16 @@ customElements.whenDefined('ion-modal').then(() => {
   window.addEventListener('reconciliation-saved', async () => {
     if (reconciliationHistoryView) {
       await reconciliationHistoryView.refresh();
+    }
+  });
+
+  // Listen for view reconciliation details event
+  window.addEventListener('view-reconciliation-details', async (e) => {
+    if (window.ReconciliationDetailModal) {
+      const modal = new ReconciliationDetailModal(e.detail);
+      await modal.show();
+    } else {
+      console.error('ReconciliationDetailModal class not found!');
     }
   });
 });
@@ -877,6 +917,42 @@ window.app = {
   showBalanceSettings: async (taxistaId = null) => {
     const modal = new BalanceSettingsModal(window.app.authAdapter);
     await modal.show(taxistaId);
+  },
+  
+  showShiftHistory: async () => {
+    if (window.ShiftHistoryView && window.workShiftAdapter) {
+      const shiftHistoryView = new window.ShiftHistoryView(
+        authAdapter,
+        window.workShiftAdapter,
+        reconcileAdapter
+      );
+      await shiftHistoryView.show();
+    } else {
+      ToastManager.showError('Historial de jornadas no disponible');
+    }
+  },
+  
+  showActiveShifts: async () => {
+    if (window.ActiveShiftsView && window.workShiftAdapter) {
+      const activeShiftsView = new window.ActiveShiftsView(
+        authAdapter,
+        window.workShiftAdapter
+      );
+      await activeShiftsView.show();
+    } else {
+      ToastManager.showError('Vista de jornadas activas no disponible');
+    }
+  },
+
+  showTaxistaConditions: async () => {
+    const user = window.app.authAdapter.getCurrentUser();
+    if (!user || user.rol !== 'TAXISTA') {
+      ToastManager.showError('Solo disponible para taxistas');
+      return;
+    }
+    
+    const modal = new TaxistaConditionsModal(window.app.authAdapter);
+    await modal.show();
   },
   
   showDataSync: async () => {
