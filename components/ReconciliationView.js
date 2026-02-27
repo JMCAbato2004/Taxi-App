@@ -259,40 +259,57 @@ class ReconciliationView {
 
       // For PATRON: filter by selected taxista and load their settings
       if (user && user.rol === 'PATRON') {
-        // Find the selected taxista by name
-        const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-        const selectedTaxista = allUsers.find(u => 
-          u.rol === 'TAXISTA' && 
-          u.estado === 'asociado' && 
-          u.patronId === user.id &&
-          (u.nombre === clientName || `${u.nombre} (${u.numeroTaxista})` === clientName)
-        );
+        // Check if patron selected themselves
+        const patronName = `${user.nombre} (Patrón)`;
         
-        if (selectedTaxista) {
-          // Filter services and expenses by this taxista
-          services = services.filter(s => s.userId === selectedTaxista.id);
-          expenses = expenses.filter(e => e.userId === selectedTaxista.id);
+        if (clientName === patronName || clientName === user.nombre) {
+          // Patron selected themselves - use patron's own services with patron conditions (100% for patron)
+          services = services.filter(s => s.userId === user.id);
+          expenses = expenses.filter(e => e.userId === user.id);
           
-          // Load taxista's individual balance settings
-          const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
-          const taxistaSettings = allSettings[selectedTaxista.id];
-          
-          if (taxistaSettings) {
-            // Use taxista's settings
-            config.taxistaSettings = taxistaSettings;
-          } else {
-            // Use default settings
-            config.taxistaSettings = {
-              patronPercentage: 30,
-              tipDistribution: 'taxista',
-              commissionDistribution: 'taxista',
-              expenseDistribution: 'taxista'
-            };
-          }
+          // Use patron conditions: 100% for patron, 0% for taxista
+          config.taxistaSettings = {
+            patronPercentage: 100,
+            tipDistribution: 'patron',
+            commissionDistribution: 'patron',
+            expenseDistribution: 'patron'
+          };
         } else {
-          await LoadingManager.hide();
-          ToastManager.showError('No se encontró el taxista seleccionado');
-          return;
+          // Find the selected taxista by name
+          const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+          const selectedTaxista = allUsers.find(u => 
+            u.rol === 'TAXISTA' && 
+            u.estado === 'asociado' && 
+            u.patronId === user.id &&
+            (u.nombre === clientName || `${u.nombre} (${u.numeroTaxista})` === clientName)
+          );
+          
+          if (selectedTaxista) {
+            // Filter services and expenses by this taxista
+            services = services.filter(s => s.userId === selectedTaxista.id);
+            expenses = expenses.filter(e => e.userId === selectedTaxista.id);
+            
+            // Load taxista's individual balance settings
+            const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+            const taxistaSettings = allSettings[selectedTaxista.id];
+            
+            if (taxistaSettings) {
+              // Use taxista's settings
+              config.taxistaSettings = taxistaSettings;
+            } else {
+              // Use default settings
+              config.taxistaSettings = {
+                patronPercentage: 30,
+                tipDistribution: 'taxista',
+                commissionDistribution: 'taxista',
+                expenseDistribution: 'taxista'
+              };
+            }
+          } else {
+            await LoadingManager.hide();
+            ToastManager.showError('No se encontró el taxista seleccionado');
+            return;
+          }
         }
       } else if (user && user.rol === 'TAXISTA') {
         // For TAXISTA: filter by their own userId and load their settings

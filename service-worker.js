@@ -3,8 +3,8 @@
  * Provides offline functionality and asset caching
  */
 
-const CACHE_NAME = 'taxi-pwa-v48-pdf-colorful';
-const RUNTIME_CACHE = 'taxi-runtime-v26-pdf-colorful';
+const CACHE_NAME = 'taxi-pwa-v49-patron-self-reconciliation';
+const RUNTIME_CACHE = 'taxi-runtime-v27-patron-self-reconciliation';
 
 // Assets to cache on install
 const PRECACHE_ASSETS = [
