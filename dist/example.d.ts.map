@@ -1,1 +1,0 @@
-{"version":3,"file":"example.d.ts","sourceRoot":"","sources":["../src/auth/example.ts"],"names":[],"mappings":"AACA,OAAO,EAAE,WAAW,EAAE,MAAM,yBAAyB,CAAC;AAOtD,wBAAgB,oBAAoB,IAAI;IACtC,WAAW,EAAE,WAAW,CAAC;CAC1B,CASA;AAGD,wBAAsB,YAAY,IAAI,OAAO,CAAC,IAAI,CAAC,CA4ElD;AAGD,wBAAsB,mBAAmB,IAAI,OAAO,CAAC,IAAI,CAAC,CAGzD"}
