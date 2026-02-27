@@ -44,30 +44,69 @@ class FABButton {
       return;
     }
 
-    const buttons = [
-      {
-        text: 'Nuevo Servicio',
-        icon: 'car',
-        handler: () => this.handleNewService()
-      },
-      {
-        text: 'Nuevo Gasto',
-        icon: 'wallet',
-        handler: () => this.handleNewExpense()
-      },
-      {
-        text: 'Ver Reportes',
-        icon: 'bar-chart',
-        handler: () => this.handleViewReports()
-      },
-      {
-        text: 'Cancelar',
-        icon: 'close',
-        role: 'cancel'
-      }
-    ];
+    const buttons = [];
 
-    await ActionSheetManager.show('Nueva Acción', buttons);
+    // Agregar opciones de fichaje si WorkShiftAdapter está disponible
+    if (window.workShiftAdapter) {
+      const activeShift = await window.workShiftAdapter.getActiveShift();
+      
+      if (!activeShift) {
+        // No hay jornada activa - mostrar opción de iniciar
+        buttons.push({
+          text: 'Iniciar Jornada',
+          icon: 'play',
+          handler: () => this.handleStartShift()
+        });
+      } else if (activeShift.status === 'active') {
+        // Jornada activa - mostrar pausar y finalizar
+        buttons.push({
+          text: 'Pausar Jornada',
+          icon: 'pause',
+          handler: () => this.handlePauseShift()
+        });
+        buttons.push({
+          text: 'Finalizar Jornada',
+          icon: 'stop',
+          handler: () => this.handleEndShift()
+        });
+      } else if (activeShift.status === 'paused') {
+        // Jornada pausada - mostrar reanudar y finalizar
+        buttons.push({
+          text: 'Reanudar Jornada',
+          icon: 'play',
+          handler: () => this.handleResumeShift()
+        });
+        buttons.push({
+          text: 'Finalizar Jornada',
+          icon: 'stop',
+          handler: () => this.handleEndShift()
+        });
+      }
+    }
+
+    // Agregar opciones estándar
+    buttons.push({
+      text: 'Nuevo Servicio',
+      icon: 'car',
+      handler: () => this.handleNewService()
+    });
+    buttons.push({
+      text: 'Nuevo Gasto',
+      icon: 'wallet',
+      handler: () => this.handleNewExpense()
+    });
+    buttons.push({
+      text: 'Ver Reportes',
+      icon: 'bar-chart',
+      handler: () => this.handleViewReports()
+    });
+    buttons.push({
+      text: 'Cancelar',
+      icon: 'close',
+      role: 'cancel'
+    });
+
+    await ActionSheetManager.show('Acciones Rápidas', buttons);
   }
 
   /**
@@ -106,6 +145,161 @@ class FABButton {
     // Show placeholder toast for now
     if (window.ToastManager) {
       ToastManager.showInfo('Reportes - Próximamente');
+    }
+  }
+
+  /**
+   * Handle start shift action
+   */
+  async handleStartShift() {
+    try {
+      if (!window.workShiftAdapter) {
+        console.error('FABButton: WorkShiftAdapter not available');
+        return;
+      }
+
+      if (window.LoadingManager) {
+        window.LoadingManager.show('Iniciando jornada...');
+      }
+
+      await window.workShiftAdapter.startShift();
+
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+
+      if (window.ToastManager) {
+        window.ToastManager.showSuccess('Jornada iniciada correctamente');
+      }
+    } catch (error) {
+      console.error('Error starting shift:', error);
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+      if (window.ToastManager) {
+        window.ToastManager.showError(error.message);
+      }
+    }
+  }
+
+  /**
+   * Handle pause shift action
+   */
+  async handlePauseShift() {
+    try {
+      if (!window.workShiftAdapter) {
+        console.error('FABButton: WorkShiftAdapter not available');
+        return;
+      }
+
+      const activeShift = await window.workShiftAdapter.getActiveShift();
+      if (!activeShift) return;
+
+      if (window.LoadingManager) {
+        window.LoadingManager.show('Pausando jornada...');
+      }
+
+      await window.workShiftAdapter.pauseShift(activeShift.id);
+
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+
+      if (window.ToastManager) {
+        window.ToastManager.showSuccess('Jornada pausada');
+      }
+    } catch (error) {
+      console.error('Error pausing shift:', error);
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+      if (window.ToastManager) {
+        window.ToastManager.showError(error.message);
+      }
+    }
+  }
+
+  /**
+   * Handle resume shift action
+   */
+  async handleResumeShift() {
+    try {
+      if (!window.workShiftAdapter) {
+        console.error('FABButton: WorkShiftAdapter not available');
+        return;
+      }
+
+      const activeShift = await window.workShiftAdapter.getActiveShift();
+      if (!activeShift) return;
+
+      if (window.LoadingManager) {
+        window.LoadingManager.show('Reanudando jornada...');
+      }
+
+      await window.workShiftAdapter.resumeShift(activeShift.id);
+
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+
+      if (window.ToastManager) {
+        window.ToastManager.showSuccess('Jornada reanudada');
+      }
+    } catch (error) {
+      console.error('Error resuming shift:', error);
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+      if (window.ToastManager) {
+        window.ToastManager.showError(error.message);
+      }
+    }
+  }
+
+  /**
+   * Handle end shift action
+   */
+  async handleEndShift() {
+    try {
+      if (!window.workShiftAdapter) {
+        console.error('FABButton: WorkShiftAdapter not available');
+        return;
+      }
+
+      const activeShift = await window.workShiftAdapter.getActiveShift();
+      if (!activeShift) return;
+
+      // Confirmar con el usuario usando AlertManager
+      if (window.AlertManager) {
+        const confirmed = await window.AlertManager.confirm(
+          'Finalizar Jornada',
+          '¿Estás seguro de que quieres finalizar la jornada?'
+        );
+
+        if (!confirmed) return;
+      }
+
+      if (window.LoadingManager) {
+        window.LoadingManager.show('Finalizando jornada...');
+      }
+
+      await window.workShiftAdapter.endShift(activeShift.id);
+
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+
+      if (window.ToastManager) {
+        window.ToastManager.showSuccess('Jornada finalizada correctamente');
+      }
+    } catch (error) {
+      console.error('Error ending shift:', error);
+      if (window.LoadingManager) {
+        window.LoadingManager.hide();
+      }
+      if (window.ToastManager) {
+        window.ToastManager.showError(error.message);
+      }
     }
   }
 

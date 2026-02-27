@@ -82,49 +82,42 @@ class ExpenseFormModal {
           <div class="error-message" id="concept-error"></div>
 
           <!-- Amount -->
-          <ion-item>
-            <ion-label position="stacked">Importe *</ion-label>
+          <ion-item style="--min-height: 80px;">
+            <ion-label position="stacked" style="font-size: 16px; margin-bottom: 8px;">Importe *</ion-label>
             <ion-input 
-              type="number" 
+              type="text" 
               id="expense-amount" 
-              placeholder="0.00"
-              step="0.01"
-              min="0"
-              required>
+              placeholder="0,00"
+              readonly
+              required
+              style="font-size: 28px; font-weight: 600; color: var(--ion-color-primary); cursor: pointer;">
             </ion-input>
+            <div slot="end" style="font-size: 24px; color: var(--ion-color-medium); margin-left: 8px;">€</div>
           </ion-item>
+          <p style="font-size: 13px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px; margin-bottom: 16px;">
+            💡 Pulsa para abrir el teclado numérico
+          </p>
           <div class="error-message" id="amount-error"></div>
 
           <!-- Category -->
           <ion-item>
-            <ion-label position="stacked">Categoría *</ion-label>
-            <ion-select id="expense-category" value="other" interface="action-sheet">
+            <ion-label position="stacked">Concepto *</ion-label>
+            <ion-select id="expense-category" value="fuel" interface="action-sheet">
               <ion-select-option value="fuel">⛽ Combustible</ion-select-option>
-              <ion-select-option value="maintenance">🔧 Mantenimiento</ion-select-option>
-              <ion-select-option value="insurance">🛡️ Seguro</ion-select-option>
               <ion-select-option value="other">📋 Otro</ion-select-option>
             </ion-select>
           </ion-item>
 
-          <!-- Paid By -->
-          <ion-item>
-            <ion-label position="stacked">Pagado Por *</ion-label>
-            <ion-select id="expense-paid-by" value="shared" interface="action-sheet">
-              <ion-select-option value="shared">Compartido</ion-select-option>
-              <ion-select-option value="driver">Conductor</ion-select-option>
-              <ion-select-option value="owner">Propietario</ion-select-option>
-            </ion-select>
-          </ion-item>
-
-          <!-- Notes -->
-          <ion-item>
-            <ion-label position="stacked">Notas</ion-label>
+          <!-- Comments (only shown when "Otro" is selected) -->
+          <ion-item id="comments-item" style="display: none;">
+            <ion-label position="stacked">Comentarios *</ion-label>
             <ion-textarea 
-              id="expense-notes" 
+              id="expense-comments" 
               rows="3"
-              placeholder="Notas adicionales...">
+              placeholder="Explica el motivo del gasto...">
             </ion-textarea>
           </ion-item>
+          <div class="error-message" id="comments-error"></div>
 
           <!-- Submit Button -->
           <ion-button 
@@ -148,6 +141,9 @@ class ExpenseFormModal {
       this.close();
     });
 
+    // Initialize numeric keyboard for amount input
+    this.initializeNumericKeyboard();
+
     // Form submission
     const form = document.getElementById('expense-form');
     if (form) {
@@ -156,6 +152,18 @@ class ExpenseFormModal {
         this.handleSubmit();
       });
     }
+
+    // Category change - show/hide comments field
+    document.getElementById('expense-category')?.addEventListener('ionChange', (e) => {
+      const commentsItem = document.getElementById('comments-item');
+      if (e.detail.value === 'other') {
+        commentsItem.style.display = 'block';
+      } else {
+        commentsItem.style.display = 'none';
+        document.getElementById('expense-comments').value = '';
+        this.clearError('comments-error');
+      }
+    });
 
     // Real-time validation
     document.getElementById('expense-date')?.addEventListener('ionChange', () => {
@@ -169,6 +177,41 @@ class ExpenseFormModal {
     document.getElementById('expense-amount')?.addEventListener('ionInput', () => {
       this.clearError('amount-error');
     });
+
+    document.getElementById('expense-comments')?.addEventListener('ionInput', () => {
+      this.clearError('comments-error');
+    });
+  }
+
+  /**
+   * Initialize numeric keyboard for amount input
+   */
+  initializeNumericKeyboard() {
+    const amountInput = document.getElementById('expense-amount');
+    if (amountInput) {
+      this.amountKeyboard = new NumericKeyboard(amountInput);
+      
+      amountInput.addEventListener('click', () => {
+        this.amountKeyboard.show();
+      });
+    }
+  }
+
+  /**
+   * Parse euro value from string (21,50 -> 21.50)
+   */
+  parseEuroValue(value) {
+    if (!value) return 0;
+    // Replace comma with dot and parse
+    const cleaned = value.toString().replace(',', '.');
+    return parseFloat(cleaned) || 0;
+  }
+
+  /**
+   * Format euros for display (21.50 -> "21,50")
+   */
+  formatEuros(euros) {
+    return euros.toFixed(2).replace('.', ',');
   }
 
   /**
@@ -179,10 +222,18 @@ class ExpenseFormModal {
 
     document.getElementById('expense-date').value = this.expense.date || '';
     document.getElementById('expense-concept').value = this.expense.concept || '';
-    document.getElementById('expense-amount').value = this.expense.amount || '';
-    document.getElementById('expense-category').value = this.expense.category || 'other';
-    document.getElementById('expense-paid-by').value = this.expense.paidBy || 'shared';
-    document.getElementById('expense-notes').value = this.expense.notes || '';
+    
+    // Format amount with comma decimal
+    const amount = this.expense.amount ? this.formatEuros(parseFloat(this.expense.amount)) : '';
+    document.getElementById('expense-amount').value = amount;
+    
+    document.getElementById('expense-category').value = this.expense.category || 'fuel';
+    document.getElementById('expense-comments').value = this.expense.comments || '';
+    
+    // Show comments field if category is "other"
+    if (this.expense.category === 'other') {
+      document.getElementById('comments-item').style.display = 'block';
+    }
   }
 
   /**
@@ -208,11 +259,24 @@ class ExpenseFormModal {
       isValid = false;
     }
 
-    // Validate amount
-    const amount = parseFloat(document.getElementById('expense-amount').value);
+    // Validate amount - parse euro value
+    const amount = this.parseEuroValue(document.getElementById('expense-amount').value);
     if (!amount || amount <= 0) {
       this.showError('amount-error', 'El importe debe ser mayor que 0');
       isValid = false;
+    }
+
+    // Validate comments if category is "other"
+    const category = document.getElementById('expense-category').value;
+    if (category === 'other') {
+      const comments = document.getElementById('expense-comments').value.trim();
+      if (!comments) {
+        this.showError('comments-error', 'Los comentarios son obligatorios para "Otro"');
+        isValid = false;
+      } else if (comments.length < 5) {
+        this.showError('comments-error', 'Los comentarios deben tener al menos 5 caracteres');
+        isValid = false;
+      }
     }
 
     return isValid;
@@ -250,14 +314,15 @@ class ExpenseFormModal {
       return;
     }
 
-    // Collect form data
+    // Collect form data - parse euro value
+    const amount = this.parseEuroValue(document.getElementById('expense-amount').value);
+    
     const expenseData = {
       date: document.getElementById('expense-date').value,
       concept: document.getElementById('expense-concept').value.trim(),
-      amount: parseFloat(document.getElementById('expense-amount').value),
+      amount: amount,
       category: document.getElementById('expense-category').value,
-      paidBy: document.getElementById('expense-paid-by').value,
-      notes: document.getElementById('expense-notes').value.trim()
+      comments: document.getElementById('expense-comments').value.trim()
     };
 
     try {
@@ -289,6 +354,11 @@ class ExpenseFormModal {
    * Close the modal
    */
   async close() {
+    // Destroy keyboard
+    if (this.amountKeyboard) {
+      this.amountKeyboard.destroy();
+    }
+    
     if (this.modal) {
       await this.modal.dismiss();
       this.modal.remove();

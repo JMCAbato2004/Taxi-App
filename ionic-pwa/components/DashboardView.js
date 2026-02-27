@@ -79,6 +79,14 @@ class DashboardView {
     await this.loadStats(user);
     console.log('renderDashboard: Displaying stats...');
     this.displayStats();
+    
+    // Renderizar jornada activa si WorkShiftManager está disponible
+    if (window.WorkShiftManager && window.workShiftAdapter) {
+      console.log('renderDashboard: Rendering work shift manager...');
+      const shiftManager = new window.WorkShiftManager(this.authAdapter, window.workShiftAdapter);
+      await shiftManager.render('shift-manager-container');
+    }
+    
     console.log('renderDashboard: Displaying recent activity...');
     this.displayRecentActivity();
     console.log('renderDashboard: Displaying action buttons...');
@@ -475,6 +483,10 @@ class DashboardView {
         : '';
       
       buttons = `
+        <ion-button expand="block" color="tertiary" onclick="window.app.showActiveShifts()">
+          <ion-icon slot="start" name="people-circle"></ion-icon>
+          Jornadas Activas
+        </ion-button>
         <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
           <ion-icon slot="start" name="people"></ion-icon>
           Gestionar Flota
@@ -500,6 +512,10 @@ class DashboardView {
     
     // Common buttons for both roles
     buttons += `
+      <ion-button expand="block" color="secondary" onclick="window.app.showShiftHistory()">
+        <ion-icon slot="start" name="time-outline"></ion-icon>
+        Historial de Jornadas
+      </ion-button>
       <ion-button expand="block" color="medium" onclick="window.app.showDataSync()">
         <ion-icon slot="start" name="sync"></ion-icon>
         Sincronización

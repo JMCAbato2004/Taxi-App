@@ -6,16 +6,17 @@ class ToastManager {
   /**
    * Show a toast notification
    * @param {string} message - Message to display
-   * @param {number} duration - Duration in milliseconds (default: 2000)
    * @param {string} color - Ionic color (primary, success, warning, danger)
+   * @param {number} duration - Duration in milliseconds (default: 2000)
    * @returns {Promise<void>}
    */
-  static async show(message, duration = 2000, color = 'primary') {
+  static async show(message, color = 'primary', duration = 2000) {
     const toast = document.createElement('ion-toast');
     toast.message = message;
     toast.duration = duration;
     toast.color = color;
-    toast.position = 'bottom';
+    toast.position = 'top'; // Changed from 'bottom' to avoid blocking tab bar
+    toast.cssClass = 'custom-toast';
     
     document.body.appendChild(toast);
     await toast.present();
@@ -32,7 +33,7 @@ class ToastManager {
    * @returns {Promise<void>}
    */
   static async showSuccess(message) {
-    await this.show(message, 2000, 'success');
+    await this.show(message, 'success', 2000);
   }
 
   /**
@@ -41,7 +42,7 @@ class ToastManager {
    * @returns {Promise<void>}
    */
   static async showError(message) {
-    await this.show(message, 3000, 'danger');
+    await this.show(message, 'danger', 3000);
   }
 
   /**
@@ -50,7 +51,7 @@ class ToastManager {
    * @returns {Promise<void>}
    */
   static async showWarning(message) {
-    await this.show(message, 2500, 'warning');
+    await this.show(message, 'warning', 2500);
   }
 
   /**
@@ -59,7 +60,7 @@ class ToastManager {
    * @returns {Promise<void>}
    */
   static async showInfo(message) {
-    await this.show(message, 2000, 'primary');
+    await this.show(message, 'primary', 2000);
   }
 }
 

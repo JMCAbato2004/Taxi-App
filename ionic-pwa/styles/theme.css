@@ -937,3 +937,252 @@ body.dark ion-alert .alert-title,
 body.dark ion-alert .alert-message {
   color: var(--ion-color-light) !important;
 }
+
+/* ===== TOAST CUSTOMIZATION ===== */
+/* Ensure toasts don't block the tab bar */
+ion-toast.custom-toast {
+  --max-width: 90%;
+  margin-top: 60px; /* Space from top */
+}
+
+/* Ensure toasts are above content but below modals */
+ion-toast {
+  z-index: 20000;
+}
+
+/* Tab bar should be above toasts at bottom */
+ion-tab-bar {
+  z-index: 21000;
+}
+
+/* FAB button should be visible */
+ion-fab {
+  z-index: 22000;
+}
+
+
+/* ===== LARGE TOUCH-FRIENDLY ACTION SHEETS ===== */
+
+/* Make action sheet buttons much larger and easier to tap */
+ion-action-sheet .action-sheet-button {
+  min-height: 70px !important;
+  font-size: 18px !important;
+  font-weight: 600 !important;
+  padding: 20px 16px !important;
+}
+
+/* Make action sheet title larger */
+ion-action-sheet .action-sheet-title {
+  font-size: 20px !important;
+  font-weight: 700 !important;
+  padding: 24px 16px !important;
+  min-height: 60px !important;
+}
+
+/* Add more spacing between buttons */
+ion-action-sheet .action-sheet-group {
+  padding: 8px 0 !important;
+}
+
+/* Make icons in action sheets larger */
+ion-action-sheet .action-sheet-button ion-icon {
+  font-size: 28px !important;
+  margin-right: 16px !important;
+}
+
+/* Improve button hover/active states for better feedback */
+ion-action-sheet .action-sheet-button:active {
+  background: var(--ion-color-primary-tint) !important;
+  transform: scale(0.98);
+  transition: all 0.1s ease;
+}
+
+/* Make cancel button more prominent */
+ion-action-sheet .action-sheet-cancel {
+  min-height: 70px !important;
+  font-size: 18px !important;
+  font-weight: 700 !important;
+  margin-top: 8px !important;
+}
+
+/* Add subtle borders between buttons for better visual separation */
+ion-action-sheet .action-sheet-button {
+  border-bottom: 1px solid var(--ion-border-color) !important;
+}
+
+ion-action-sheet .action-sheet-button:last-child {
+  border-bottom: none !important;
+}
+
+/* Dark mode adjustments */
+body.dark ion-action-sheet .action-sheet-button {
+  border-bottom-color: var(--ion-color-dark-shade) !important;
+}
+
+/* Add emoji/icon support with better spacing */
+ion-action-sheet .action-sheet-button-inner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  width: 100%;
+}
+
+/* Improve touch target size on mobile */
+@media (max-width: 768px) {
+  ion-action-sheet .action-sheet-button {
+    min-height: 75px !important;
+    font-size: 19px !important;
+  }
+  
+  ion-action-sheet .action-sheet-title {
+    font-size: 22px !important;
+    padding: 28px 16px !important;
+  }
+}
+
+/* Add subtle animation when action sheet appears */
+ion-action-sheet {
+  animation: slideUpActionSheet 0.3s ease-out;
+}
+
+@keyframes slideUpActionSheet {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+
+/* ===== WORK SHIFT COMPONENTS STYLES ===== */
+
+/* Shift Card */
+.shift-card {
+  margin: 16px;
+  border-radius: 12px;
+  box-shadow: var(--app-shadow);
+}
+
+/* Shift Timer */
+.shift-timer {
+  text-align: center;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.1) 0%, rgba(4, 120, 87, 0.1) 100%);
+  border-radius: 12px;
+  margin-bottom: 16px;
+}
+
+.timer-display {
+  font-size: 48px;
+  font-weight: bold;
+  color: var(--ion-color-success);
+  font-family: 'Courier New', monospace;
+  letter-spacing: 2px;
+}
+
+.timer-label {
+  font-size: 14px;
+  color: var(--ion-color-medium);
+  margin-top: 8px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Pause List */
+.pause-list {
+  margin-top: 16px;
+}
+
+.pause-list h4 {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ion-color-dark);
+  margin-bottom: 8px;
+}
+
+/* Shift History Card */
+.shift-history-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: var(--app-shadow);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.shift-history-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15);
+}
+
+.shift-history-card ion-card-subtitle {
+  color: #000000 !important;
+  font-weight: 600 !important;
+}
+
+/* Active Shift Card */
+.active-shift-card {
+  margin-bottom: 16px;
+  border-radius: 12px;
+  box-shadow: var(--app-shadow);
+  border-left: 4px solid var(--ion-color-success);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.active-shift-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15);
+}
+
+/* Stat Labels and Values */
+.stat-label {
+  font-size: 12px;
+  color: var(--ion-color-medium);
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.stat-value {
+  font-size: 20px;
+  font-weight: bold;
+  color: var(--ion-color-dark);
+}
+
+/* Responsive Design for Shift Components */
+@media (max-width: 768px) {
+  .timer-display {
+    font-size: 36px;
+  }
+  
+  .stat-value {
+    font-size: 18px;
+  }
+}
+
+/* Dark Mode Adjustments for Shift Components */
+body.dark .shift-timer {
+  background: linear-gradient(135deg, rgba(5, 150, 105, 0.2) 0%, rgba(4, 120, 87, 0.2) 100%);
+}
+
+body.dark .timer-display {
+  color: var(--ion-color-success-tint);
+}
+
+body.dark .stat-label {
+  color: var(--ion-color-medium-tint);
+}
+
+body.dark .stat-value {
+  color: var(--ion-color-light);
+}
+
+body.dark .shift-history-card {
+  background: var(--ion-color-step-50);
+}
+
+body.dark .shift-history-card ion-card-subtitle {
+  color: #ffffff !important;
+  font-weight: 600 !important;
+}

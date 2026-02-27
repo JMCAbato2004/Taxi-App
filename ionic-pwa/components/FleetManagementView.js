@@ -208,14 +208,26 @@ class FleetManagementView {
         return isTaxista && isAsociado && hasPatronId;
       });
       
+      // Add patron as a "taxista" in the list (with special patron conditions)
+      const patronAsTaxista = {
+        ...user,
+        nombre: user.nombre + ' (Patrón)',
+        numeroTaxista: 'PATRON',
+        isPatron: true // Flag to identify patron in stats
+      };
+      
+      // Combine patron + associated taxistas
+      const allTaxistas = [patronAsTaxista, ...associatedTaxistas];
+      
       console.log('Associated taxistas:', associatedTaxistas.length);
+      console.log('Total taxistas (including patron):', allTaxistas.length);
       console.log('Associated taxistas details:', associatedTaxistas);
       
-      // Calculate stats for each taxista
+      // Calculate stats for each taxista (including patron)
       const today = new Date().toISOString().split('T')[0];
       console.log('loadFleet: Today date for filtering:', today);
       
-      const taxistasWithStats = associatedTaxistas.map(taxista => {
+      const taxistasWithStats = allTaxistas.map(taxista => {
         const taxistaServices = services.filter(s => s.userId === taxista.id);
         console.log(`loadFleet: Taxista ${taxista.nombre} - Total services:`, taxistaServices.length);
         

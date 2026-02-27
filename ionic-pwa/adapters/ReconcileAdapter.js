@@ -62,7 +62,7 @@ class ReconcileAdapter {
         return filtered;
       }
 
-      // PATRON sees services from associated taxistas only
+      // PATRON sees services from associated taxistas AND their own services
       if (currentUser.rol === 'PATRON') {
         console.log('ReconcileAdapter.getServices: Filtering for PATRON');
         const users = JSON.parse(localStorage.getItem('taxi_users') || '[]');
@@ -74,8 +74,11 @@ class ReconcileAdapter {
         const taxistaIds = associatedTaxistas.map(t => t.id);
         console.log('ReconcileAdapter.getServices: Associated taxista IDs:', taxistaIds);
         
-        const filtered = services.filter(s => taxistaIds.includes(s.userId));
-        console.log('ReconcileAdapter.getServices: Filtered services for PATRON:', filtered.length);
+        // Include patron's own services + associated taxistas' services
+        const filtered = services.filter(s => 
+          taxistaIds.includes(s.userId) || s.userId === currentUser.id
+        );
+        console.log('ReconcileAdapter.getServices: Filtered services for PATRON (including own):', filtered.length);
         return filtered;
       }
 
@@ -126,6 +129,20 @@ class ReconcileAdapter {
       };
 
       console.log('ReconcileAdapter.createService: Service object created:', service);
+
+      // Vincular a jornada activa si existe
+      if (window.workShiftAdapter) {
+        try {
+          const activeShift = await window.workShiftAdapter.getActiveShift();
+          if (activeShift) {
+            service.shiftId = activeShift.id;
+            console.log('ReconcileAdapter.createService: Service linked to active shift:', activeShift.id);
+          }
+        } catch (error) {
+          console.error('ReconcileAdapter.createService: Error linking to shift:', error);
+          // No fallar si hay error al vincular, continuar sin shiftId
+        }
+      }
 
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
       console.log('ReconcileAdapter.createService: Existing services count:', services.length);

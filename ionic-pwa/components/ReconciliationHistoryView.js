@@ -79,6 +79,13 @@ class ReconciliationHistoryView {
         year: 'numeric'
       });
 
+      // Handle different property names with fallbacks
+      const driverAmount = distribution?.driverAmount || distribution?.taxistaAmount || 0;
+      const ownerAmount = distribution?.ownerAmount || distribution?.patronAmount || 0;
+      const grossIncome = summary?.grossIncome || summary?.totalIncome || 0;
+      const totalExpenses = summary?.totalExpenses || 0;
+      const netIncome = summary?.netIncome || (grossIncome - totalExpenses);
+
       return `
         <ion-item-sliding>
           <ion-item button class="reconciliation-item" data-reconciliation-id="${reconciliation.id}">
@@ -86,16 +93,16 @@ class ReconciliationHistoryView {
               <ion-icon name="calculator" style="font-size: 24px; color: var(--ion-color-primary);"></ion-icon>
             </div>
             <ion-label>
-              <h2>${config.clientName}</h2>
-              <p>${config.startDate} - ${config.endDate}</p>
+              <h2>${config?.clientName || 'Sin nombre'}</h2>
+              <p>${config?.startDate || ''} - ${config?.endDate || ''}</p>
               <p style="margin-top: 4px;">
-                <ion-badge color="success">Conductor: €${distribution.driverAmount.toFixed(2)}</ion-badge>
-                <ion-badge color="primary" style="margin-left: 8px;">Propietario: €${distribution.ownerAmount.toFixed(2)}</ion-badge>
+                <ion-badge color="success">Conductor: €${driverAmount.toFixed(2)}</ion-badge>
+                <ion-badge color="primary" style="margin-left: 8px;">Propietario: €${ownerAmount.toFixed(2)}</ion-badge>
               </p>
             </ion-label>
             <div slot="end" style="text-align: right;">
               <div style="font-size: 12px; color: var(--ion-color-medium);">${formattedDate}</div>
-              <div style="font-size: 14px; font-weight: bold; margin-top: 4px;">€${summary.netIncome.toFixed(2)}</div>
+              <div style="font-size: 14px; font-weight: bold; margin-top: 4px;">€${netIncome.toFixed(2)}</div>
             </div>
           </ion-item>
 

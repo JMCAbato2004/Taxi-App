@@ -41,7 +41,7 @@ class ReconciliationView {
     // Build client name field based on user role
     let clientNameField = '';
     if (user && user.rol === 'PATRON') {
-      // Get associated taxistas
+      // Get associated taxistas (including patron as taxista)
       const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
       const associatedTaxistas = allUsers.filter(u => 
         u.rol === 'TAXISTA' && 
@@ -49,23 +49,35 @@ class ReconciliationView {
         u.patronId === user.id
       );
       
-      if (associatedTaxistas.length > 0) {
+      // Add patron as a taxista option
+      const patronAsTaxista = {
+        id: user.id,
+        nombre: user.nombre + ' (Patrón)',
+        numeroTaxista: 'PATRON'
+      };
+      
+      const allTaxistas = [patronAsTaxista, ...associatedTaxistas];
+      
+      if (allTaxistas.length > 0) {
         clientNameField = `
           <ion-item>
-            <ion-label position="stacked">Seleccionar Taxista *</ion-label>
-            <ion-select id="client-name" interface="popover" placeholder="Selecciona un taxista">
-              ${associatedTaxistas.map(t => `
+            <ion-label position="stacked">Nombre del Taxista *</ion-label>
+            <ion-select id="client-name" interface="action-sheet" placeholder="Selecciona un taxista">
+              ${allTaxistas.map(t => `
                 <ion-select-option value="${t.nombre}">
                   ${t.nombre} ${t.numeroTaxista ? `(${t.numeroTaxista})` : ''}
                 </ion-select-option>
               `).join('')}
             </ion-select>
           </ion-item>
+          <p style="font-size: 12px; color: var(--ion-color-medium); padding: 0 16px; margin-top: -8px;">
+            💡 Selecciona el taxista para generar su liquidación
+          </p>
         `;
       } else {
         clientNameField = `
           <ion-item>
-            <ion-label position="stacked">Nombre del Cliente *</ion-label>
+            <ion-label position="stacked">Nombre del Taxista *</ion-label>
             <ion-input 
               type="text" 
               id="client-name" 
@@ -122,18 +134,18 @@ class ReconciliationView {
             </ion-list-header>
 
             <ion-item>
-              <ion-label position="stacked">Fecha Inicio *</ion-label>
+              <ion-label position="stacked">Fecha y Hora Inicio *</ion-label>
               <ion-input 
-                type="date" 
+                type="datetime-local" 
                 id="start-date" 
                 required>
               </ion-input>
             </ion-item>
 
             <ion-item>
-              <ion-label position="stacked">Fecha Fin *</ion-label>
+              <ion-label position="stacked">Fecha y Hora Fin *</ion-label>
               <ion-input 
-                type="date" 
+                type="datetime-local" 
                 id="end-date" 
                 required>
               </ion-input>
@@ -247,40 +259,57 @@ class ReconciliationView {
 
       // For PATRON: filter by selected taxista and load their settings
       if (user && user.rol === 'PATRON') {
-        // Find the selected taxista by name
-        const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
-        const selectedTaxista = allUsers.find(u => 
-          u.rol === 'TAXISTA' && 
-          u.estado === 'asociado' && 
-          u.patronId === user.id &&
-          (u.nombre === clientName || `${u.nombre} (${u.numeroTaxista})` === clientName)
-        );
+        // Check if patron selected themselves
+        const patronName = `${user.nombre} (Patrón)`;
         
-        if (selectedTaxista) {
-          // Filter services and expenses by this taxista
-          services = services.filter(s => s.userId === selectedTaxista.id);
-          expenses = expenses.filter(e => e.userId === selectedTaxista.id);
+        if (clientName === patronName || clientName === user.nombre) {
+          // Patron selected themselves - use patron's own services with patron conditions (100% for patron)
+          services = services.filter(s => s.userId === user.id);
+          expenses = expenses.filter(e => e.userId === user.id);
           
-          // Load taxista's individual balance settings
-          const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
-          const taxistaSettings = allSettings[selectedTaxista.id];
-          
-          if (taxistaSettings) {
-            // Use taxista's settings
-            config.taxistaSettings = taxistaSettings;
-          } else {
-            // Use default settings
-            config.taxistaSettings = {
-              patronPercentage: 30,
-              tipDistribution: 'taxista',
-              commissionDistribution: 'taxista',
-              expenseDistribution: 'taxista'
-            };
-          }
+          // Use patron conditions: 100% for patron, 0% for taxista
+          config.taxistaSettings = {
+            patronPercentage: 100,
+            tipDistribution: 'patron',
+            commissionDistribution: 'patron',
+            expenseDistribution: 'patron'
+          };
         } else {
-          await LoadingManager.hide();
-          ToastManager.showError('No se encontró el taxista seleccionado');
-          return;
+          // Find the selected taxista by name
+          const allUsers = JSON.parse(localStorage.getItem('taxi_users') || '[]');
+          const selectedTaxista = allUsers.find(u => 
+            u.rol === 'TAXISTA' && 
+            u.estado === 'asociado' && 
+            u.patronId === user.id &&
+            (u.nombre === clientName || `${u.nombre} (${u.numeroTaxista})` === clientName)
+          );
+          
+          if (selectedTaxista) {
+            // Filter services and expenses by this taxista
+            services = services.filter(s => s.userId === selectedTaxista.id);
+            expenses = expenses.filter(e => e.userId === selectedTaxista.id);
+            
+            // Load taxista's individual balance settings
+            const allSettings = JSON.parse(localStorage.getItem('taxi_balance_settings_per_taxista') || '{}');
+            const taxistaSettings = allSettings[selectedTaxista.id];
+            
+            if (taxistaSettings) {
+              // Use taxista's settings
+              config.taxistaSettings = taxistaSettings;
+            } else {
+              // Use default settings
+              config.taxistaSettings = {
+                patronPercentage: 30,
+                tipDistribution: 'taxista',
+                commissionDistribution: 'taxista',
+                expenseDistribution: 'taxista'
+              };
+            }
+          } else {
+            await LoadingManager.hide();
+            ToastManager.showError('No se encontró el taxista seleccionado');
+            return;
+          }
         }
       } else if (user && user.rol === 'TAXISTA') {
         // For TAXISTA: filter by their own userId and load their settings
@@ -313,27 +342,51 @@ class ReconciliationView {
         };
       }
 
-      // Filter by date range
+      // Filter by date range (with time precision)
       console.log('ReconciliationView: Services before date filter:', services.length);
-      console.log('ReconciliationView: Date range:', config.startDate, 'to', config.endDate);
+      console.log('ReconciliationView: DateTime range:', config.startDate, 'to', config.endDate);
       
       const filteredServices = services.filter(s => {
-        const serviceDate = s.date || (s.datetime ? new Date(s.datetime).toISOString().split('T')[0] : null);
-        if (!serviceDate) {
+        // Get service datetime
+        let serviceDateTime;
+        if (s.datetime) {
+          serviceDateTime = new Date(s.datetime);
+        } else if (s.date && s.time) {
+          serviceDateTime = new Date(`${s.date}T${s.time}`);
+        } else if (s.date) {
+          serviceDateTime = new Date(`${s.date}T00:00:00`);
+        } else {
           console.log('ReconciliationView: Service without date:', s);
           return false;
         }
-        const inRange = serviceDate >= config.startDate && serviceDate <= config.endDate;
+        
+        const startDateTime = new Date(config.startDate);
+        const endDateTime = new Date(config.endDate);
+        
+        const inRange = serviceDateTime >= startDateTime && serviceDateTime <= endDateTime;
         if (!inRange) {
-          console.log('ReconciliationView: Service out of range:', serviceDate, s);
+          console.log('ReconciliationView: Service out of range:', serviceDateTime.toISOString(), s);
         }
         return inRange;
       });
       
       const filteredExpenses = expenses.filter(e => {
-        const expenseDate = e.date || (e.createdAt ? new Date(e.createdAt).toISOString().split('T')[0] : null);
-        if (!expenseDate) return false;
-        return expenseDate >= config.startDate && expenseDate <= config.endDate;
+        // Get expense datetime
+        let expenseDateTime;
+        if (e.datetime) {
+          expenseDateTime = new Date(e.datetime);
+        } else if (e.date) {
+          expenseDateTime = new Date(`${e.date}T00:00:00`);
+        } else if (e.createdAt) {
+          expenseDateTime = new Date(e.createdAt);
+        } else {
+          return false;
+        }
+        
+        const startDateTime = new Date(config.startDate);
+        const endDateTime = new Date(config.endDate);
+        
+        return expenseDateTime >= startDateTime && expenseDateTime <= endDateTime;
       });
       
       console.log('ReconciliationView: Filtered services:', filteredServices.length);
