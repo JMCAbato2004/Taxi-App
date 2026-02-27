@@ -177,35 +177,60 @@ class CashManager {
     `;
 
     document.body.appendChild(modal);
+    
+    // Wait for modal to be ready before attaching listeners
+    await modal.componentOnReady();
 
-    // Adjuntar event listeners
-    modal.querySelector('#close-cash-modal').addEventListener('click', () => {
-      modal.dismiss();
-    });
+    // Adjuntar event listeners después de que el modal esté listo
+    const closeBtn = modal.querySelector('#close-cash-modal');
+    const setBalanceBtn = modal.querySelector('#set-initial-balance-btn');
+    const addExpenseBtn = modal.querySelector('#add-cash-expense-btn');
+    const closeDayBtn = modal.querySelector('#close-cash-day-btn');
+    const resetBtn = modal.querySelector('#reset-cash-btn');
+    const historyBtn = modal.querySelector('#view-cash-history-btn');
+    const settlementBtn = modal.querySelector('#calculate-settlement-btn');
 
-    modal.querySelector('#set-initial-balance-btn').addEventListener('click', () => {
-      this.showSetInitialBalanceModal();
-    });
+    if (closeBtn) {
+      closeBtn.addEventListener('click', () => {
+        modal.dismiss();
+      });
+    }
 
-    modal.querySelector('#add-cash-expense-btn').addEventListener('click', () => {
-      this.showAddCashExpenseModal();
-    });
+    if (setBalanceBtn) {
+      setBalanceBtn.addEventListener('click', () => {
+        this.showSetInitialBalanceModal();
+      });
+    }
 
-    modal.querySelector('#close-cash-day-btn').addEventListener('click', () => {
-      this.handleCloseCashDay();
-    });
+    if (addExpenseBtn) {
+      addExpenseBtn.addEventListener('click', () => {
+        this.showAddCashExpenseModal();
+      });
+    }
 
-    modal.querySelector('#reset-cash-btn').addEventListener('click', () => {
-      this.handleResetCash();
-    });
+    if (closeDayBtn) {
+      closeDayBtn.addEventListener('click', () => {
+        this.handleCloseCashDay();
+      });
+    }
 
-    modal.querySelector('#view-cash-history-btn').addEventListener('click', () => {
-      this.showCashHistory();
-    });
+    if (resetBtn) {
+      resetBtn.addEventListener('click', () => {
+        this.handleResetCash();
+      });
+    }
 
-    modal.querySelector('#calculate-settlement-btn').addEventListener('click', () => {
-      this.showSettlementCalculator();
-    });
+    if (historyBtn) {
+      historyBtn.addEventListener('click', () => {
+        this.showCashHistory();
+      });
+    }
+
+    if (settlementBtn) {
+      settlementBtn.addEventListener('click', () => {
+        this.showSettlementCalculator();
+      });
+    }
 
     return modal;
   }
@@ -430,20 +455,19 @@ class CashManager {
    * Eliminar gasto en efectivo
    */
   async handleDeleteCashExpense(expenseId) {
-    const confirmed = await window.AlertManager.confirm(
+    await ActionSheetManager.showConfirmation(
       'Eliminar Gasto',
-      '¿Estás seguro de eliminar este gasto?'
-    );
+      '¿Estás seguro de eliminar este gasto?',
+      async () => {
+        this.cashSession.cashExpenses = this.cashSession.cashExpenses.filter(e => e.id !== expenseId);
+        this.saveCashSession();
+        this.updateCashSummary();
 
-    if (confirmed) {
-      this.cashSession.cashExpenses = this.cashSession.cashExpenses.filter(e => e.id !== expenseId);
-      this.saveCashSession();
-      this.updateCashSummary();
-
-      if (window.ToastManager) {
-        window.ToastManager.showSuccess('Gasto eliminado');
+        if (window.ToastManager) {
+          window.ToastManager.showSuccess('Gasto eliminado');
+        }
       }
-    }
+    );
   }
 
   /**
@@ -465,29 +489,28 @@ class CashManager {
     const totalExpenses = cashExpenses.reduce((sum, e) => sum + parseFloat(e.amount || 0), 0);
     const finalBalance = this.cashSession.initialBalance + cashIncome - totalExpenses;
 
-    const confirmed = await window.AlertManager.confirm(
+    await ActionSheetManager.showConfirmation(
       'Cerrar Día de Caja',
-      `¿Confirmas el cierre del día con un saldo final de ${this.formatEuros(finalBalance)}€?`
-    );
+      `¿Confirmas el cierre del día con un saldo final de ${this.formatEuros(finalBalance)}€?`,
+      async () => {
+        // Cerrar sesión actual
+        this.cashSession.status = 'closed';
+        this.cashSession.endTime = new Date().toISOString();
+        this.cashSession.finalBalance = finalBalance;
+        this.cashSession.cashIncome = cashIncome;
+        this.cashSession.totalExpenses = totalExpenses;
+        this.cashSession.serviceCount = cashServices.length;
+        this.saveCashSession();
 
-    if (confirmed) {
-      // Cerrar sesión actual
-      this.cashSession.status = 'closed';
-      this.cashSession.endTime = new Date().toISOString();
-      this.cashSession.finalBalance = finalBalance;
-      this.cashSession.cashIncome = cashIncome;
-      this.cashSession.totalExpenses = totalExpenses;
-      this.cashSession.serviceCount = cashServices.length;
-      this.saveCashSession();
+        if (window.ToastManager) {
+          window.ToastManager.showSuccess(`Día cerrado. Saldo final: ${this.formatEuros(finalBalance)}€`);
+        }
 
-      if (window.ToastManager) {
-        window.ToastManager.showSuccess(`Día cerrado. Saldo final: ${this.formatEuros(finalBalance)}€`);
+        // Crear nueva sesión para mañana
+        await this.loadCurrentSession();
+        await this.updateCashSummary();
       }
-
-      // Crear nueva sesión para mañana
-      await this.loadCurrentSession();
-      await this.updateCashSummary();
-    }
+    );
   }
 
   /**
@@ -766,25 +789,24 @@ class CashManager {
    * Reiniciar caja para nuevo día
    */
   async handleResetCash() {
-    const confirmed = await window.AlertManager.confirm(
+    await ActionSheetManager.showConfirmation(
       'Reiniciar Caja',
-      '¿Estás seguro? Esto cerrará la caja actual y creará una nueva para hoy. Los datos anteriores se guardarán en el historial.'
-    );
+      '¿Estás seguro? Esto cerrará la caja actual y creará una nueva para hoy. Los datos anteriores se guardarán en el historial.',
+      async () => {
+        // Cerrar sesión actual
+        this.cashSession.status = 'closed';
+        this.cashSession.endTime = new Date().toISOString();
+        this.saveCashSession();
 
-    if (confirmed) {
-      // Cerrar sesión actual
-      this.cashSession.status = 'closed';
-      this.cashSession.endTime = new Date().toISOString();
-      this.saveCashSession();
+        // Crear nueva sesión
+        await this.loadCurrentSession();
+        await this.updateCashSummary();
 
-      // Crear nueva sesión
-      await this.loadCurrentSession();
-      await this.updateCashSummary();
-
-      if (window.ToastManager) {
-        window.ToastManager.showSuccess('Caja reiniciada para nuevo día');
+        if (window.ToastManager) {
+          window.ToastManager.showSuccess('Caja reiniciada para nuevo día');
+        }
       }
-    }
+    );
   }
 
   /**

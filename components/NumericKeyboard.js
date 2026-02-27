@@ -10,12 +10,16 @@ class NumericKeyboard {
     this.keyboardElement = null;
     this.currentValue = '';
     this.maxDecimals = 2;
+    this.instanceId = 'keyboard-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
   }
 
   /**
    * Show the keyboard
    */
   show() {
+    // Hide any other visible keyboards first
+    this.hideOtherKeyboards();
+    
     // Create keyboard if it doesn't exist
     if (!this.keyboardElement) {
       this.createKeyboard();
@@ -23,6 +27,9 @@ class NumericKeyboard {
 
     // Get current value from input
     this.currentValue = this.inputElement.value || '';
+    
+    // Update display with current value
+    this.updateDisplay();
 
     // Show keyboard
     this.keyboardElement.style.display = 'block';
@@ -32,6 +39,18 @@ class NumericKeyboard {
     
     // Prevent body scroll
     document.body.style.overflow = 'hidden';
+  }
+  
+  /**
+   * Hide other keyboards
+   */
+  hideOtherKeyboards() {
+    const allKeyboards = document.querySelectorAll('[id^="numeric-keyboard-"]');
+    allKeyboards.forEach(kb => {
+      if (kb.id !== this.instanceId) {
+        kb.style.display = 'none';
+      }
+    });
   }
 
   /**
@@ -88,7 +107,8 @@ class NumericKeyboard {
    */
   createKeyboard() {
     this.keyboardElement = document.createElement('div');
-    this.keyboardElement.id = 'numeric-keyboard';
+    this.keyboardElement.id = this.instanceId;
+    this.keyboardElement.className = 'numeric-keyboard-instance';
     this.keyboardElement.style.cssText = `
       position: fixed;
       bottom: 0;
@@ -102,9 +122,13 @@ class NumericKeyboard {
       box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.15);
     `;
 
+    const valueId = this.instanceId + '-value';
+    const cancelId = this.instanceId + '-cancel';
+    const confirmId = this.instanceId + '-confirm';
+
     this.keyboardElement.innerHTML = `
       <style>
-        #numeric-keyboard {
+        .numeric-keyboard-instance {
           font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
         }
         
@@ -222,7 +246,7 @@ class NumericKeyboard {
       </style>
       
       <div class="keyboard-display">
-        <span id="keyboard-value">0,00</span>
+        <span id="${valueId}">0,00</span>
         <span>€</span>
       </div>
       
@@ -242,10 +266,10 @@ class NumericKeyboard {
       </div>
       
       <div class="keyboard-actions">
-        <button class="keyboard-action-btn cancel" id="keyboard-cancel">
+        <button class="keyboard-action-btn cancel" id="${cancelId}">
           Cancelar
         </button>
-        <button class="keyboard-action-btn confirm" id="keyboard-confirm">
+        <button class="keyboard-action-btn confirm" id="${confirmId}">
           ✓ Aceptar
         </button>
       </div>
@@ -259,6 +283,9 @@ class NumericKeyboard {
    * Attach keyboard event listeners
    */
   attachKeyboardListeners() {
+    const cancelId = this.instanceId + '-cancel';
+    const confirmId = this.instanceId + '-confirm';
+    
     // Number and special keys
     this.keyboardElement.querySelectorAll('.keyboard-key').forEach(key => {
       key.addEventListener('click', () => {
@@ -268,14 +295,14 @@ class NumericKeyboard {
     });
 
     // Cancel button
-    document.getElementById('keyboard-cancel')?.addEventListener('click', () => {
+    document.getElementById(cancelId)?.addEventListener('click', () => {
       this.currentValue = this.inputElement.value || '';
       this.updateDisplay();
       this.hide();
     });
 
     // Confirm button
-    document.getElementById('keyboard-confirm')?.addEventListener('click', () => {
+    document.getElementById(confirmId)?.addEventListener('click', () => {
       this.confirmValue();
     });
   }
@@ -310,7 +337,8 @@ class NumericKeyboard {
    * Update display
    */
   updateDisplay() {
-    const displayElement = document.getElementById('keyboard-value');
+    const valueId = this.instanceId + '-value';
+    const displayElement = document.getElementById(valueId);
     if (displayElement) {
       displayElement.textContent = this.currentValue || '0,00';
     }
