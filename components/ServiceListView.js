@@ -96,9 +96,9 @@ class ServiceListView {
                 <ion-item>
                   <ion-label position="stacked">Desde</ion-label>
                   <ion-input 
-                    type="date" 
+                    type="datetime-local" 
                     id="date-from-filter"
-                    placeholder="Fecha inicio">
+                    placeholder="Fecha y hora inicio">
                   </ion-input>
                 </ion-item>
               </ion-col>
@@ -106,9 +106,9 @@ class ServiceListView {
                 <ion-item>
                   <ion-label position="stacked">Hasta</ion-label>
                   <ion-input 
-                    type="date" 
+                    type="datetime-local" 
                     id="date-to-filter"
-                    placeholder="Fecha fin">
+                    placeholder="Fecha y hora fin">
                   </ion-input>
                 </ion-item>
               </ion-col>
@@ -418,12 +418,39 @@ class ServiceListView {
       filtered = filtered.filter(service => service.userId === this.filterTaxista);
     }
 
-    // Apply date range filter
+    // Apply date range filter (with time precision)
     if (this.filterDateFrom) {
-      filtered = filtered.filter(service => service.date >= this.filterDateFrom);
+      const fromDateTime = new Date(this.filterDateFrom);
+      filtered = filtered.filter(service => {
+        let serviceDateTime;
+        if (service.datetime) {
+          serviceDateTime = new Date(service.datetime);
+        } else if (service.date && service.time) {
+          serviceDateTime = new Date(`${service.date}T${service.time}`);
+        } else if (service.date) {
+          serviceDateTime = new Date(`${service.date}T00:00:00`);
+        } else {
+          return false;
+        }
+        return serviceDateTime >= fromDateTime;
+      });
     }
+    
     if (this.filterDateTo) {
-      filtered = filtered.filter(service => service.date <= this.filterDateTo);
+      const toDateTime = new Date(this.filterDateTo);
+      filtered = filtered.filter(service => {
+        let serviceDateTime;
+        if (service.datetime) {
+          serviceDateTime = new Date(service.datetime);
+        } else if (service.date && service.time) {
+          serviceDateTime = new Date(`${service.date}T${service.time}`);
+        } else if (service.date) {
+          serviceDateTime = new Date(`${service.date}T23:59:59`);
+        } else {
+          return false;
+        }
+        return serviceDateTime <= toDateTime;
+      });
     }
 
     // Apply sorting

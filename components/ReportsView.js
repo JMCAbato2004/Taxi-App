@@ -54,7 +54,7 @@ class ReportsView {
                 <ion-label position="stacked">Desde</ion-label>
                 <ion-input 
                   id="reports-start-date" 
-                  type="date" 
+                  type="datetime-local" 
                   value="${this.startDate}">
                 </ion-input>
               </ion-item>
@@ -64,7 +64,7 @@ class ReportsView {
                 <ion-label position="stacked">Hasta</ion-label>
                 <ion-input 
                   id="reports-end-date" 
-                  type="date" 
+                  type="datetime-local" 
                   value="${this.endDate}">
                 </ion-input>
               </ion-item>
@@ -189,11 +189,23 @@ class ReportsView {
         const taxistaIds = relevantTaxistas.map(t => t.id);
         relevantServices = allServices.filter(s => taxistaIds.includes(s.userId));
         
-        // Filter by date range
+        // Filter by date range (with time precision)
         console.log('ReportsView.loadReports: Filtering by date range:', this.startDate, 'to', this.endDate);
+        const startDateTime = new Date(this.startDate);
+        const endDateTime = new Date(this.endDate);
+        
         relevantServices = relevantServices.filter(s => {
-          const serviceDate = s.date || new Date(s.datetime).toISOString().split('T')[0];
-          return serviceDate >= this.startDate && serviceDate <= this.endDate;
+          let serviceDateTime;
+          if (s.datetime) {
+            serviceDateTime = new Date(s.datetime);
+          } else if (s.date && s.time) {
+            serviceDateTime = new Date(`${s.date}T${s.time}`);
+          } else if (s.date) {
+            serviceDateTime = new Date(`${s.date}T00:00:00`);
+          } else {
+            return false;
+          }
+          return serviceDateTime >= startDateTime && serviceDateTime <= endDateTime;
         });
         
         console.log('ReportsView.loadReports: Filtered services for PATRON (including own):', relevantServices.length);
@@ -254,10 +266,23 @@ class ReportsView {
       .filter(e => {
         if (!taxistaIds.includes(e.userId)) return false;
         
-        // Filter by date range (only for PATRON with date filter)
+        // Filter by date range (with time precision)
         if (this.startDate && this.endDate) {
-          const expenseDate = e.date || new Date(e.createdAt).toISOString().split('T')[0];
-          return expenseDate >= this.startDate && expenseDate <= this.endDate;
+          const startDateTime = new Date(this.startDate);
+          const endDateTime = new Date(this.endDate);
+          
+          let expenseDateTime;
+          if (e.datetime) {
+            expenseDateTime = new Date(e.datetime);
+          } else if (e.date) {
+            expenseDateTime = new Date(`${e.date}T00:00:00`);
+          } else if (e.createdAt) {
+            expenseDateTime = new Date(e.createdAt);
+          } else {
+            return false;
+          }
+          
+          return expenseDateTime >= startDateTime && expenseDateTime <= endDateTime;
         }
         
         return true;
