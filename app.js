@@ -809,6 +809,21 @@ async function showFabActionSheet() {
  * Show service form modal
  */
 async function showServiceFormModal(service = null) {
+  // Validar que existe una jornada activa antes de abrir el modal
+  if (!service && window.workShiftAdapter) {
+    try {
+      const activeShift = await window.workShiftAdapter.getActiveShift();
+      if (!activeShift) {
+        ToastManager.showError('Debes iniciar una jornada antes de añadir servicios');
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking active shift:', error);
+      ToastManager.showError('Debes iniciar una jornada antes de añadir servicios');
+      return;
+    }
+  }
+  
   const modal = new ServiceFormModal(reconcileAdapter, service);
   await modal.show();
 }

@@ -109,29 +109,29 @@ class TaxistaDetailsModal {
             <ion-grid>
               <ion-row>
                 <ion-col size="6">
-                  <div style="background: var(--ion-color-primary-tint); padding: 16px; border-radius: 8px; text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: var(--ion-color-primary);">Servicios Totales</p>
-                    <h2 style="margin: 8px 0 0 0; font-size: 24px; font-weight: bold; color: var(--ion-color-primary);">${taxistaServices.length}</h2>
+                  <div style="background: rgba(59, 130, 246, 0.15); padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #3b82f6;">
+                    <p style="margin: 0; font-size: 12px; color: var(--ion-text-color); font-weight: 600;">Servicios Totales</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: #3b82f6;">${taxistaServices.length}</h2>
                   </div>
                 </ion-col>
                 <ion-col size="6">
-                  <div style="background: var(--ion-color-success-tint); padding: 16px; border-radius: 8px; text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: var(--ion-color-success);">Ingresos Totales</p>
-                    <h2 style="margin: 8px 0 0 0; font-size: 24px; font-weight: bold; color: var(--ion-color-success);">€${totalEarnings.toFixed(2)}</h2>
+                  <div style="background: rgba(16, 185, 129, 0.15); padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #10b981;">
+                    <p style="margin: 0; font-size: 12px; color: var(--ion-text-color); font-weight: 600;">Ingresos Totales</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: #10b981;">€${totalEarnings.toFixed(2)}</h2>
                   </div>
                 </ion-col>
               </ion-row>
               <ion-row>
                 <ion-col size="6">
-                  <div style="background: var(--ion-color-tertiary-tint); padding: 16px; border-radius: 8px; text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: var(--ion-color-tertiary);">Servicios Hoy</p>
-                    <h2 style="margin: 8px 0 0 0; font-size: 24px; font-weight: bold; color: var(--ion-color-tertiary);">${todayServices.length}</h2>
+                  <div style="background: rgba(139, 92, 246, 0.15); padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #8b5cf6;">
+                    <p style="margin: 0; font-size: 12px; color: var(--ion-text-color); font-weight: 600;">Servicios Hoy</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: #8b5cf6;">${todayServices.length}</h2>
                   </div>
                 </ion-col>
                 <ion-col size="6">
-                  <div style="background: var(--ion-color-warning-tint); padding: 16px; border-radius: 8px; text-align: center;">
-                    <p style="margin: 0; font-size: 12px; color: var(--ion-color-warning);">Ingresos Hoy</p>
-                    <h2 style="margin: 8px 0 0 0; font-size: 24px; font-weight: bold; color: var(--ion-color-warning);">€${todayEarnings.toFixed(2)}</h2>
+                  <div style="background: rgba(245, 158, 11, 0.15); padding: 16px; border-radius: 8px; text-align: center; border: 2px solid #f59e0b;">
+                    <p style="margin: 0; font-size: 12px; color: var(--ion-text-color); font-weight: 600;">Ingresos Hoy</p>
+                    <h2 style="margin: 8px 0 0 0; font-size: 28px; font-weight: bold; color: #f59e0b;">€${todayEarnings.toFixed(2)}</h2>
                   </div>
                 </ion-col>
               </ion-row>

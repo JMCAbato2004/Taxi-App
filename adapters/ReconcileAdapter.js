@@ -114,6 +114,23 @@ class ReconcileAdapter {
       
       if (!currentUser) throw new Error('Usuario no autenticado');
 
+      // VALIDACIÓN: Verificar que existe una jornada activa
+      let activeShift = null;
+      if (window.workShiftAdapter) {
+        try {
+          activeShift = await window.workShiftAdapter.getActiveShift();
+          if (!activeShift) {
+            throw new Error('Debes iniciar una jornada antes de añadir servicios');
+          }
+          console.log('ReconcileAdapter.createService: Active shift found:', activeShift.id);
+        } catch (error) {
+          console.error('ReconcileAdapter.createService: Error checking active shift:', error);
+          throw new Error('Debes iniciar una jornada antes de añadir servicios');
+        }
+      } else {
+        throw new Error('Sistema de jornadas no disponible');
+      }
+
       // Create datetime field for compatibility (combines date and time)
       const datetime = serviceData.date && serviceData.time 
         ? `${serviceData.date}T${serviceData.time}:00`
@@ -124,25 +141,12 @@ class ReconcileAdapter {
         ...serviceData,
         datetime: datetime, // Add datetime field for compatibility
         userId: currentUser.id,
+        shiftId: activeShift.id, // Vincular a la jornada activa
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
 
       console.log('ReconcileAdapter.createService: Service object created:', service);
-
-      // Vincular a jornada activa si existe
-      if (window.workShiftAdapter) {
-        try {
-          const activeShift = await window.workShiftAdapter.getActiveShift();
-          if (activeShift) {
-            service.shiftId = activeShift.id;
-            console.log('ReconcileAdapter.createService: Service linked to active shift:', activeShift.id);
-          }
-        } catch (error) {
-          console.error('ReconcileAdapter.createService: Error linking to shift:', error);
-          // No fallar si hay error al vincular, continuar sin shiftId
-        }
-      }
 
       const services = JSON.parse(localStorage.getItem('taxi_services') || '[]');
       console.log('ReconcileAdapter.createService: Existing services count:', services.length);
