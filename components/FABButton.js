@@ -32,6 +32,17 @@ class FABButton {
    * Handle FAB button click
    */
   async handleClick() {
+    // Use the global FAB action sheet from app.js if available
+    if (window.app && typeof window.app.showFabActionSheet === 'function') {
+      // Call the app's FAB action sheet which has all the proper handlers
+      const fabActionSheet = window.app.showFabActionSheet || window.showFabActionSheet;
+      if (fabActionSheet) {
+        await fabActionSheet();
+        return;
+      }
+    }
+    
+    // Fallback to local action sheet
     await this.showActionSheet();
   }
 

@@ -108,9 +108,169 @@ class ServiceFormModal {
             --padding-start: 0;
             --padding-end: 0;
           }
+          
+          /* Custom styles for service source buttons */
+          .service-source-buttons {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 20px;
+            padding: 0 4px;
+          }
+          
+          .source-btn {
+            height: 70px;
+            margin: 0;
+            font-size: 13px;
+            font-weight: 600;
+            --border-radius: 12px;
+            --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+          }
+          
+          .source-btn.selected {
+            --color: white;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: scale(1.05);
+          }
+          
+          .source-btn:not(.selected) {
+            --background: var(--ion-color-light);
+            --color: var(--ion-color-dark);
+            opacity: 0.7;
+          }
+          
+          /* Individual colors for each source */
+          .source-btn[data-source="emisora"].selected {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+            color: white !important;
+          }
+          
+          .source-btn[data-source="calle"].selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            color: white !important;
+          }
+          
+          .source-btn[data-source="uber"].selected {
+            background: linear-gradient(135deg, #1a1a1a 0%, #000000 100%) !important;
+            color: white !important;
+          }
+          
+          .source-btn[data-source="freenow"].selected {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+            color: white !important;
+          }
+          
+          .source-btn[data-source="otro"].selected {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+            color: white !important;
+          }
+          
+          .source-btn ion-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+          }
+          
+          /* Custom styles for payment method buttons */
+          .payment-method-buttons {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 10px;
+            margin-bottom: 16px;
+            padding: 0 4px;
+          }
+          
+          .payment-btn {
+            height: 80px;
+            margin: 0;
+            font-size: 15px;
+            font-weight: 600;
+            --border-radius: 12px;
+            --box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+          }
+          
+          .payment-btn.selected {
+            --color: white;
+            --box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transform: scale(1.05);
+          }
+          
+          .payment-btn:not(.selected) {
+            --background: var(--ion-color-light);
+            --color: var(--ion-color-dark);
+            opacity: 0.7;
+          }
+          
+          /* Individual colors for each payment method */
+          .payment-btn[data-payment="efectivo"].selected {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+            color: white !important;
+          }
+          
+          .payment-btn[data-payment="tarjeta"].selected {
+            background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%) !important;
+            color: white !important;
+          }
+          
+          .payment-btn[data-payment="transferencia"].selected {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
+            color: white !important;
+          }
+          
+          .payment-btn[data-payment="app"].selected {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+            color: white !important;
+          }
+          
+          .payment-btn ion-icon {
+            font-size: 28px;
+            margin-bottom: 6px;
+          }
         </style>
         
         <form id="service-form">
+          <!-- Service Source Buttons -->
+          <ion-list-header>
+            <ion-label>Origen del Servicio *</ion-label>
+          </ion-list-header>
+          
+          <div class="service-source-buttons">
+            <ion-button class="source-btn selected" data-source="emisora">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="radio"></ion-icon>
+                <span>Emisora</span>
+              </div>
+            </ion-button>
+            <ion-button class="source-btn" data-source="calle">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="walk"></ion-icon>
+                <span>Calle</span>
+              </div>
+            </ion-button>
+            <ion-button class="source-btn" data-source="uber">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="car-sport"></ion-icon>
+                <span>Uber</span>
+              </div>
+            </ion-button>
+            <ion-button class="source-btn" data-source="freenow">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="car"></ion-icon>
+                <span>FreeNow</span>
+              </div>
+            </ion-button>
+            <ion-button class="source-btn" data-source="otro">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="ellipsis-horizontal"></ion-icon>
+                <span>Otro</span>
+              </div>
+            </ion-button>
+          </div>
+          
+          <!-- Hidden input to store selected source -->
+          <input type="hidden" id="service-source" value="emisora">
+
           <!-- Información del Servicio -->
           <ion-list-header>
             <ion-label>Información del Servicio</ion-label>
@@ -161,16 +321,7 @@ class ServiceFormModal {
           </div>
 
           <!-- Service Source -->
-          <ion-item>
-            <ion-label position="stacked">Origen del Servicio *</ion-label>
-            <ion-select id="service-source" value="emisora" interface="action-sheet">
-              <ion-select-option value="emisora">📻 Emisora</ion-select-option>
-              <ion-select-option value="calle">🚶 Calle</ion-select-option>
-              <ion-select-option value="uber">🚗 Uber</ion-select-option>
-              <ion-select-option value="freenow">🚕 FreeNow</ion-select-option>
-              <ion-select-option value="otro">📋 Otro</ion-select-option>
-            </ion-select>
-          </ion-item>
+          <!-- Moved to top as segment buttons -->
 
           <!-- Amounts -->
           <ion-list-header style="margin-top: 16px;">
@@ -243,20 +394,40 @@ class ServiceFormModal {
             </ion-card-content>
           </ion-card>
 
-          <!-- Payment Method -->
+          <!-- Payment Method Buttons -->
           <ion-list-header style="margin-top: 16px;">
-            <ion-label>Método de Pago</ion-label>
+            <ion-label>Método de Pago *</ion-label>
           </ion-list-header>
-
-          <ion-item>
-            <ion-label position="stacked">Método de Pago *</ion-label>
-            <ion-select id="service-payment-method" value="efectivo" interface="action-sheet">
-              <ion-select-option value="efectivo">💵 Efectivo</ion-select-option>
-              <ion-select-option value="tarjeta">💳 Tarjeta</ion-select-option>
-              <ion-select-option value="transferencia">🏦 Transferencia</ion-select-option>
-              <ion-select-option value="app">📱 App</ion-select-option>
-            </ion-select>
-          </ion-item>
+          
+          <div class="payment-method-buttons">
+            <ion-button class="payment-btn selected" data-payment="efectivo">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="cash"></ion-icon>
+                <span>Efectivo</span>
+              </div>
+            </ion-button>
+            <ion-button class="payment-btn" data-payment="tarjeta">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="card"></ion-icon>
+                <span>Tarjeta</span>
+              </div>
+            </ion-button>
+            <ion-button class="payment-btn" data-payment="transferencia">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="swap-horizontal"></ion-icon>
+                <span>Transferencia</span>
+              </div>
+            </ion-button>
+            <ion-button class="payment-btn" data-payment="app">
+              <div style="display: flex; flex-direction: column; align-items: center;">
+                <ion-icon name="phone-portrait"></ion-icon>
+                <span>App</span>
+              </div>
+            </ion-button>
+          </div>
+          
+          <!-- Hidden input to store selected payment method -->
+          <input type="hidden" id="service-payment-method" value="efectivo">
 
           <!-- Notes -->
           <ion-item>
@@ -306,6 +477,36 @@ class ServiceFormModal {
     // Cancel button
     document.getElementById('cancel-service-btn')?.addEventListener('click', () => {
       this.close();
+    });
+
+    // Service source buttons
+    const sourceButtons = document.querySelectorAll('.source-btn');
+    sourceButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Remove selected class from all buttons
+        sourceButtons.forEach(b => b.classList.remove('selected'));
+        // Add selected class to clicked button
+        btn.classList.add('selected');
+        // Update hidden input
+        const source = btn.getAttribute('data-source');
+        document.getElementById('service-source').value = source;
+      });
+    });
+
+    // Payment method buttons
+    const paymentButtons = document.querySelectorAll('.payment-btn');
+    paymentButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        // Remove selected class from all buttons
+        paymentButtons.forEach(b => b.classList.remove('selected'));
+        // Add selected class to clicked button
+        btn.classList.add('selected');
+        // Update hidden input
+        const payment = btn.getAttribute('data-payment');
+        document.getElementById('service-payment-method').value = payment;
+      });
     });
 
     // Geolocation button
@@ -581,14 +782,34 @@ class ServiceFormModal {
     document.getElementById('service-date').value = this.service.date || '';
     document.getElementById('service-time').value = this.service.time || '';
     document.getElementById('service-destination').value = this.service.destination || '';
-    document.getElementById('service-source').value = this.service.serviceSource || 'emisora';
+    
+    // Set service source and update button selection
+    const serviceSource = this.service.serviceSource || 'emisora';
+    document.getElementById('service-source').value = serviceSource;
+    document.querySelectorAll('.source-btn').forEach(btn => {
+      if (btn.getAttribute('data-source') === serviceSource) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+    });
     
     // Format values with comma decimal
     document.getElementById('service-amount').value = this.service.amount ? this.formatEuros(this.service.amount) : '';
     document.getElementById('service-commission').value = this.service.commission ? this.formatEuros(this.service.commission) : '';
     document.getElementById('service-tip').value = this.service.tip ? this.formatEuros(this.service.tip) : '';
     
-    document.getElementById('service-payment-method').value = this.service.paymentMethod || 'efectivo';
+    // Set payment method and update button selection
+    const paymentMethod = this.service.paymentMethod || 'efectivo';
+    document.getElementById('service-payment-method').value = paymentMethod;
+    document.querySelectorAll('.payment-btn').forEach(btn => {
+      if (btn.getAttribute('data-payment') === paymentMethod) {
+        btn.classList.add('selected');
+      } else {
+        btn.classList.remove('selected');
+      }
+    });
+    
     document.getElementById('service-notes').value = this.service.notes || '';
 
     // Update preview after prefilling

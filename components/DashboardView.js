@@ -520,14 +520,6 @@ class DashboardView {
         <ion-icon slot="start" name="time-outline"></ion-icon>
         Historial de Jornadas
       </ion-button>
-      <ion-button expand="block" color="medium" onclick="window.app.showDataSync()">
-        <ion-icon slot="start" name="sync"></ion-icon>
-        Sincronización
-      </ion-button>
-      <ion-button expand="block" color="warning" onclick="window.app.toggleOfflineMode()">
-        <ion-icon slot="start" name="cloud-offline"></ion-icon>
-        Modo Offline
-      </ion-button>
     `;
     
     container.innerHTML = buttons;
