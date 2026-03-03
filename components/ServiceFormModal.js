@@ -907,6 +907,12 @@ class ServiceFormModal {
       };
     }
 
+    // Show confirmation modal with summary
+    const confirmed = await this.showConfirmationSummary(serviceData);
+    if (!confirmed) {
+      return; // User cancelled, stay in form
+    }
+
     try {
       await LoadingManager.show(this.isEditMode ? 'Guardando cambios...' : 'Creando servicio...');
 
@@ -930,6 +936,204 @@ class ServiceFormModal {
       console.error('Error saving service:', error);
       ToastManager.showError('Error al guardar el servicio. Inténtalo de nuevo.');
     }
+  }
+
+  /**
+   * Show confirmation modal with service summary
+   */
+  async showConfirmationSummary(serviceData) {
+    return new Promise(async (resolve) => {
+      // Format source and payment method labels
+      const sourceLabels = {
+        'emisora': '📻 Emisora',
+        'calle': '🚶 Calle',
+        'uber': '🚗 Uber',
+        'freenow': '🚕 FreeNow',
+        'otro': '📋 Otro'
+      };
+      
+      const paymentLabels = {
+        'efectivo': '💵 Efectivo',
+        'tarjeta': '💳 Tarjeta',
+        'transferencia': '🏦 Transferencia',
+        'app': '📱 App'
+      };
+
+      const confirmModal = document.createElement('ion-modal');
+      confirmModal.innerHTML = `
+        <ion-header>
+          <ion-toolbar color="primary">
+            <ion-title>Confirmar Servicio</ion-title>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <style>
+            .summary-card {
+              background: rgba(255, 255, 255, 0.05);
+              border: 2px solid var(--ion-color-medium);
+              border-radius: 12px;
+              padding: 16px;
+              margin-bottom: 16px;
+            }
+            
+            .summary-row {
+              display: flex;
+              justify-content: space-between;
+              align-items: center;
+              padding: 12px 0;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            
+            .summary-row:last-child {
+              border-bottom: none;
+            }
+            
+            .summary-label {
+              font-size: 14px;
+              color: var(--ion-text-color);
+              font-weight: 600;
+              opacity: 0.7;
+            }
+            
+            .summary-value {
+              font-size: 16px;
+              color: var(--ion-text-color);
+              font-weight: 700;
+              text-align: right;
+            }
+            
+            .summary-total {
+              background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+              border: 3px solid #10b981;
+              border-radius: 12px;
+              padding: 20px;
+              margin: 20px 0;
+              text-align: center;
+            }
+            
+            .summary-total-label {
+              font-size: 16px;
+              color: var(--ion-text-color);
+              font-weight: 600;
+              margin-bottom: 8px;
+            }
+            
+            .summary-total-value {
+              font-size: 36px;
+              font-weight: bold;
+              color: #10b981;
+            }
+          </style>
+          
+          <p style="text-align: center; color: var(--ion-color-medium); margin-bottom: 20px;">
+            Revisa los datos antes de confirmar
+          </p>
+          
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="summary-label">Fecha y Hora</span>
+              <span class="summary-value">${new Date(serviceData.date + 'T' + serviceData.time).toLocaleString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</span>
+            </div>
+            
+            <div class="summary-row">
+              <span class="summary-label">Destino</span>
+              <span class="summary-value">${serviceData.destination}</span>
+            </div>
+            
+            <div class="summary-row">
+              <span class="summary-label">Origen</span>
+              <span class="summary-value">${sourceLabels[serviceData.serviceSource]}</span>
+            </div>
+            
+            <div class="summary-row">
+              <span class="summary-label">Método de Pago</span>
+              <span class="summary-value">${paymentLabels[serviceData.paymentMethod]}</span>
+            </div>
+          </div>
+          
+          <div class="summary-card">
+            <div class="summary-row">
+              <span class="summary-label">Importe Base</span>
+              <span class="summary-value">€${serviceData.amount.toFixed(2)}</span>
+            </div>
+            
+            ${serviceData.commission > 0 ? `
+              <div class="summary-row">
+                <span class="summary-label">Comisión</span>
+                <span class="summary-value" style="color: var(--ion-color-danger);">-€${serviceData.commission.toFixed(2)}</span>
+              </div>
+            ` : ''}
+            
+            ${serviceData.tip > 0 ? `
+              <div class="summary-row">
+                <span class="summary-label">Propina</span>
+                <span class="summary-value" style="color: var(--ion-color-success);">+€${serviceData.tip.toFixed(2)}</span>
+              </div>
+            ` : ''}
+          </div>
+          
+          ${serviceData.notes ? `
+            <div class="summary-card">
+              <div class="summary-row">
+                <span class="summary-label">Notas</span>
+                <span class="summary-value" style="font-size: 14px; max-width: 60%;">${serviceData.notes}</span>
+              </div>
+            </div>
+          ` : ''}
+          
+          <div class="summary-total">
+            <div class="summary-total-label">Importe Neto</div>
+            <div class="summary-total-value">€${serviceData.netAmount.toFixed(2)}</div>
+          </div>
+          
+          <div style="display: flex; gap: 12px; margin-top: 24px;">
+            <ion-button 
+              expand="block" 
+              fill="outline"
+              color="medium"
+              id="cancel-confirm-btn"
+              style="flex: 1; height: 56px; font-size: 16px; font-weight: 600;">
+              <ion-icon name="arrow-back" slot="start"></ion-icon>
+              Editar
+            </ion-button>
+            <ion-button 
+              expand="block" 
+              color="success"
+              id="accept-confirm-btn"
+              style="flex: 1; height: 56px; font-size: 16px; font-weight: 600;">
+              <ion-icon name="checkmark-circle" slot="start"></ion-icon>
+              Confirmar
+            </ion-button>
+          </div>
+        </ion-content>
+      `;
+
+      document.body.appendChild(confirmModal);
+      await confirmModal.componentOnReady();
+      await confirmModal.present();
+
+      // Handle buttons
+      document.getElementById('cancel-confirm-btn').addEventListener('click', async () => {
+        await confirmModal.dismiss();
+        resolve(false);
+      });
+
+      document.getElementById('accept-confirm-btn').addEventListener('click', async () => {
+        await confirmModal.dismiss();
+        resolve(true);
+      });
+
+      // Handle backdrop click
+      confirmModal.addEventListener('ionModalDidDismiss', () => {
+        confirmModal.remove();
+      });
+    });
   }
 
   /**
