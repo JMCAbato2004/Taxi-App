@@ -69,18 +69,6 @@ class ExpenseFormModal {
           </ion-item>
           <div class="error-message" id="date-error"></div>
 
-          <!-- Concept -->
-          <ion-item>
-            <ion-label position="stacked">Concepto *</ion-label>
-            <ion-input 
-              type="text" 
-              id="expense-concept" 
-              placeholder="Ej: Gasolina, Cambio de aceite..."
-              required>
-            </ion-input>
-          </ion-item>
-          <div class="error-message" id="concept-error"></div>
-
           <!-- Amount -->
           <ion-item style="--min-height: 80px;">
             <ion-label position="stacked" style="font-size: 16px; margin-bottom: 8px;">Importe *</ion-label>
@@ -118,6 +106,30 @@ class ExpenseFormModal {
             </ion-textarea>
           </ion-item>
           <div class="error-message" id="comments-error"></div>
+
+          <!-- Pagado por -->
+          <ion-list-header style="padding-left: 0; margin-top: 8px;">
+            <ion-label style="font-size: 14px; font-weight: 600;">Pagado por</ion-label>
+          </ion-list-header>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px;">
+            <button
+              type="button"
+              id="paidby-taxista"
+              onclick="document.getElementById('expense-paid-by').value='taxista'; document.getElementById('paidby-taxista').style.background='#1e3a6e'; document.getElementById('paidby-taxista').style.color='#fff'; document.getElementById('paidby-patron').style.background='#f0f0f0'; document.getElementById('paidby-patron').style.color='#333';"
+              style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 8px;border-radius:12px;border:none;cursor:pointer;background:#1e3a6e;color:#fff;font-weight:700;font-size:13px;text-transform:uppercase;box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+              <ion-icon name="person-outline" style="font-size:28px;"></ion-icon>
+              Taxista
+            </button>
+            <button
+              type="button"
+              id="paidby-patron"
+              onclick="document.getElementById('expense-paid-by').value='patron'; document.getElementById('paidby-patron').style.background='#1e3a6e'; document.getElementById('paidby-patron').style.color='#fff'; document.getElementById('paidby-taxista').style.background='#f0f0f0'; document.getElementById('paidby-taxista').style.color='#333';"
+              style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 8px;border-radius:12px;border:none;cursor:pointer;background:#f0f0f0;color:#333;font-weight:700;font-size:13px;text-transform:uppercase;box-shadow:0 4px 12px rgba(0,0,0,0.1);">
+              <ion-icon name="briefcase-outline" style="font-size:28px;"></ion-icon>
+              Patrón
+            </button>
+          </div>
+          <input type="hidden" id="expense-paid-by" value="taxista">
 
           <!-- Submit Button -->
           <ion-button 
@@ -221,7 +233,6 @@ class ExpenseFormModal {
     if (!this.expense) return;
 
     document.getElementById('expense-date').value = this.expense.date || '';
-    document.getElementById('expense-concept').value = this.expense.concept || '';
     
     // Format amount with comma decimal
     const amount = this.expense.amount ? this.formatEuros(parseFloat(this.expense.amount)) : '';
@@ -229,6 +240,16 @@ class ExpenseFormModal {
     
     document.getElementById('expense-category').value = this.expense.category || 'fuel';
     document.getElementById('expense-comments').value = this.expense.comments || '';
+
+    // Restore paidBy selection
+    const paidBy = this.expense.paidBy || 'taxista';
+    document.getElementById('expense-paid-by').value = paidBy;
+    if (paidBy === 'patron') {
+      document.getElementById('paidby-patron').style.background = '#1e3a6e';
+      document.getElementById('paidby-patron').style.color = '#fff';
+      document.getElementById('paidby-taxista').style.background = '#f0f0f0';
+      document.getElementById('paidby-taxista').style.color = '#333';
+    }
     
     // Show comments field if category is "other"
     if (this.expense.category === 'other') {
@@ -246,16 +267,6 @@ class ExpenseFormModal {
     const date = document.getElementById('expense-date').value;
     if (!date) {
       this.showError('date-error', 'La fecha es obligatoria');
-      isValid = false;
-    }
-
-    // Validate concept
-    const concept = document.getElementById('expense-concept').value.trim();
-    if (!concept) {
-      this.showError('concept-error', 'El concepto es obligatorio');
-      isValid = false;
-    } else if (concept.length < 3) {
-      this.showError('concept-error', 'El concepto debe tener al menos 3 caracteres');
       isValid = false;
     }
 
@@ -319,10 +330,10 @@ class ExpenseFormModal {
     
     const expenseData = {
       date: document.getElementById('expense-date').value,
-      concept: document.getElementById('expense-concept').value.trim(),
       amount: amount,
       category: document.getElementById('expense-category').value,
-      comments: document.getElementById('expense-comments').value.trim()
+      comments: document.getElementById('expense-comments').value.trim(),
+      paidBy: document.getElementById('expense-paid-by').value
     };
 
     try {

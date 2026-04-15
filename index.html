@@ -122,6 +122,11 @@
                         <div id="shift-manager-container" style="margin-bottom: 20px;">
                             <!-- WorkShiftManager will render here -->
                         </div>
+
+                        <!-- Action Buttons -->
+                        <div id="action-buttons" style="margin-bottom: 16px;">
+                            <!-- Action buttons will be rendered here based on role -->
+                        </div>
                         
                         <!-- Stats Grid -->
                         <ion-grid style="--ion-grid-padding: 4px;">
@@ -169,11 +174,6 @@
                             </ion-row>
                         </ion-grid>
                         
-                        <!-- Action Buttons -->
-                        <div id="action-buttons" style="margin-bottom: 16px;">
-                            <!-- Action buttons will be rendered here based on role -->
-                        </div>
-                        
                         <!-- Fleet Info (for patrons only) -->
                         <div id="fleet-info">
                             <!-- Fleet information will be rendered here for patrons -->
@@ -181,8 +181,12 @@
                         
                         <!-- Recent Activity -->
                         <ion-card>
-                            <ion-card-header>
+                            <ion-card-header style="display: flex; align-items: center; justify-content: space-between; padding-bottom: 0;">
                                 <ion-card-title>Actividad Reciente</ion-card-title>
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <ion-label style="font-size: 13px; color: var(--ion-color-medium);">Mostrar</ion-label>
+                                    <ion-toggle id="recent-activity-toggle" checked style="--handle-width: 20px; --handle-height: 20px;"></ion-toggle>
+                                </div>
                             </ion-card-header>
                             <ion-card-content id="recent-activity">
                                 <p style="text-align: center; color: var(--ion-color-medium);">
@@ -287,7 +291,7 @@
             </ion-tab>
             
             <!-- Tab Bar -->
-            <ion-tab-bar slot="bottom">
+            <ion-tab-bar slot="bottom" style="display: none;">
                 <ion-tab-button tab="home">
                     <ion-icon name="home"></ion-icon>
                     <ion-label>Inicio</ion-label>
@@ -323,6 +327,7 @@
     <script nomodule src="https://cdn.jsdelivr.net/npm/@ionic/core/dist/ionic/ionic.js"></script>
     
     <!-- Utility Managers -->
+    <script src="./utils/SeedDataGenerator.js"></script>
     <script src="./utils/ToastManager.js"></script>
     <script src="./utils/LoadingManager.js"></script>
     <script src="./utils/ActionSheetManager.js"></script>

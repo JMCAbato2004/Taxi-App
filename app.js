@@ -235,8 +235,8 @@ function showWelcome() {
   if (fabButton) {
     fabButton.hide();
   }
-  
-  // Hide tab navigation when not authenticated
+
+  // Hide tab bar when not authenticated
   const tabBar = document.querySelector('ion-tab-bar');
   if (tabBar) {
     tabBar.style.display = 'none';
@@ -260,8 +260,8 @@ async function showDashboard() {
   if (fabButton) {
     fabButton.show();
   }
-  
-  // Show tab navigation when authenticated
+
+  // Show tab bar when authenticated
   const tabBar = document.querySelector('ion-tab-bar');
   if (tabBar) {
     tabBar.style.display = 'flex';
@@ -692,6 +692,20 @@ async function showMenuActionSheet() {
       handler: () => ToastManager.showInfo('Configuración - Próximamente')
     },
     {
+      text: '🧪 Cargar Datos de Prueba',
+      icon: 'flask',
+      handler: async () => {
+        await loadSeedData();
+      }
+    },
+    {
+      text: '🗑️ Borrar Datos de Prueba',
+      icon: 'trash-bin',
+      handler: async () => {
+        await clearSeedData();
+      }
+    },
+    {
       text: 'Limpiar Todos los Datos',
       icon: 'trash',
       handler: async () => {
@@ -888,6 +902,79 @@ function handleBalanceSegmentChange(value) {
   } else if (value === 'history' && historyContent) {
     historyContent.style.display = 'block';
   }
+}
+
+/**
+ * Load seed/test data for the current user
+ */
+async function loadSeedData() {
+  const user = authAdapter.getCurrentUser();
+  if (!user) {
+    ToastManager.showError('Debes iniciar sesión primero');
+    return;
+  }
+
+  await ActionSheetManager.showConfirmation(
+    '🧪 Cargar Datos de Prueba',
+    'Se generarán 7 jornadas (últimos 7 días) con 10 servicios hoy y 5 en cada día anterior, más 1-2 gastos por jornada. ¿Continuar?',
+    async () => {
+      try {
+        await LoadingManager.show('Generando datos de prueba...');
+
+        const result = SeedDataGenerator.generate(user.id);
+
+        await LoadingManager.hide();
+        ToastManager.showSuccess(`✅ ${result.shifts} jornadas · ${result.services} servicios · ${result.expenses} gastos generados`);
+
+        // Refrescar vistas
+        if (dashboardView) await dashboardView.render();
+        if (serviceListView) await serviceListView.refresh();
+        if (expenseListView) await expenseListView.refresh();
+        // Recargar el adapter de jornadas para que las nuevas sean visibles
+        if (window.workShiftAdapter) window.workShiftAdapter.loadShifts();
+      } catch (error) {
+        await LoadingManager.hide();
+        console.error('Error generating seed data:', error);
+        ToastManager.showError('Error al generar datos de prueba');
+      }
+    }
+  );
+}
+
+/**
+ * Clear only seed/test data for the current user
+ */
+async function clearSeedData() {
+  const user = authAdapter.getCurrentUser();
+  if (!user) {
+    ToastManager.showError('Debes iniciar sesión primero');
+    return;
+  }
+
+  await ActionSheetManager.showConfirmation(
+    '🗑️ Borrar Datos de Prueba',
+    'Se eliminarán únicamente las jornadas, servicios y gastos generados con "Cargar Datos de Prueba". Los datos reales no se tocarán.',
+    async () => {
+      try {
+        await LoadingManager.show('Eliminando datos de prueba...');
+
+        const result = SeedDataGenerator.clear(user.id);
+
+        await LoadingManager.hide();
+        ToastManager.showSuccess(`🗑️ ${result.shifts} jornadas · ${result.services} servicios · ${result.expenses} gastos de prueba eliminados`);
+
+        // Refrescar vistas
+        if (dashboardView) await dashboardView.render();
+        if (serviceListView) await serviceListView.refresh();
+        if (expenseListView) await expenseListView.refresh();
+        if (window.workShiftAdapter) window.workShiftAdapter.loadShifts();
+      } catch (error) {
+        await LoadingManager.hide();
+        console.error('Error clearing seed data:', error);
+        ToastManager.showError('Error al eliminar datos de prueba');
+      }
+    }
+  );
 }
 
 console.log('App.js loaded');

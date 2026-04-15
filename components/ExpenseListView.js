@@ -172,17 +172,18 @@ class ExpenseListView {
       let taxistaInfo = '';
       if (isPatron && expense.userId && taxistasMap[expense.userId]) {
         const taxista = taxistasMap[expense.userId];
-        taxistaInfo = `<p style="font-size: 11px; color: #3b82f6; font-weight: 600;">🚕 ${taxista.nombre}${taxista.numeroTaxista ? ` (${taxista.numeroTaxista})` : ''}</p>`;
+        taxistaInfo = `<p style="font-size: 11px; color: var(--ion-color-primary); font-weight: 600;">🚕 ${taxista.nombre}${taxista.numeroTaxista ? ` (${taxista.numeroTaxista})` : ''}</p>`;
       }
 
       return `
         <ion-item button class="expense-item" data-expense-id="${expense.id}">
           <div class="expense-icon" slot="start">${categoryIcon}</div>
           <ion-label>
-            <h2>${expense.concept}</h2>
+            <h2>${expense.concept || expense.category}</h2>
             <p>${formattedDate} • €${parseFloat(expense.amount).toFixed(2)}</p>
             ${taxistaInfo}
             ${expense.comments ? `<p style="font-size: 11px; color: var(--ion-color-medium); font-style: italic;">${expense.comments}</p>` : ''}
+            ${expense.paidBy ? `<p style="font-size: 11px; color: var(--ion-color-medium);">Pagado por: <strong>${expense.paidBy === 'patron' ? 'Patrón' : 'Taxista'}</strong></p>` : ''}
           </ion-label>
           <div slot="end" class="expense-actions">
             <ion-button fill="clear" class="edit-expense-btn" data-expense-id="${expense.id}">

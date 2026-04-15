@@ -11,6 +11,23 @@ class DashboardView {
     this.refresher = null;
   }
 
+  /** Clave de preferencia en localStorage para el usuario actual */
+  _recentActivityKey() {
+    const user = this.authAdapter.getCurrentUser();
+    return user ? `taxi_show_recent_activity_${user.id}` : 'taxi_show_recent_activity';
+  }
+
+  /** Lee la preferencia (true = mostrar, default true) */
+  _getShowRecentActivity() {
+    const val = localStorage.getItem(this._recentActivityKey());
+    return val === null ? true : val === 'true';
+  }
+
+  /** Guarda la preferencia */
+  _setShowRecentActivity(value) {
+    localStorage.setItem(this._recentActivityKey(), String(value));
+  }
+
   /**
    * Render the dashboard view
    */
@@ -136,16 +153,9 @@ class DashboardView {
     try {
       console.log('loadStats: Loading stats for user:', user.id, user.rol);
       
-      // Load services and expenses
-      const services = await this.reconcileAdapter.getServices();
-      const expenses = await this.reconcileAdapter.getExpenses();
-      
-      console.log('loadStats: Total services:', services.length);
-      console.log('loadStats: Total expenses:', expenses.length);
-      
-      // Filter data based on role
-      const filteredServices = this.filterByRole(services, user);
-      const filteredExpenses = this.filterByRole(expenses, user);
+      // Load services and expenses (already filtered by role in the adapter)
+      const filteredServices = await this.reconcileAdapter.getServices();
+      const filteredExpenses = await this.reconcileAdapter.getExpenses();
       
       console.log('loadStats: Filtered services:', filteredServices.length);
       console.log('loadStats: Filtered expenses:', filteredExpenses.length);
@@ -324,19 +334,53 @@ class DashboardView {
    */
   displayRecentActivity() {
     if (!this.stats) return;
-    
+
+    const container = document.getElementById('recent-activity');
+    const toggle    = document.getElementById('recent-activity-toggle');
+    if (!container) return;
+
+    const show = this._getShowRecentActivity();
+
+    // Sync toggle state (without firing the event)
+    if (toggle) {
+      toggle.checked = show;
+
+      // Attach listener only once (remove previous to avoid duplicates)
+      const newToggle = toggle.cloneNode(true);
+      newToggle.checked = show;
+      toggle.parentNode.replaceChild(newToggle, toggle);
+
+      newToggle.addEventListener('ionChange', (e) => {
+        this._setShowRecentActivity(e.detail.checked);
+        this._renderRecentActivityContent(e.detail.checked);
+      });
+    }
+
+    this._renderRecentActivityContent(show);
+  }
+
+  /** Renders (or hides) the content inside the recent-activity card */
+  _renderRecentActivityContent(show) {
     const container = document.getElementById('recent-activity');
     if (!container) return;
-    
-    if (this.stats.recentServices.length === 0) {
+
+    if (!show) {
+      container.innerHTML = '';
+      container.style.display = 'none';
+      return;
+    }
+
+    container.style.display = '';
+
+    if (!this.stats || this.stats.recentServices.length === 0) {
       container.innerHTML = '<p style="text-align: center; color: var(--ion-color-medium);">No hay actividad reciente</p>';
       return;
     }
-    
+
     container.innerHTML = this.stats.recentServices.map(service => {
       const paymentIcon = this.getPaymentIcon(service.paymentType);
-      const timeAgo = this.getTimeAgo(service.createdAt);
-      
+      const timeAgo     = this.getTimeAgo(service.createdAt);
+
       return `
         <div class="activity-item">
           <div class="activity-icon" style="background: var(--ion-color-success-tint);">${paymentIcon}</div>
@@ -465,64 +509,82 @@ class DashboardView {
   displayActionButtons(user) {
     const container = document.getElementById('action-buttons');
     if (!container) return;
-    
-    let buttons = '';
-    
+
+    // Tile button style
+    const tileStyle = `
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #1e3a6e;
+      border-radius: 14px;
+      padding: 20px 8px 16px;
+      cursor: pointer;
+      border: none;
+      width: 100%;
+      min-height: 110px;
+      gap: 10px;
+      transition: transform 0.1s, filter 0.1s;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    `;
+
+    const iconStyle = `font-size: 38px; color: #ffffff;`;
+    const labelStyle = `font-size: 11px; font-weight: 700; color: #ffffff; text-transform: uppercase; letter-spacing: 0.5px; text-align: center; line-height: 1.3;`;
+
+    const makeTile = (icon, label, onclick, bgColor = '#1e3a6e') => `
+      <button
+        onclick="${onclick}"
+        style="${tileStyle} background: ${bgColor};"
+        onmousedown="this.style.transform='scale(0.95)';this.style.filter='brightness(0.85)'"
+        onmouseup="this.style.transform='';this.style.filter=''"
+        onmouseleave="this.style.transform='';this.style.filter=''"
+        ontouchstart="this.style.transform='scale(0.95)';this.style.filter='brightness(0.85)'"
+        ontouchend="this.style.transform='';this.style.filter=''"
+      >
+        <ion-icon name="${icon}" style="${iconStyle}"></ion-icon>
+        <span style="${labelStyle}">${label}</span>
+      </button>
+    `;
+
+    const gridStyle = `
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 4px 0 8px;
+    `;
+
+    let tiles = '';
+
     if (user.rol === 'PATRON') {
       // Count pending requests
       const requests = JSON.parse(localStorage.getItem('taxi_join_requests') || '[]');
-      const pendingRequests = requests.filter(r => 
-        r.patronId === user.id && 
+      const pendingRequests = requests.filter(r =>
+        r.patronId === user.id &&
         r.estado === 'pendiente'
       );
       const pendingCount = pendingRequests.length;
-      
-      // Create badge HTML if there are pending requests
-      const badgeHTML = pendingCount > 0 
-        ? `<ion-badge color="danger" style="margin-left: 8px;">${pendingCount}</ion-badge>` 
-        : '';
-      
-      buttons = `
-        <ion-button expand="block" color="tertiary" onclick="window.app.showActiveShifts()">
-          <ion-icon slot="start" name="people-circle"></ion-icon>
-          Jornadas Activas
-        </ion-button>
-        <ion-button expand="block" color="primary" onclick="window.app.showFleetManagement()">
-          <ion-icon slot="start" name="people"></ion-icon>
-          Gestionar Flota
-          ${badgeHTML}
-        </ion-button>
-        <ion-button expand="block" color="success" onclick="window.app.showReports()">
-          <ion-icon slot="start" name="bar-chart"></ion-icon>
-          Ver Reportes
-        </ion-button>
+      const fleetLabel = pendingCount > 0 ? `Gestionar Flota (${pendingCount})` : 'Gestionar Flota';
+
+      tiles = `
+        ${makeTile('people-circle-outline', 'Jornadas Activas', "window.app.showActiveShifts()")}
+        ${makeTile('people-outline', fleetLabel, "window.app.showFleetManagement()")}
+        ${makeTile('bar-chart-outline', 'Ver Reportes', "window.app.showReports()", '#1a5c38')}
+        ${makeTile('time-outline', 'Historial Jornadas', "window.app.showShiftHistory()")}
+        ${makeTile('sync-outline', 'Sincronización', "window.app.showDataSync()")}
+        ${makeTile('log-out-outline', 'Cerrar Sesión', "handleLogout()", '#7b1c1c')}
       `;
     } else {
-      buttons = `
-        <ion-button expand="block" color="success" onclick="window.app.showCashManager()" style="background: linear-gradient(135deg, #10b981 0%, #059669 100%);">
-          <ion-icon slot="start" name="cash"></ion-icon>
-          💵 Gestión de Efectivo
-        </ion-button>
-        <ion-button expand="block" color="primary" onclick="window.app.showTaxistaPanel()">
-          <ion-icon slot="start" name="person-circle"></ion-icon>
-          Mi Panel Personal
-        </ion-button>
-        <ion-button expand="block" color="tertiary" onclick="window.app.showReports()">
-          <ion-icon slot="start" name="bar-chart"></ion-icon>
-          Ver Reportes
-        </ion-button>
+      tiles = `
+        ${makeTile('cash-outline', 'Gestión Efectivo', "window.app.showCashManager()", '#1a5c38')}
+        ${makeTile('person-circle-outline', 'Mi Panel', "window.app.showTaxistaPanel()")}
+        ${makeTile('bar-chart-outline', 'Ver Reportes', "window.app.showReports()")}
+        ${makeTile('time-outline', 'Historial Jornadas', "window.app.showShiftHistory()")}
+        ${makeTile('document-text-outline', 'Mis Condiciones', "window.app.showTaxistaConditions()")}
+        ${makeTile('log-out-outline', 'Cerrar Sesión', "handleLogout()", '#7b1c1c')}
       `;
     }
-    
-    // Common buttons for both roles
-    buttons += `
-      <ion-button expand="block" color="secondary" onclick="window.app.showShiftHistory()">
-        <ion-icon slot="start" name="time-outline"></ion-icon>
-        Historial de Jornadas
-      </ion-button>
-    `;
-    
-    container.innerHTML = buttons;
+
+    container.innerHTML = `<div style="${gridStyle}">${tiles}</div>`;
   }
 
   /**

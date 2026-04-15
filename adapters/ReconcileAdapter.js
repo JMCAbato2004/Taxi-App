@@ -57,7 +57,12 @@ class ReconcileAdapter {
 
       if (currentUser.rol === 'TAXISTA') {
         console.log('ReconcileAdapter.getServices: Filtering for TAXISTA');
-        const filtered = services.filter(s => s.userId === currentUser.id);
+        // Support both userId (new) and taxistaId (legacy) fields
+        const uid = currentUser.id;
+        const filtered = services.filter(s =>
+          s.userId === uid || s.taxistaId === uid ||
+          String(s.userId) === String(uid) || String(s.taxistaId) === String(uid)
+        );
         console.log('ReconcileAdapter.getServices: Filtered services:', filtered.length);
         return filtered;
       }
@@ -71,12 +76,15 @@ class ReconcileAdapter {
           u.estado === 'asociado' && 
           u.patronId === currentUser.id
         );
-        const taxistaIds = associatedTaxistas.map(t => t.id);
+        const taxistaIds = associatedTaxistas.map(t => String(t.id));
         console.log('ReconcileAdapter.getServices: Associated taxista IDs:', taxistaIds);
         
-        // Include patron's own services + associated taxistas' services
-        const filtered = services.filter(s => 
-          taxistaIds.includes(s.userId) || s.userId === currentUser.id
+        const uid = String(currentUser.id);
+        const filtered = services.filter(s =>
+          taxistaIds.includes(String(s.userId)) ||
+          taxistaIds.includes(String(s.taxistaId)) ||
+          String(s.userId) === uid ||
+          String(s.taxistaId) === uid
         );
         console.log('ReconcileAdapter.getServices: Filtered services for PATRON (including own):', filtered.length);
         return filtered;
@@ -246,7 +254,12 @@ class ReconcileAdapter {
       if (!currentUser) return [];
 
       if (currentUser.rol === 'TAXISTA') {
-        return expenses.filter(e => e.userId === currentUser.id);
+        // Support both userId (new) and taxistaId (legacy) fields
+        const uid = currentUser.id;
+        return expenses.filter(e =>
+          e.userId === uid || e.taxistaId === uid ||
+          String(e.userId) === String(uid) || String(e.taxistaId) === String(uid)
+        );
       }
 
       // PATRON sees expenses from associated taxistas only
@@ -257,8 +270,11 @@ class ReconcileAdapter {
           u.estado === 'asociado' && 
           u.patronId === currentUser.id
         );
-        const taxistaIds = associatedTaxistas.map(t => t.id);
-        return expenses.filter(e => taxistaIds.includes(e.userId));
+        const taxistaIds = associatedTaxistas.map(t => String(t.id));
+        return expenses.filter(e =>
+          taxistaIds.includes(String(e.userId)) ||
+          taxistaIds.includes(String(e.taxistaId))
+        );
       }
 
       return expenses;
@@ -301,6 +317,7 @@ class ReconcileAdapter {
         id: 'expense-' + Date.now(),
         ...expenseData,
         userId: currentUser.id,
+        shiftId: window.workShiftAdapter ? (await window.workShiftAdapter.getActiveShift())?.id || null : null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
